@@ -103,17 +103,41 @@ public class ReservationServiceImpl implements ReservationService {
             throw new IllegalArgumentException("無權限執行此操作");
         }
         
-        if (reservation.getStatus() == ReservationStatus.CANCELLED || reservation.getStatus() == ReservationStatus.PICKED_UP || reservation.getStatus() == ReservationStatus.EXPIRED) {
+        if (reservation.getStatus() == ReservationStatus.CANCELLED || 
+            reservation.getStatus() == ReservationStatus.PICKED_UP || 
+            reservation.getStatus() == ReservationStatus.EXPIRED) {
              throw new IllegalStateException("無法取消已完成或已取消的預約");
         }
         
         ReservationStatus oldStatus = reservation.getStatus();
+        Long bookCopyId = reservation.getBookCopy().getId();
+        int cancelledQueuePosition = reservation.getQueuePosition();
+        
+        // 取消預約
         reservation.setStatus(ReservationStatus.CANCELLED);
         reservationRepository.save(reservation);
         
-        // 如果是 AVAILABLE 狀態，副本狀態需重新處理（變為可借或遞補下一位）
-        if (oldStatus == ReservationStatus.AVAILABLE) {
-            handleReturn(reservation.getBookCopy().getId());
+        if (oldStatus == ReservationStatus.PENDING) {
+            // 如果取消的是 PENDING（排隊中）的預約，需要更新後面所有人的排隊位置
+            List<Reservation> laterReservations = reservationRepository
+                    .findByBookCopyIdAndStatusOrderByQueuePositionAsc(bookCopyId, ReservationStatus.PENDING);
+            
+            // 更新所有排在後面的人的 queuePosition（往前遞補）
+            for (Reservation r : laterReservations) {
+                if (r.getQueuePosition() > cancelledQueuePosition) {
+                    r.setQueuePosition(r.getQueuePosition() - 1);
+                    reservationRepository.save(r);
+                    
+                    // 發送通知告知排隊位置更新
+                    notificationService.sendNotification(r.getUser(), NotificationType.RESERVE_SUCCESS, 
+                            "預約排隊順位更新", 
+                            "您預約的《" + r.getBookCopy().getBook().getTitle() + "》排隊順位已更新為第 " + r.getQueuePosition() + " 位", 
+                            null, r.getId(), ReferenceType.RESERVATION);
+                }
+            }
+        } else if (oldStatus == ReservationStatus.AVAILABLE) {
+            // 如果取消的是 AVAILABLE（可取書）狀態的預約，需要通知下一位或將副本改為可借
+            handleReturn(bookCopyId);
         }
     }
 
@@ -140,25 +164,25 @@ public class ReservationServiceImpl implements ReservationService {
             copy.setStatus(BookCopyStatus.A);
         } else {
             // 如果有人預約，取出佇列中的第一位
-            Reservation next = queue.get(0);
+            Reservation nextReservation = queue.getFirst();
             
             // 更新預約狀態為 "AVAILABLE" (可取書)
-            next.setStatus(ReservationStatus.AVAILABLE);
+            nextReservation.setStatus(ReservationStatus.AVAILABLE);
             // 設定通知日期為現在
-            next.setNotifyDate(LocalDateTime.now());
+            nextReservation.setNotifyDate(LocalDateTime.now());
             // 設定取書截止日期為通知後 7 天
-            next.setExpirationDate(LocalDate.now().plusDays(7));
+            nextReservation.setExpirationDate(LocalDate.now().plusDays(7));
             // 重置排隊順位 (可選，但在 AVAILABLE 狀態下此欄位較無意義)
-            next.setQueuePosition(0); 
-            reservationRepository.save(next);
+            nextReservation.setQueuePosition(0);
+            reservationRepository.save(nextReservation);
             
             // 將書籍副本狀態設為 "R" (已預約/保留中)
             copy.setStatus(BookCopyStatus.R); 
             
             // 發送通知給下一位預約者
-            notificationService.sendNotification(next.getUser(), NotificationType.RESERVE_AVAILABLE, 
-                    "預約書籍到館通知", "您預約的書籍《" + copy.getBook().getTitle() + "》已到館，請於 " + next.getExpirationDate() + " 前取書。", 
-                    next.getId(), next.getId(), ReferenceType.RESERVATION);
+            notificationService.sendNotification(nextReservation.getUser(), NotificationType.RESERVE_AVAILABLE,
+                    "預約書籍到館通知", "您預約的書籍《" + copy.getBook().getTitle() + "》已到館，請於 " + nextReservation.getExpirationDate() + " 前取書。",
+                    nextReservation.getId(), nextReservation.getId(), ReferenceType.RESERVATION);
         }
         bookCopyRepository.save(copy);
     }
