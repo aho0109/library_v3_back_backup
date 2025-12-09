@@ -64,10 +64,17 @@ public class LoanServiceImpl implements LoanService {
         return loanRepository.findOverdueByUserId(userId);
     }
 
+    /**
+     * 管理員處理借閱。
+     * @param uniqueCode 書籍副本唯一碼
+     * @param cardId 使用者卡號
+     * @return 借閱結果 DTO
+     */
     @Override
-    public BorrowRespDto borrowBook(String uniqueCode, Long userId) {
-        User user = userRepository.findById(userId)
+    public BorrowRespDto borrowBook(String uniqueCode, String cardId) {
+        User user = userRepository.findByCardId(cardId)
                 .orElseThrow(() -> new EntityNotFoundException("找不到使用者"));
+        Long userId = user.getId();
 
         if (user.getStatus() == UserStatus.SUSPENDED) {
             // 檢查停權是否已過期

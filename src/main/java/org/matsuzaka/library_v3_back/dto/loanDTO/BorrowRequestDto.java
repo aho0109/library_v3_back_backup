@@ -5,5 +5,5 @@ import lombok.Data;
 @Data
 public class BorrowRequestDto {
     private String uniqueCode;
-    private Long userId;
+    private String cardId;
 }

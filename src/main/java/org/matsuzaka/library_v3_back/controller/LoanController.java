@@ -22,43 +22,16 @@ public class LoanController {
         this.loanService = loanService;
     }
 
-    @GetMapping("/current/{userId}")
-    public ResponseEntity<Set<LoanItemRespDto>> getCurrentLoans(@PathVariable Long userId) {
-        Set<LoanItemRespDto> loans = loanService.getCurrentByUserId(userId);
-        return ResponseEntity.ok(loans);
-    }
-
-    @GetMapping("/history/{userId}")
-    public ResponseEntity<List<LoanItemRespDto>> getLoanHistory(@PathVariable Long userId) {
-        List<LoanItemRespDto> history = loanService.getHistoryByUserId(userId);
-        return ResponseEntity.ok(history);
-    }
-
-    @GetMapping("/overdue/{userId}")
-    public ResponseEntity<List<LoanItemRespDto>> getOverdueLoans(@PathVariable Long userId) {
-        List<LoanItemRespDto> overdue = loanService.getOverdueByUserId(userId);
-        return ResponseEntity.ok(overdue);
-    }
-
-    // 如果有收藏功能，新增一個 FavoritesController 或在 LoanController 中處理
-    // @GetMapping("/favorites/{userId}")
-    // public ResponseEntity<List<LoanItemRespDto>> getFavorites(@PathVariable Long userId) {
-    //     List<LoanItemRespDto> favorites = loanService.getFavoritesByUserId(userId);
-    //     return ResponseEntity.ok(favorites);
-    // }
-
-
-
     /* 借閱 */
     /**
      * 處理書籍借閱請求 (Admin).
-     * @param requestDto 包含 uniqueCode 和 userId 的借閱請求 DTO
+     * @param requestDto 包含 uniqueCode 和 cardId 的借閱請求 DTO
      * @return 借閱操作的結果
      */
     @PostMapping("/borrow")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')") 
     public ResponseEntity<BorrowRespDto> borrowBook(@RequestBody BorrowRequestDto requestDto) {
-        BorrowRespDto response = loanService.borrowBook(requestDto.getUniqueCode(), requestDto.getUserId());
+        BorrowRespDto response = loanService.borrowBook(requestDto.getUniqueCode(), requestDto.getCardId());
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);
         } else {
@@ -108,7 +81,7 @@ public class LoanController {
      * @return 當前登入者的借閱中書籍列表。
      */
     @GetMapping("/my-current")
-    @PreAuthorize("isAuthenticated()") // 確保只有登入的使用者才能訪問
+    @PreAuthorize("isAuthenticated() and (hasAuthority('ROLE_ADMIN'))") // 可根據需求調整權限
     public ResponseEntity<Set<LoanItemRespDto>> getCurrentLoans(@AuthenticationPrincipal UserDetailSecu currentUser) {
         Long userId = currentUser.getUser().getId(); // 從安全的物件中獲取 ID
         Set<LoanItemRespDto> loans = loanService.getCurrentByUserId(userId);
@@ -116,7 +89,7 @@ public class LoanController {
     }
 
     @GetMapping("/my-history")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and (hasAuthority('ROLE_ADMIN'))") // 可根據需求調整權限
     public ResponseEntity<List<LoanItemRespDto>> getLoanHistory(@AuthenticationPrincipal UserDetailSecu currentUser) {
         Long userId = currentUser.getUser().getId(); // 從安全的物件中獲取 ID
         List<LoanItemRespDto> history = loanService.getHistoryByUserId(userId);
@@ -124,12 +97,10 @@ public class LoanController {
     }
 
     @GetMapping("/my-overdue")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() and (hasAuthority('ROLE_ADMIN'))") // 可根據需求調整權限
     public ResponseEntity<List<LoanItemRespDto>> getOverdueLoans(@AuthenticationPrincipal UserDetailSecu currentUser) {
         Long userId = currentUser.getUser().getId(); // 從安全的物件中獲取 ID
         List<LoanItemRespDto> overdue = loanService.getOverdueByUserId(userId);
         return ResponseEntity.ok(overdue);
     }
-
-    // Removed obsolete endpoints borrow0822 and return0822 as new logic replaces them.
 }

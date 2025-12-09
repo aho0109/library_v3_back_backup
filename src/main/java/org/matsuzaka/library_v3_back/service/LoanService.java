@@ -14,13 +14,13 @@ public interface LoanService {
     List<LoanItemRespDto> getHistoryByUserId(Long userId);
     List<LoanItemRespDto> getOverdueByUserId(Long userId);
 
-    /* 借閱功能 */
     /**
-     * Admin processes borrow (pickup).
-     * @param uniqueCode Book copy unique code
-     * @param userId User ID
+     * 管理員處理借閱功能
+     * @param uniqueCode
+     * @param cardId
+     * @return
      */
-    BorrowRespDto borrowBook(String uniqueCode, Long userId);
+    BorrowRespDto borrowBook(String uniqueCode, String cardId);
 
     /* 歸還功能 */
     /**
