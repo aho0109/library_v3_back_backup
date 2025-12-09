@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import org.matsuzaka.library_v3_back.model.enums.BookCopyStatus;
+
 import java.util.List;
 
 @Entity
@@ -30,6 +32,9 @@ public class BookCopy {
     @Column(name = "status", nullable = false, length = 10)
     private BookCopyStatus status; // 使用 Java Enum
 
+    @Column(name = "location")
+    private String location = "新書上架區"; // Default location
+
     // 一個實體副本可以有多個借閱記錄
     @OneToMany(mappedBy = "bookCopy", fetch = FetchType.LAZY)
     private List<Loan> loans;
@@ -38,10 +43,4 @@ public class BookCopy {
     @OneToMany(mappedBy = "bookCopy", fetch = FetchType.LAZY)
     private List<Reservation> reservations;
 
-    // 定義一個 Java Enum 來對應 ENUM 類型
-    public enum BookCopyStatus {
-        A, // Available
-        L, // Loaned
-        R  // Reserved
-    }
 }

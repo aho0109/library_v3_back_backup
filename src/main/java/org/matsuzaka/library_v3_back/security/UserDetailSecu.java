@@ -25,7 +25,7 @@ public class UserDetailSecu implements UserDetails {
     public Collection<? extends GrantedAuthority> getAuthorities() {
         // 將你的 User 實體中的 role 字串轉換為 Spring Security 的 GrantedAuthority 物件
         // 確保你的 role 欄位儲存的是 "ROLE_USER", "ROLE_ADMIN" 這樣的格式
-        return Collections.singletonList(new SimpleGrantedAuthority(user.getRole()));
+        return Collections.singletonList(new SimpleGrantedAuthority(user.getRole().toString()));
         // 如果一個使用者可能有多個角色，可將多個 SimpleGrantedAuthority 放入一個 List 或其他 Collection，例如 Arrays.asList 或 ArrayList，而不是用 singletonList。這樣可以正確回傳多個權限給 Spring Security。
     }
 
@@ -42,7 +42,7 @@ public class UserDetailSecu implements UserDetails {
     }
 
     public String getRole() {
-        return user.getRole(); // 如果有角色欄位，返回角色
+        return user.getRole().toString(); // 如果有角色欄位，返回角色
     }
 
     // 以下方法用於帳號狀態管理，通常預設為 true

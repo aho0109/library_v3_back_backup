@@ -3,6 +3,7 @@ package org.matsuzaka.library_v3_back.config;
 
 import org.matsuzaka.library_v3_back.model.entity.User;
 import org.matsuzaka.library_v3_back.model.entity.UserDetail;
+import org.matsuzaka.library_v3_back.model.enums.Role;
 import org.matsuzaka.library_v3_back.model.repositoryDao.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -34,7 +35,8 @@ public class DataInitializer {
                 // 使用 PasswordEncoder 對密碼進行編碼
                 user.setPassword(passwordEncoder.encode("123456789")); // 明文密碼是 "123456789"
                 user.setCardId("LIB005");
-                user.setRole("ROLE_ADMIN"); // 設定角色
+                user.setRole(Role.ROLE_USER); // 設定角色
+                user.setPenaltyPoints(0); // 初始罰點數為 0
 
                 // 建立 User 和 UserDetail 之間的關聯
                 user.setUserDetail(userDetail);

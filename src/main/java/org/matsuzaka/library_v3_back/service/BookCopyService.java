@@ -23,17 +23,4 @@ public interface BookCopyService {
      * @param copyId 副本ID
      */
     void deleteBookCopy(Long copyId);
-
-    /**
-     * 強制歸還副本
-     * @param copyId 副本ID
-     */
-    ReturnResponseDto forceReturn(Long copyId, Long userId);
-
-    /**
-     * 強制借出副本
-     * @param copyId 副本ID
-     * @param borrowerAccount 借閱者帳號
-     */
-    void forceCheckout(Long copyId, String borrowerAccount);
 }

@@ -1,5 +1,7 @@
 package org.matsuzaka.library_v3_back.model.entity;
 
+import org.matsuzaka.library_v3_back.model.enums.ReservationStatus;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -30,9 +32,15 @@ public class Reservation {
     @JoinColumn(name = "book_copy_id", nullable = false)
     private BookCopy bookCopy;
 
+    @Column(name = "queue_position", nullable = false)
+    private Integer queuePosition;
+
     @CreationTimestamp
     @Column(name = "reserve_date", updatable = false)
     private LocalDateTime reserveDate;
+
+    @Column(name = "notify_date")
+    private LocalDateTime notifyDate;
 
     @Column(name = "expiration_date", nullable = false)
     private LocalDate expirationDate;
@@ -40,8 +48,7 @@ public class Reservation {
     @Column(name = "pickup_date")
     private LocalDateTime pickupDate; // 可為 NULL
 
-    // 多個預約記錄屬於一個預約狀態
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reservation_status_id", nullable = false)
-    private ReservationStatus reservationStatus;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private ReservationStatus status = ReservationStatus.PENDING;
 }

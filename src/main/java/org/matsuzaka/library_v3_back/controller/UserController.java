@@ -2,12 +2,15 @@ package org.matsuzaka.library_v3_back.controller;
 
 
 import jakarta.persistence.EntityNotFoundException;
+import org.matsuzaka.library_v3_back.dto.notificationDTO.NotificationResponseDto;
 import org.matsuzaka.library_v3_back.dto.userDTO.*;
 import org.matsuzaka.library_v3_back.model.entity.User;
 import org.matsuzaka.library_v3_back.security.UserDetailSecu;
+import org.matsuzaka.library_v3_back.service.NotificationService;
 import org.matsuzaka.library_v3_back.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,8 +22,11 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
-    public UserController(UserService userService) {
+    private final NotificationService notificationService;
+
+    public UserController(UserService userService, NotificationService notificationService) {
         this.userService = userService;
+        this.notificationService = notificationService;
     }
 
     @GetMapping("/test/findAllUsers")
@@ -28,13 +34,6 @@ public class UserController {
         return userService.getAllUserService();
     }
 
-    // 個人帳號頁面
-    @GetMapping("/{userId}/profile") // 獲取使用者個人檔案
-    public ResponseEntity<UserDetailRespDto> getUserProfile(@PathVariable Long userId) {
-        // 這裡不需要 try-catch，EntityNotFoundException 會被 GlobalExceptionHandler 捕獲
-        UserDetailRespDto userProfile = userService.getUserDetailById(userId);
-        return ResponseEntity.ok(userProfile);
-    }
 
     // 註冊
     @PostMapping("/register") // 新增註冊 API 端點
@@ -54,79 +53,9 @@ public class UserController {
         }
     }
 
-    // 更新密碼
-    /**
-     * 驗證舊密碼的端點。
-     * 這裡只接收舊密碼，不包含新密碼，用於前端的第一步驗證。
-     */
-    @PostMapping("/update/{userId}/change-password/verify-old")
-    public ResponseEntity<ChangePasswordResponse> verifyOldPassword(@PathVariable Long userId, @RequestBody ChangePasswordRequest request) {
-        try {
-            boolean isValid = userService.verifyOldPassword(userId, request.getOldPassword());
-            if (isValid) {
-                return ResponseEntity.ok(new ChangePasswordResponse(true, "原密碼驗證成功。"));
-            } else {
-                // 理論上 verifyOldPassword 會拋出異常，這裡不會執行到
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ChangePasswordResponse(false, "原密碼驗證失敗。"));
-            }
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ChangePasswordResponse(false, "使用者不存在。"));
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            // IllegalArgumentException 處理 "原密碼輸入錯誤"
-            // IllegalStateException 處理 "帳號被鎖定"
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ChangePasswordResponse(false, e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ChangePasswordResponse(false, "驗證原密碼時發生錯誤哈哈。"));
-        }
-    }
-    /**
-     * 移除 try-catch 區塊，讓例外直接拋出，由 GlobalExceptionHandler 捕獲
-     */
-    @PostMapping("/update/{userId}/change-password/verify-old-maybe")
-    public ResponseEntity<ChangePasswordResponse> verifyOldPasswordMaybe(@PathVariable Long userId, @RequestBody ChangePasswordRequest request) {
-        // 移除 try-catch 區塊，讓例外直接拋出，由 GlobalExceptionHandler 捕獲
-        boolean isValid = userService.verifyOldPassword(userId, request.getOldPassword());
-        // 如果驗證成功，返回成功響應
-        return ResponseEntity.ok(new ChangePasswordResponse(true, "原密碼驗證成功。"));
-    }
-
-    /**
-     * 修改密碼的端點。
-     * 接收舊密碼和新密碼。
-     */
-    @PostMapping("/update/{userId}/change-password")
-    public ResponseEntity<ChangePasswordResponse> changePassword(@PathVariable Long userId, @RequestBody ChangePasswordRequest request) {
-        try {
-            userService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
-            return ResponseEntity.ok(new ChangePasswordResponse(true, "密碼修改成功。"));
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ChangePasswordResponse(false, "使用者不存在。"));
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            // IllegalArgumentException 處理 "原密碼不正確" 或 "新密碼不符合要求"
-            // IllegalStateException 處理 "帳號被鎖定"
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ChangePasswordResponse(false, e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ChangePasswordResponse(false, "修改密碼時發生錯誤。"));
-        }
-    }
-    /**
-     * 例外將由 GlobalExceptionHandler 處理。
-     */
-    @PostMapping("/update/{userId}/change-password-maybe")
-    public ResponseEntity<ChangePasswordResponse> changePasswordMaybe(@PathVariable Long userId, @RequestBody ChangePasswordRequest request) {
-        // 移除 try-catch 區塊，讓例外直接拋出，由 GlobalExceptionHandler 捕獲
-        userService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
-        // 如果修改成功，返回成功響應
-        return ResponseEntity.ok(new ChangePasswordResponse(true, "密碼修改成功。"));
-    }
-
-
 
 
     // 以下為新版
-
-
-
 
 
     /**
@@ -173,6 +102,19 @@ public class UserController {
         Long userId = currentUser.getUser().getId();
         userService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
         return ResponseEntity.ok(new ChangePasswordResponse(true, "密碼修改成功NEW。"));
+    }
+
+    @GetMapping("/me/notifications")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<NotificationResponseDto>> getMyNotifications(@AuthenticationPrincipal UserDetailSecu currentUser) {
+        return ResponseEntity.ok(notificationService.getUserNotifications(currentUser.getUser().getId()));
+    }
+
+    @PutMapping("/me/notifications/{id}/read")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> markNotificationRead(@PathVariable Long id) {
+        notificationService.markAsRead(id);
+        return ResponseEntity.ok().build();
     }
 
     /*

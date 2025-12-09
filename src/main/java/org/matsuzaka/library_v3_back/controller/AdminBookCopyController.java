@@ -52,48 +52,4 @@ public class AdminBookCopyController {
         bookCopyService.deleteBookCopy(copyId);
         return ResponseEntity.ok("副本刪除成功");
     }
-
-    /**
-     * 強制歸還副本
-     *
-     * @return 操作結果
-     */
-    @PostMapping("/book-copies/force-return")
-    public ResponseEntity<ReturnResponseDto> forceReturn(@RequestBody ReturnRequestDto returnRequestDto) {
-        ReturnResponseDto response = bookCopyService.forceReturn(returnRequestDto.getLoanId(), returnRequestDto.getUserId());
-        if (response.isSuccess()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
-    /**
-     * 強制借出副本
-     *
-     * @param copyId 副本ID
-     * @param request 包含借閱者帳號的請求
-     * @return 操作結果
-     */
-    @PostMapping("/book-copies/{copyId}/force-checkout")
-    public ResponseEntity<String> forceCheckout(@PathVariable Long copyId,
-                                               @RequestBody ForceCheckoutRequest request) {
-        bookCopyService.forceCheckout(copyId, request.getBorrowerAccount());
-        return ResponseEntity.ok("強制借出成功");
-    }
-
-    /**
-     * 強制借出請求的 DTO
-     */
-    public static class ForceCheckoutRequest {
-        private String borrowerAccount;
-
-        public String getBorrowerAccount() {
-            return borrowerAccount;
-        }
-
-        public void setBorrowerAccount(String borrowerAccount) {
-            this.borrowerAccount = borrowerAccount;
-        }
-    }
 }

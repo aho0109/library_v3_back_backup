@@ -51,40 +51,47 @@ public class LoanController {
 
     /* 借閱 */
     /**
-     * 處理書籍借閱請求。
-     * 只有已認證的使用者才能執行此操作。
-     * @param requestDto 包含 bookId 和 userId 的借閱請求 DTO
+     * 處理書籍借閱請求 (Admin).
+     * @param requestDto 包含 uniqueCode 和 userId 的借閱請求 DTO
      * @return 借閱操作的結果
      */
     @PostMapping("/borrow")
-    @PreAuthorize("isAuthenticated()") // 只有已認證的使用者才能訪問此端點
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')") 
     public ResponseEntity<BorrowRespDto> borrowBook(@RequestBody BorrowRequestDto requestDto) {
-        BorrowRespDto response = loanService.borrowBook(requestDto.getBookId(), requestDto.getUserId());
+        BorrowRespDto response = loanService.borrowBook(requestDto.getUniqueCode(), requestDto.getUserId());
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);
         } else {
-            // 根據業務需求，可以返回 400 Bad Request 或其他狀態碼
-            System.out.println("嘗試借閱書本ID為：" + requestDto.getBookId());
-            System.out.println("使用者為：" + requestDto.getUserId());
             return ResponseEntity.badRequest().body(response);
         }
     }
 
     /* 歸還 */
     /**
-     * 處理書籍歸還請求。
-     * 只有已認證的使用者才能執行此操作。
-     * @param requestDto 包含 loanId 和 userId 的歸還請求 DTO
+     * 處理書籍歸還請求 (Admin).
+     * @param requestDto 包含 uniqueCode 的歸還請求 DTO
      * @return 歸還操作的結果
      */
     @PostMapping("/return")
-    @PreAuthorize("isAuthenticated()") // 只有已認證的使用者才能訪問此端點
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ReturnResponseDto> returnBook(@RequestBody ReturnRequestDto requestDto) {
-        ReturnResponseDto response = loanService.returnBook(requestDto.getLoanId(), requestDto.getUserId());
+        ReturnResponseDto response = loanService.returnBook(requestDto.getUniqueCode());
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /* 續借 */
+    @PostMapping("/{loanId}/renew")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> renewBook(@PathVariable Long loanId, @AuthenticationPrincipal UserDetailSecu currentUser) {
+        try {
+            loanService.renewBook(loanId, currentUser.getUser().getId());
+            return ResponseEntity.ok("Renew successful");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
@@ -124,53 +131,5 @@ public class LoanController {
         return ResponseEntity.ok(overdue);
     }
 
-    /**
-     * 【核心修改 2：簡化借閱請求】
-     * 借閱書籍時，前端不再需要（也不應該）傳送 userId。
-     * 後端會直接從 JWT 中得知是誰在進行操作。
-     *
-     * @param currentUser 當前登入的使用者。
-     * @param requestDto 只包含 bookId 的請求 DTO。
-     * @return 借閱操作的結果。
-     */
-    @PostMapping("/borrow0822")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<BorrowRespDto> borrowBook(@AuthenticationPrincipal UserDetailSecu currentUser, @RequestBody BorrowRequestDto requestDto) {
-        Long userId = currentUser.getUser().getId();
-        // 呼叫 Service 層時，傳入從 JWT 中安全獲取的 userId
-        BorrowRespDto response = loanService.borrowBook(requestDto.getBookId(), userId);
-        if (response.isSuccess()) {
-            return ResponseEntity.ok(response);
-        } else {
-            // 根據業務需求，可以返回 400 Bad Request 或其他狀態碼
-            System.out.println("嘗試借閱書本ID為：" + requestDto.getBookId());
-            System.out.println("使用者為：" + userId);
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
-    /**
-     * 【核心修改 3：簡化歸還請求】
-     * 同樣地，歸還書籍時，前端也不再需要傳送 userId。
-     *
-     * @param currentUser 當前登入的使用者。
-     * @param requestDto 只包含 loanId 的請求 DTO。
-     * @return 歸還操作的結果。
-     */
-    @PostMapping("/return0822")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ReturnResponseDto> returnBook(@AuthenticationPrincipal UserDetailSecu currentUser, @RequestBody ReturnRequestDto requestDto) {
-        Long userId = currentUser.getUser().getId();
-        // 呼叫 Service 層時，傳入從 JWT 中安全獲取的 userId
-        ReturnResponseDto response = loanService.returnBook(requestDto.getLoanId(), userId);
-        if (response.isSuccess()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
-
-
-
+    // Removed obsolete endpoints borrow0822 and return0822 as new logic replaces them.
 }

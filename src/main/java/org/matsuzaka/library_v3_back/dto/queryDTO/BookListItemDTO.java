@@ -60,6 +60,10 @@ public class BookListItemDTO {
     private String mainCategoryTitle; // 主分類名稱（管理員查看需要）
     private String subCategoryTitle;  // 子分類名稱（管理員查看需要）
 
+    // 新增欄位 (依據 說明.md 需求)
+    private java.time.LocalDate addedDate; // 上架日期
+    private Integer totalLoanCount; // 累計借閱次數
+
     /**
      * 靜態方法，用於從 JPA Book Entity 轉換為 BookListItemDTO。
      * 支持舊版本接口，不指定seriesDisplay時默認為顯示所有書籍模式
@@ -149,6 +153,10 @@ public class BookListItemDTO {
                 dto.setMainCategoryTitle(book.getCategorySub().getCategory().getCategoryTitle());
             }
         }
+        
+        // 設定新增欄位
+        dto.setAddedDate(book.getAddedDate());
+        dto.setTotalLoanCount(book.getTotalLoanCount());
 
         return dto;
     }

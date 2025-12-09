@@ -1,11 +1,17 @@
 package org.matsuzaka.library_v3_back.Scheduler;
 
-import jakarta.annotation.PostConstruct;
 import org.matsuzaka.library_v3_back.model.entity.Loan;
+import org.matsuzaka.library_v3_back.model.entity.Reservation;
+import org.matsuzaka.library_v3_back.model.entity.User;
+import org.matsuzaka.library_v3_back.model.enums.*;
 import org.matsuzaka.library_v3_back.model.repositoryDao.LoanRepository;
-import org.matsuzaka.library_v3_back.service.UserService;
+import org.matsuzaka.library_v3_back.model.repositoryDao.ReservationRepository;
+import org.matsuzaka.library_v3_back.model.repositoryDao.UserRepository;
+import org.matsuzaka.library_v3_back.service.NotificationService;
+import org.matsuzaka.library_v3_back.service.ReservationService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,32 +21,92 @@ import java.util.List;
 public class OverdueCheckScheduler {
 
     private final LoanRepository loanRepository;
-    private final UserService userService; // 注入 UserService 來處理用戶凍結
+    private final ReservationRepository reservationRepository;
+    private final UserRepository userRepository;
+    private final ReservationService reservationService;
+    private final NotificationService notificationService;
 
-    public OverdueCheckScheduler(LoanRepository loanRepository, UserService userService) {
+    public OverdueCheckScheduler(LoanRepository loanRepository,
+                                 ReservationRepository reservationRepository,
+                                 UserRepository userRepository,
+                                 ReservationService reservationService,
+                                 NotificationService notificationService) {
         this.loanRepository = loanRepository;
-        this.userService = userService;
+        this.reservationRepository = reservationRepository;
+        this.userRepository = userRepository;
+        this.reservationService = reservationService;
+        this.notificationService = notificationService;
     }
 
     // 每天凌晨 0 點執行
     @Scheduled(cron = "0 0 0 * * ?")
-    @PostConstruct // 應用啟動時就也會執行一次
-    // 或者 for testing: @Scheduled(fixedRate = 30000) // 每 30 秒執行一次 (測試用)
-    public void checkAndHandleOverdueLoans() {
-        System.out.println("Running overdue loan check at " + LocalDateTime.now());
+    // @PostConstruct // 測試時可取消註解，正式環境請註解
+    @Transactional
+    public void dailyCheck() {
+        checkOverdueLoans();
+        checkExpiredReservations();
+    }
 
-        // 找到所有 ON_LOAN 狀態，且dueDate早於今天的借閱記錄
-        // 注意：這裡使用 LocalDate.now() 會是當天的日期，時間部分為 00:00:00
-        List<Loan> overdueLoans = loanRepository.findByStatusAndDueDateBefore(Loan.LoanStatus.ON_LOAN, LocalDate.now());
+    private void checkOverdueLoans() {
+        System.out.println("執行逾期檢查：" + LocalDateTime.now());
+        
+        // 找出所有未歸還的借閱記錄
+        List<Loan> overdueLoans = loanRepository.findByReturnDateIsNull();
+        LocalDate today = LocalDate.now();
 
         for (Loan loan : overdueLoans) {
-            // 更新借閱狀態為 OVERDUE
-            loan.setStatus(Loan.LoanStatus.OVERDUE);
-            loanRepository.save(loan); // 保存更新
+            if (loan.getDueDate().isBefore(today)) {
+                // 逾期：每日累計違規點數
+                User user = loan.getUser();
+                
+                // 增加違規點數（一天一點）
+                user.setPenaltyPoints(user.getPenaltyPoints() + 1);
+                
+                // 檢查是否達停權標準
+                if (user.getPenaltyPoints() >= 10) {
+                    user.setPenaltyPoints(0); // 歸零點數
+                    user.setStatus(UserStatus.SUSPENDED);
+                    
+                    LocalDateTime baseTime = (user.getSuspendedUntil() != null && user.getSuspendedUntil().isAfter(LocalDateTime.now())) 
+                            ? user.getSuspendedUntil() 
+                            : LocalDateTime.now();
+                    user.setSuspendedUntil(baseTime.plusDays(30));
+                    
+                    notificationService.sendNotification(user, NotificationType.PENALTY, "帳號停權通知", 
+                            "您因書籍《" + loan.getBookCopy().getBook().getTitle() + "》逾期，累積違規點數達 10 點，帳號停權 30 天。", 
+                            loan.getId(), null, ReferenceType.PENALTY);
+                } else {
+                    notificationService.sendNotification(user, NotificationType.LOAN_DUE, "逾期提醒", 
+                            "書籍《" + loan.getBookCopy().getBook().getTitle() + "》逾期，新增 1 點違規點數。目前累積：" + user.getPenaltyPoints() + " 點", 
+                            loan.getId(), null, ReferenceType.LOAN);
+                }
+                
+                userRepository.save(user);
+                
+                // 更新借閱狀態為逾期
+                if (loan.getStatus() != LoanStatus.OVERDUE) {
+                    loan.setStatus(LoanStatus.OVERDUE);
+                    loanRepository.save(loan);
+                }
+            }
+        }
+    }
 
-            /*// 凍結相關使用者
-            userService.suspendUserForTest(loan.getUser().getId()); // 假設 Loan 實體有指向 User 的關聯
-            System.out.println("Loan " + loan.getId() + " is overdue. User " + loan.getUser().getId() + " is suspended.");*/
+    private void checkExpiredReservations() {
+        System.out.println("執行預約過期檢查");
+        List<Reservation> expiredReservations = reservationRepository.findByStatusAndExpirationDateBefore(ReservationStatus.AVAILABLE, LocalDate.now());
+        
+        for (Reservation r : expiredReservations) {
+            r.setStatus(ReservationStatus.EXPIRED);
+            reservationRepository.save(r);
+            
+            notificationService.sendNotification(r.getUser(), NotificationType.RESERVE_EXPIRING, "預約已過期", 
+                    "您預約的《" + r.getBookCopy().getBook().getTitle() + "》已過期。", 
+                    r.getId(), null, ReferenceType.RESERVATION);
+            
+            // 遞補給下一位預約者
+            reservationService.handleReturn(r.getBookCopy().getId());
         }
     }
 }
+

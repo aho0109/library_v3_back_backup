@@ -6,6 +6,8 @@ import org.matsuzaka.library_v3_back.dto.userDTO.UserDetailRespDto;
 import org.matsuzaka.library_v3_back.dto.userDTO.UserRegistrationRequest;
 import org.matsuzaka.library_v3_back.model.entity.User;
 import org.matsuzaka.library_v3_back.model.entity.UserDetail;
+import org.matsuzaka.library_v3_back.model.enums.Role;
+import org.matsuzaka.library_v3_back.model.enums.UserStatus;
 import org.matsuzaka.library_v3_back.model.mapper.UserMapper;
 import org.matsuzaka.library_v3_back.model.repositoryDao.UserDetailRepository;
 import org.matsuzaka.library_v3_back.model.repositoryDao.UserRepository;
@@ -84,7 +86,8 @@ public class UserServiceImpl implements UserService {
         User user = new User();
         user.setAccount(request.getAccount());
         user.setPassword(passwordEncoder.encode(request.getPassword())); // 雜湊密碼
-        user.setRole("ROLE_USER"); // 預設為普通使用者
+        user.setRole(Role.ROLE_USER); // 預設為普通使用者
+        user.setStatus(UserStatus.PENDING); // 預設為待開通
         user.setCardId(newCardId); // 將 card_id 設定在 User 實體上
 
         // 4. 創建 UserDetail 實體

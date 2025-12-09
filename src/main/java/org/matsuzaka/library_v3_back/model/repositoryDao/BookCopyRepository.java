@@ -2,7 +2,9 @@ package org.matsuzaka.library_v3_back.model.repositoryDao;
 
 
 import org.matsuzaka.library_v3_back.dto.loanDTO.BookCopyRespDto;
+import org.matsuzaka.library_v3_back.model.entity.Book;
 import org.matsuzaka.library_v3_back.model.entity.BookCopy;
+import org.matsuzaka.library_v3_back.model.enums.BookCopyStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,7 +18,7 @@ import java.util.Optional;
 public interface BookCopyRepository extends JpaRepository<BookCopy, Long> {
 
     // 原有方法 - 查詢單本書的可用副本數量
-    long countByBookIdAndStatus(Long bookId, BookCopy.BookCopyStatus status);
+    long countByBookIdAndStatus(Long bookId, BookCopyStatus status);
 
     // 新增方法 - 批量查詢多本書的可用副本數量
     @Query("SELECT bc.book.id AS bookId, COUNT(bc) AS count FROM BookCopy bc " +
@@ -26,6 +28,9 @@ public interface BookCopyRepository extends JpaRepository<BookCopy, Long> {
 
     // 新增方法 - 查詢指定書籍的所有副本
     List<BookCopy> findByBookId(Long bookId);
+    
+    // Find by Book entity
+    List<BookCopy> findByBook(Book book);
 
     // 新增方法 - 批量查詢多本書的總副本數量
     @Query("SELECT bc.book.id AS bookId, COUNT(bc) AS totalCount FROM BookCopy bc " +
@@ -58,10 +63,10 @@ public interface BookCopyRepository extends JpaRepository<BookCopy, Long> {
     Optional<BookCopy> findByUniqueCode(String uniqueCode);
 
     // 根據狀態查詢
-    List<BookCopy> findByStatus(BookCopy.BookCopyStatus status);
+    List<BookCopy> findByStatus(BookCopyStatus status);
 
     // 根據書籍ID和狀態查詢
-    List<BookCopy> findByBookIdAndStatus(Long bookId, BookCopy.BookCopyStatus status);
+    List<BookCopy> findByBookIdAndStatus(Long bookId, BookCopyStatus status);
 
     // 檢查唯一編碼是否存在
     boolean existsByUniqueCode(String uniqueCode);
@@ -119,3 +124,4 @@ public interface BookCopyRepository extends JpaRepository<BookCopy, Long> {
     // 2. 更新 loan 表中的 return_date
     // 已經在 LoanServiceImpl 中實現了，這裡不需要重複實現
 }
+

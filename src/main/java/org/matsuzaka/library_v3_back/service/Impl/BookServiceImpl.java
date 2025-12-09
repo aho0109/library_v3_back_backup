@@ -209,7 +209,6 @@ public class BookServiceImpl implements BookService {
         book.setTitle(dto.getTitle());
         book.setIsbn(dto.getIsbn());
         book.setPublishYear(dto.getPublishYear());
-        book.setPrice(dto.getPrice());
         book.setImageUrl(dto.getImageUrl());
 
         // 2. 處理簡單的 ToOne 關聯

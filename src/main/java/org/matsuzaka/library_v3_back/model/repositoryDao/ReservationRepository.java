@@ -1,6 +1,7 @@
 package org.matsuzaka.library_v3_back.model.repositoryDao;
 
 import org.matsuzaka.library_v3_back.model.entity.Reservation;
+import org.matsuzaka.library_v3_back.model.enums.ReservationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,12 +11,19 @@ import java.util.Optional;
 
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
-    // 找出使用者是否有對某本書的未過期預約
-    Optional<Reservation> findByUserIdAndBookCopyIdAndExpirationDateAfter(Long userId, Long bookCopyId, LocalDate date);
+    
+    // Find active reservation for user and book copy
+    List<Reservation> findByUserIdAndBookCopyIdAndStatusIn(Long userId, Long bookCopyId, List<ReservationStatus> statuses);
 
-    // 找出所有已過期但未取書的預約 (用於排程任務)
-    List<Reservation> findByReservationStatusTitleAndExpirationDateBefore(String statusTitle, LocalDate date);
+    // Find expired reservations
+    List<Reservation> findByStatusAndExpirationDateBefore(ReservationStatus status, LocalDate date);
 
-    // 找出使用者未完成的預約
-    List<Reservation> findByUserIdAndReservationStatusTitleIn(Long userId, List<String> statusTitles);
+    // Find user's reservations by status
+    List<Reservation> findByUserIdAndStatusIn(Long userId, List<ReservationStatus> statuses);
+    
+    // Find reservations for a book copy sorted by queue position (for PENDING)
+    List<Reservation> findByBookCopyIdAndStatusOrderByQueuePositionAsc(Long bookCopyId, ReservationStatus status);
+    
+    // Find max queue position for a book copy
+    Optional<Reservation> findFirstByBookCopyIdAndStatusOrderByQueuePositionDesc(Long bookCopyId, ReservationStatus status);
 }

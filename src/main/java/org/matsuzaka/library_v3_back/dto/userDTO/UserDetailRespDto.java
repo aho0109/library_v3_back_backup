@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -15,5 +17,10 @@ public class UserDetailRespDto {
     private String email;   // 電子郵件
     private String phone;   // 電話
     private String address; // 地址
-    // 不包含密碼相關欄位
+    
+    // New fields for V3
+    private Integer penaltyPoints;
+    private String status; // PENDING, ACTIVE, SUSPENDED
+    private String role; // ROLE_USER, ROLE_CITIZEN, ROLE_ADMIN
+    private LocalDateTime suspendedUntil;
 }

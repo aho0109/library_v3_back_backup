@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
+import org.matsuzaka.library_v3_back.model.enums.LoanStatus;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -40,14 +42,11 @@ public class Loan {
     @Column(name = "return_date")
     private LocalDateTime returnDate; // 可為 NULL
 
+    @Column(name = "renew_count", nullable = false)
+    private Integer renewCount = 0;
+
     @Enumerated(EnumType.STRING) // 將 ENUM 映射為字串
     @Column(name = "status", nullable = false, length = 10)
     private LoanStatus status; // 使用 Java Enum
 
-    // 定義一個 Java Enum 來對應 ENUM 類型
-    public enum LoanStatus {
-        ON_LOAN,
-        RETURNED,
-        OVERDUE
-    }
 }

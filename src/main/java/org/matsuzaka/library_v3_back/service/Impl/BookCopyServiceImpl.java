@@ -3,6 +3,7 @@ package org.matsuzaka.library_v3_back.service.Impl;
 import org.matsuzaka.library_v3_back.dto.loanDTO.ReturnResponseDto;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookCopyDTO;
 import org.matsuzaka.library_v3_back.model.entity.BookCopy;
+import org.matsuzaka.library_v3_back.model.enums.BookCopyStatus;
 import org.matsuzaka.library_v3_back.model.repositoryDao.BookCopyRepository;
 import org.matsuzaka.library_v3_back.model.repositoryDao.UserRepository;
 import org.matsuzaka.library_v3_back.service.BookCopyService;
@@ -122,7 +123,7 @@ public class BookCopyServiceImpl implements BookCopyService {
                 .orElseThrow(() -> new RuntimeException("副本不存在"));
 
         // 檢查副本是否可以刪除（不能是已借出狀態）
-        if (copy.getStatus() == BookCopy.BookCopyStatus.L) {
+        if (copy.getStatus() == BookCopyStatus.L) {
             throw new RuntimeException("無法刪除已借出的副本");
         }
 
@@ -130,43 +131,4 @@ public class BookCopyServiceImpl implements BookCopyService {
     }
 
 
-    /**
-     * 強制歸還副本
-     * @param copyId 副本ID
-     */
-    @Override
-    public ReturnResponseDto forceReturn(Long copyId, Long userId) {
-        /*BookCopy copy = bookCopyRepository.findById(copyId)
-                .orElseThrow(() -> new RuntimeException("副本不存在"));
-
-        if (copy.getStatus() != BookCopy.BookCopyStatus.L) {
-            throw new RuntimeException("副本未處於借出狀態");
-        }*/
-
-        // 直接呼叫 LoanService 進行歸還操作
-        return loanService.returnBook(copyId, userId);
-
-
-    }
-
-    /**
-     * 強制借出副本
-     * @param copyId 副本ID
-     * @param borrowerAccount 借閱者帳號
-     */
-    @Override
-    public void forceCheckout(Long copyId, String borrowerAccount) {
-        BookCopy copy = bookCopyRepository.findById(copyId)
-                .orElseThrow(() -> new RuntimeException("副本不存在"));
-
-        if (copy.getStatus() != BookCopy.BookCopyStatus.A) {
-            throw new RuntimeException("副本不可借閱");
-        }
-
-        // 直接呼叫 LoanService 進行借閱操作
-        Long userId = userRepository.findByAccount(borrowerAccount)
-                .orElseThrow(() -> new RuntimeException("借閱者不存在")).getId();
-        loanService.borrowBook(copy.getBook().getId(), userId);
-
-    }
 }

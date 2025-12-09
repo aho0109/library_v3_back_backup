@@ -3,12 +3,19 @@ package org.matsuzaka.library_v3_back.controller;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookListItemDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookSearchResponseDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.queryOneDTO.BookRespDtoOneDetails;
+import org.matsuzaka.library_v3_back.dto.reviewDTO.ReviewRequestDto;
+import org.matsuzaka.library_v3_back.dto.reviewDTO.ReviewResponseDto;
+import org.matsuzaka.library_v3_back.security.UserDetailSecu;
 import org.matsuzaka.library_v3_back.service.BookService;
 import org.matsuzaka.library_v3_back.service.BookServiceBasic;
+import org.matsuzaka.library_v3_back.service.ReviewService;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,11 +27,14 @@ public class BookController {
 
     private final BookService bookService;
     private final BookServiceBasic bookServiceBasic;
+    private final ReviewService reviewService;
 
     public BookController(BookService bookService,
-                          BookServiceBasic bookServiceBasic) {
+                          BookServiceBasic bookServiceBasic,
+                          ReviewService reviewService) {
         this.bookService = bookService;
         this.bookServiceBasic = bookServiceBasic;
+        this.reviewService = reviewService;
     }
 
     /**
@@ -105,5 +115,41 @@ public class BookController {
         return bookServiceBasic.getOneByIdWithDetails(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // Review Endpoints
+
+    @PostMapping("/{bookId}/reviews")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ReviewResponseDto> addReview(@PathVariable Long bookId,
+                                                       @AuthenticationPrincipal UserDetailSecu currentUser,
+                                                       @RequestBody ReviewRequestDto request) {
+        return ResponseEntity.ok(reviewService.addReview(currentUser.getUser().getId(), bookId, request));
+    }
+
+    @GetMapping("/{bookId}/reviews")
+    public ResponseEntity<Page<ReviewResponseDto>> getReviews(@PathVariable Long bookId,
+                                                              @AuthenticationPrincipal UserDetailSecu currentUser, // Optional
+                                                              Pageable pageable) {
+        Long userId = currentUser != null ? currentUser.getUser().getId() : null;
+        return ResponseEntity.ok(reviewService.getReviewsByBookId(bookId, userId, pageable));
+    }
+
+    @PostMapping("/{bookId}/reviews/{reviewId}/like")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> likeReview(@PathVariable Long bookId,
+                                        @PathVariable Long reviewId,
+                                        @AuthenticationPrincipal UserDetailSecu currentUser) {
+        reviewService.likeReview(currentUser.getUser().getId(), reviewId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{bookId}/reviews/{reviewId}/like")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> unlikeReview(@PathVariable Long bookId,
+                                          @PathVariable Long reviewId,
+                                          @AuthenticationPrincipal UserDetailSecu currentUser) {
+        reviewService.unlikeReview(currentUser.getUser().getId(), reviewId);
+        return ResponseEntity.ok().build();
     }
 }
