@@ -112,7 +112,7 @@ public class JwtUtil {
 
     // 產生 JWT Token，用使用者的 username 來當成 subject
     // 這裏有修改成目前推薦新語法，不然都被警示過時
-    private String createToken(Map<String, Object> claims, String subject) {
+    private String createToken00(Map<String, Object> claims, String subject) {
         return Jwts.builder()
                 .claims(claims) // 自定義 claims
                 .subject(subject) // 主題 (通常是使用者帳號)，現將 userId 設置為 subject
@@ -121,6 +121,25 @@ public class JwtUtil {
                 .signWith(getSignKey()) // 簽名算法和密鑰
                 //.signWith(signKey) // 也可以
                 .compact(); // 壓縮為 JWT 字串
+    }
+    // 產生 JWT Token，用使用者的 username 來當成 subject
+    // 這裏有修改成目前推薦新語法，不然都被警示過時
+    private String createToken(Map<String, Object> claims, String subject) {
+        String token = Jwts.builder()
+                .claims(claims) // 自定義 claims
+                .subject(subject) // 主題 (通常是使用者帳號)，現將 userId 設置為 subject
+                .issuedAt(new Date(System.currentTimeMillis())) // 簽發時間
+                .expiration(new Date(System.currentTimeMillis() + expiration)) // 過期時間
+                .signWith(getSignKey()) // 簽名算法和密鑰
+                //.signWith(signKey) // 也可以
+                .compact(); // 壓縮為 JWT 字串
+
+        // 輸出到 console 以便使用 Postman 測試
+        System.out.println("Generated JWT: " + token);
+        // 也使用 logger 記錄（可視需求調整為不記錄完整 token）
+        log.info("Generated JWT (truncated): {}", token.length() > 64 ? token.substring(0, 64) + "..." : token);
+
+        return token;
     }
 
     // 獲取簽名密鑰

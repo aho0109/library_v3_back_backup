@@ -2,30 +2,27 @@ USE MariaLibraryV3;
 Use MariaLibraryV3Cloud;
 
 
+SELECT * FROM `user`;
 -- 1. 插入 user 資料
 -- 角色修正為 ROLE_ADMIN 和 ROLE_USER
-INSERT INTO `user` (`card_id`, `account`, `password`, `role`) VALUES
-                                                                  ('LIB001', 'adminJAVA', '123456789', 'ROLE_ADMIN'),
-                                                                  ('LIB002', 'alisa', '123456789', 'ROLE_USER'),
-                                                                  ('LIB003', 'chang003', 'hashed_bob_password', 'ROLE_USER'),
-                                                                  ('LIB004', 'lee004', 'hashed_charlie_password', 'ROLE_USER'),
-                                                                  ('LIB005', 'adminJAVA1925', '$2a$10$Gqesun/rw1TFjnZsFlqB3ukXVBg545/qYQXea0MOYKZUPkAr9tdnK', 'ROLE_ADMIN'); -- 123456789
+INSERT INTO `user` (`card_id`, `account`, `password`, `role`, `status`) VALUES
+                                                                  ('LIB000', 'adminJAVA1925', '$2a$10$GNgVf2y7FOsOIhyuA6KIQON0YHNOu7FApwR2b1xqWLTfF9C2So3FS', 'ROLE_ADMIN', 'ACTIVE'),
+                                                                  ('LIB001', 'citizen777', '$2a$10$nyAECeDBNJqb.3.sucbVSO4r75ttGv9aZBYjzbuPvr3TwswZtts3W', 'ROLE_CITIZEN', 'ACTIVE'),
+                                                                  ('LIB002', 'user1925', '$2a$10$.aHdOI1H.EhAckbJ4dGE2OIICp4oJqXllt3INC8LXSuI5TjH8PGtK', 'ROLE_USER', 'ACTIVE');
 
 -- 取得剛剛插入的 user IDs 以供後續使用
-SET @admin_user_id = (SELECT id FROM `user` WHERE account = 'adminJAVA');
-SET @alisa = (SELECT id FROM `user` WHERE account = 'alisa');
-SET @chang003 = (SELECT id FROM `user` WHERE account = 'chang003');
-SET @lee004 = (SELECT id FROM `user` WHERE account = 'lee004');
 SET @admin_user_id_1925 = (SELECT id FROM `user` WHERE account = 'adminJAVA1925');
+SET @user1925 = (SELECT id FROM `user` WHERE account = 'user1925');
+SET @citizen777 = (SELECT id FROM `user` WHERE account = 'citizen777');
 
 
 -- 2. 插入 user_detail 資料
 INSERT INTO `user_detail` (`user_id`, `name`, `email`, `phone`, `address`) VALUES
-                                                                               (@admin_user_id, '系統管理員', 'adminJAVA@example.com', '0911222333', '系統管理處'),
-                                                                               (@alisa, '亞里莎', 'alice@library.com', '0922333444', '圖書館辦公室'),
-                                                                               (@chang003, '張三', 'chang003@example.com', '0933444555', '台北市信義區1號'),
-                                                                               (@lee004, '李四', 'lee004@example.com', '0944555666', '台中市西屯區2號'),
-                                                                               (@admin_user_id_1925, '系統管理員EX', 'adminJAVA1925@example.com', '0977777777', '測試地址');
+                                                                               (@admin_user_id_1925, '管理員', 'adminJAVA1925@example.com', '0999999999', '管理員的家'),
+                                                                               (@citizen777, '市民', 'citizen777@example.com', '0988888888', '市民的家'),
+                                                                               (@user1925, '一般人', 'user1925@library.com', '0977777777', '一般人的家');
+
+
 
 
 -- 3. 插入 publisher 資料
@@ -210,51 +207,51 @@ SET @池袋西口公園 = (SELECT id FROM `series` WHERE title = '池袋西口�
 
 
 -- 8. 插入 book 資料
-INSERT INTO `book` (`title`,`series_id`, `category_sub_id`, `publish_year`, `publisher_id`, `price`, `image_url`, `ISBN`, `representative`)
+INSERT INTO `book` (`title`,`series_id`, `category_sub_id`, `publish_year`, `publisher_id`, `image_url`, `ISBN`, `representative`)
 VALUES
-    ('鋼之鍊金術師 (1)', @鋼之鍊金術師, @少年漫畫, 2002, @東立, 80.00, 'https://taiwan-image.bookwalker.com.tw/product/247998/247998_1.jpg', '9789861146096', 0),
-    ('鋼之鍊金術師 (24)', @鋼之鍊金術師, @少年漫畫, 2010, @東立, 80.00, 'https://taiwan-image.bookwalker.com.tw/product/249302/249302_1.jpg', '9780747532740', 0),
-    ('鋼之鍊金術師 (25)', @鋼之鍊金術師, @少年漫畫, 2010, @東立, 80.00, 'https://taiwan-image.bookwalker.com.tw/product/249303/249303_1.jpg', '9780747532741', 0),
-    ('鋼之鍊金術師 (26)', @鋼之鍊金術師, @少年漫畫, 2010, @東立, 80.00, 'https://taiwan-image.bookwalker.com.tw/product/249304/249304_1.jpg', '9780747532742', 0),
-    ('鋼之鍊金術師 (27)', @鋼之鍊金術師, @少年漫畫, 2011, @東立, 80.00, 'https://taiwan-image.bookwalker.com.tw/product/249305/249305_1.jpg', '9780747532743', 1),
-    ('銀之匙 (1)', null, @少年漫畫, 2012, @東立, 80.00, 'https://taiwan-image.bookwalker.com.tw/product/65237/65237_1.jpg', '9789861090726', 1),
-    ('銀之匙 (15)', null, @少年漫畫, 2020, @東立, 80.00, 'https://taiwan-image.bookwalker.com.tw/product/107018/107018_1.jpg', '9789572650233', 1),
-    ('銀魂 (1)', null, @少年漫畫, 2004, @東立, 89.00, 'https://taiwan-image.bookwalker.com.tw/product/10295/10295_1.jpg', '9784088736235', 1),
-    ('銀魂 (77)', null, @少年漫畫, 2019, @東立, 89.00, 'https://taiwan-image.bookwalker.com.tw/product/81143/81143_1.jpg', '9789572637463', 1),
-    ('ONE-PUNCH MAN 一拳超人 (1)', null, @少年漫畫, 2014, @東立, 85.00, 'https://taiwan-image.bookwalker.com.tw/product/237990/237990_1.jpg', '9789864319305', 1),
-    ('ONE-PUNCH MAN 一拳超人 (32)', null, @少年漫畫, 2025, @東立, 85.00, 'https://taiwan-image.bookwalker.com.tw/product/252745/252745_1.jpg', '9786260236847', 1),
-    ('路人超能100 (1)', null, @少年漫畫, 2019, @青文, 117.00, 'https://taiwan-image.bookwalker.com.tw/product/28443/28443_1.jpg', '9789863560029', 1),
-    ('路人超能100 (16)', null, @少年漫畫, 2019, @青文, 117.00, 'https://taiwan-image.bookwalker.com.tw/product/59372/59372_1.jpg', '9789863568841', 1),
-    ('鄰座的怪同學 (1)', null, @少女漫畫, 2009, @東立, 85.00, 'https://taiwan-image.bookwalker.com.tw/product/4769/4769_1.jpg', '9789861045672', 1),
-    ('鄰座的怪同學 (13)', null, @少女漫畫, 2014, @東立, 85.00, 'https://taiwan-image.bookwalker.com.tw/product/4781/4781_1.jpg', '9789863482239', 1),
-    ('NANA (1)', null, @少女漫畫, 2001, @尖端, 66.00, 'https://taiwan-image.bookwalker.com.tw/product/13507/13507_1.jpg', '9787572908712', 1),
-    ('NANA (21)', null, @少女漫畫, 2009, @尖端, 66.00, 'https://taiwan-image.bookwalker.com.tw/product/13528/13528_1.jpg', '9786263164819', 1),
-    ('空之境界 (上)', null, @日本輕小說, 2005, @傑克魔豆, 320.00, 'https://upload.wikimedia.org/wikipedia/zh/0/0e/Kara_no_Kyoukai.jpg', '9867459474', 1),
-    ('空之境界 (下)', null, @日本輕小說, 2005, @傑克魔豆, 320.00, 'https://m.media-amazon.com/images/I/41o5FBiRfcL._UF1000,1000_QL80_.jpg', '9867459512', 1),
-    ('殼中少女01：壓縮', null, @日本輕小說, 2006, @尖端, 150.00, 'https://upload.wikimedia.org/wikipedia/zh/4/49/%E5%A3%B3%E4%B8%AD%E5%B0%91%E5%A5%B30_.jpg', '9571031526', 1),
-    ('殼中少女03：排氣', null, @日本輕小說, 2006, @尖端, 150.00, 'https://tw.linovelib.com/files/article/image/0/250/250s.jpg', '957103214X', 1),
-    ('特殊傳說 新版vol.1 不存在的學園！', null, @華語輕小說, 2012, @蓋亞, 270.00, 'https://img.pchome.com.tw/cs/items/DJBR4UD900IL86H/000001_1744882197.jpg', '9789866157936', 1),
-    ('特殊傳說 新版vol.10 那之後...', null, @華語輕小說, 2013, @蓋亞, 270.00, 'https://s.eslite.com/b2b/newItem/ebook_init/main1_127783.jpg', '9789863190745', 1),
-    ('吾命騎士 vol.1 騎士基礎理論', null, @華語輕小說, 2007, @蓋亞, 180.00, 'https://s.eslite.com/b2b/newItem/ebook_init/main1_127783.jpg', '9789868352902', 1),
-    ('吾命騎士 vol.8 終結魔王(下)', null, @華語輕小說, 2011, @蓋亞, 180.00, 'https://s.eslite.com/b2b/newItem/ebook_init/main1_127783.jpg', '9789866219689', 1),
-    ('GOTH斷掌事件', null, @日本文學, 2002, @皇冠文化, 300.00, 'https://www.mottainaihonpo.com/kaitori/contents/cat01/img/otsuichi-osusume-img/book_04.jpg', '4048733907', 1),
-    ('ZOO (經典回歸版)', null, @日本文學, 2021, @皇冠文化, 300.00, 'https://cdn.kobo.com/book-images/53afdd7a-1f60-44a9-b9b9-4d618f8aa770/1200/1200/False/zoo-141.jpg', '9789865580704', 1),
-    ('池袋西口公園 1', @池袋西口公園, @日本文學, 2004, @木馬文化, 220.00, 'https://taiwan-image.bookwalker.com.tw/product/117673/117673_1.jpg', '9867475232', 0),
-    ('電子之星：池袋西口公園 4', @池袋西口公園, @日本文學, 2008, @木馬文化, 220.00, 'https://taiwan-image.bookwalker.com.tw/product/117676/117676_1.jpg', '9789867475800', 0),
-    ('G少年冬戰爭：池袋西口公園 7', @池袋西口公園, @日本文學, 2010, @木馬文化, 220.00, 'https://taiwan-image.bookwalker.com.tw/product/117679/117679_1.jpg', '9789863592907', 1),
-    ('哈利波特 (1) 神秘的魔法石', null, @歐美文學, 1997, @皇冠文化, 420.00, 'https://upload.wikimedia.org/wikipedia/zh/3/3c/Hp1tw.jpg', '9789573317241', 1),
-    ('哈利波特 (7) 死神的聖物', null, @歐美文學, 2007, @皇冠文化, 420.00, 'https://upload.wikimedia.org/wikipedia/zh/6/6a/Hp7tw.jpeg', '9789573323570', 1),
-    ('納尼亞傳奇 (1) 獅子．女巫．魔衣櫥', null, @歐美文學, 2005, @大田出版社, 230.00, 'https://s.eslite.com/Upload/Product/200901/o/633683243286727500.jpg', '9789574558902', 1),
-    ('納尼亞傳奇 (7) 最後一戰', null, @歐美文學, 2021, @大田出版社, 230.00, 'https://upload.wikimedia.org/wikipedia/zh/5/56/%E6%9C%80%E5%BE%8C%E7%9A%84%E6%88%B0%E5%BD%B9.jpg', '9574559084', 1),
-    ('VOGUE JAPAN 5月號/2025', null, @時尚, 2021, @VOGUE出版社, 200.00, 'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/b2b/newItem/2025/03/25/2476_172500915_768_mainCoverImage1.jpg', '4910177270556', 1),
-    ('VOGUE JAPAN 6月號/2025', null, @時尚, 2021, @VOGUE出版社, 200.00, 'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/b2b/newItem/2025/04/25/2476_170951128_975_mainCoverImage1.jpg', '4910177270655', 1),
-    ('PC home 電腦家庭 02月號/2023 第325期', null, @科技, 2023, @城邦出版集團, 129.00, 'https://img.pchome.com.tw/cs/items/DJBNAJD900FZ45E/000001_1675357852.jpg', '3121561461325', 1),
-    ('PC home 電腦家庭 06月號/2025 第353期', null, @科技, 2025, @城邦出版集團, 129.00, 'https://img.pchome.com.tw/cs/items/DJBQ2ZD900IVNX1/000001_1748794115.jpg', '3121561461353', 1),
-    ('Java SE 8 技術手冊', null, @程式設計, 2014, @碁峰, 620.00, 'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/upload/product/o/2680883616000/361120.jpg', '9789863471714', 1),
-    ('JavaScript 技術手冊', null, @程式設計, 2019, @碁峰, 620.00, 'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/Upload/Product/201911/o/637092307890993750.jpg', '9789865023188', 1),
-    ('Java SE 17 技術手冊', null, @程式設計, 2022, @碁峰, 620.00, 'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/upload/product/o/2682168405002/20220505032447675584.jpg', '9786263241435', 1),
-    ('出發！日本自助旅行', null, @生活旅遊, 2023, @墨刻, 129.00, 'https://taiwan-image.bookwalker.com.tw/product/182909/zoom_big_182909.jpg', '9789862899588', 1),
-    ('京都・大阪・神戶攻略完全制霸2025', null, @生活旅遊, 2024, @墨刻, 129.00, 'https://taiwan-image.bookwalker.com.tw/product/231036/231036_1.jpg', '9786263980754', 1);
+    ('鋼之鍊金術師 (1)', @鋼之鍊金術師, @少年漫畫, 2002, @東立,  'https://taiwan-image.bookwalker.com.tw/product/247998/247998_1.jpg', '9789861146096', 0),
+    ('鋼之鍊金術師 (24)', @鋼之鍊金術師, @少年漫畫, 2010, @東立,  'https://taiwan-image.bookwalker.com.tw/product/249302/249302_1.jpg', '9780747532740', 0),
+    ('鋼之鍊金術師 (25)', @鋼之鍊金術師, @少年漫畫, 2010, @東立,  'https://taiwan-image.bookwalker.com.tw/product/249303/249303_1.jpg', '9780747532741', 0),
+    ('鋼之鍊金術師 (26)', @鋼之鍊金術師, @少年漫畫, 2010, @東立,  'https://taiwan-image.bookwalker.com.tw/product/249304/249304_1.jpg', '9780747532742', 0),
+    ('鋼之鍊金術師 (27)', @鋼之鍊金術師, @少年漫畫, 2011, @東立,  'https://taiwan-image.bookwalker.com.tw/product/249305/249305_1.jpg', '9780747532743', 1),
+    ('銀之匙 (1)', null, @少年漫畫, 2012, @東立,  'https://taiwan-image.bookwalker.com.tw/product/65237/65237_1.jpg', '9789861090726', 1),
+    ('銀之匙 (15)', null, @少年漫畫, 2020, @東立,  'https://taiwan-image.bookwalker.com.tw/product/107018/107018_1.jpg', '9789572650233', 1),
+    ('銀魂 (1)', null, @少年漫畫, 2004, @東立,  'https://taiwan-image.bookwalker.com.tw/product/10295/10295_1.jpg', '9784088736235', 1),
+    ('銀魂 (77)', null, @少年漫畫, 2019, @東立,  'https://taiwan-image.bookwalker.com.tw/product/81143/81143_1.jpg', '9789572637463', 1),
+    ('ONE-PUNCH MAN 一拳超人 (1)', null, @少年漫畫, 2014, @東立,  'https://taiwan-image.bookwalker.com.tw/product/237990/237990_1.jpg', '9789864319305', 1),
+    ('ONE-PUNCH MAN 一拳超人 (32)', null, @少年漫畫, 2025, @東立,  'https://taiwan-image.bookwalker.com.tw/product/252745/252745_1.jpg', '9786260236847', 1),
+    ('路人超能100 (1)', null, @少年漫畫, 2019, @青文,  'https://taiwan-image.bookwalker.com.tw/product/28443/28443_1.jpg', '9789863560029', 1),
+    ('路人超能100 (16)', null, @少年漫畫, 2019, @青文,  'https://taiwan-image.bookwalker.com.tw/product/59372/59372_1.jpg', '9789863568841', 1),
+    ('鄰座的怪同學 (1)', null, @少女漫畫, 2009, @東立,  'https://taiwan-image.bookwalker.com.tw/product/4769/4769_1.jpg', '9789861045672', 1),
+    ('鄰座的怪同學 (13)', null, @少女漫畫, 2014, @東立,  'https://taiwan-image.bookwalker.com.tw/product/4781/4781_1.jpg', '9789863482239', 1),
+    ('NANA (1)', null, @少女漫畫, 2001, @尖端,  'https://taiwan-image.bookwalker.com.tw/product/13507/13507_1.jpg', '9787572908712', 1),
+    ('NANA (21)', null, @少女漫畫, 2009, @尖端,  'https://taiwan-image.bookwalker.com.tw/product/13528/13528_1.jpg', '9786263164819', 1),
+    ('空之境界 (上)', null, @日本輕小說, 2005, @傑克魔豆,  'https://upload.wikimedia.org/wikipedia/zh/0/0e/Kara_no_Kyoukai.jpg', '9867459474', 1),
+    ('空之境界 (下)', null, @日本輕小說, 2005, @傑克魔豆,  'https://m.media-amazon.com/images/I/41o5FBiRfcL._UF1000,1000_QL80_.jpg', '9867459512', 1),
+    ('殼中少女01：壓縮', null, @日本輕小說, 2006, @尖端,  'https://upload.wikimedia.org/wikipedia/zh/4/49/%E5%A3%B3%E4%B8%AD%E5%B0%91%E5%A5%B30_.jpg', '9571031526', 1),
+    ('殼中少女03：排氣', null, @日本輕小說, 2006, @尖端,  'https://tw.linovelib.com/files/article/image/0/250/250s.jpg', '957103214X', 1),
+    ('特殊傳說 新版vol.1 不存在的學園！', null, @華語輕小說, 2012, @蓋亞,  'https://img.pchome.com.tw/cs/items/DJBR4UD900IL86H/000001_1744882197.jpg', '9789866157936', 1),
+    ('特殊傳說 新版vol.10 那之後...', null, @華語輕小說, 2013, @蓋亞,  'https://s.eslite.com/b2b/newItem/ebook_init/main1_127783.jpg', '9789863190745', 1),
+    ('吾命騎士 vol.1 騎士基礎理論', null, @華語輕小說, 2007, @蓋亞,  'https://s.eslite.com/b2b/newItem/ebook_init/main1_127783.jpg', '9789868352902', 1),
+    ('吾命騎士 vol.8 終結魔王(下)', null, @華語輕小說, 2011, @蓋亞,  'https://s.eslite.com/b2b/newItem/ebook_init/main1_127783.jpg', '9789866219689', 1),
+    ('GOTH斷掌事件', null, @日本文學, 2002, @皇冠文化,  'https://www.mottainaihonpo.com/kaitori/contents/cat01/img/otsuichi-osusume-img/book_04.jpg', '4048733907', 1),
+    ('ZOO (經典回歸版)', null, @日本文學, 2021, @皇冠文化,  'https://cdn.kobo.com/book-images/53afdd7a-1f60-44a9-b9b9-4d618f8aa770/1200/1200/False/zoo-141.jpg', '9789865580704', 1),
+    ('池袋西口公園 1', @池袋西口公園, @日本文學, 2004, @木馬文化,  'https://taiwan-image.bookwalker.com.tw/product/117673/117673_1.jpg', '9867475232', 0),
+    ('電子之星：池袋西口公園 4', @池袋西口公園, @日本文學, 2008, @木馬文化,  'https://taiwan-image.bookwalker.com.tw/product/117676/117676_1.jpg', '9789867475800', 0),
+    ('G少年冬戰爭：池袋西口公園 7', @池袋西口公園, @日本文學, 2010, @木馬文化,  'https://taiwan-image.bookwalker.com.tw/product/117679/117679_1.jpg', '9789863592907', 1),
+    ('哈利波特 (1) 神秘的魔法石', null, @歐美文學, 1997, @皇冠文化,  'https://upload.wikimedia.org/wikipedia/zh/3/3c/Hp1tw.jpg', '9789573317241', 1),
+    ('哈利波特 (7) 死神的聖物', null, @歐美文學, 2007, @皇冠文化,  'https://upload.wikimedia.org/wikipedia/zh/6/6a/Hp7tw.jpeg', '9789573323570', 1),
+    ('納尼亞傳奇 (1) 獅子．女巫．魔衣櫥', null, @歐美文學, 2005, @大田出版社,  'https://s.eslite.com/Upload/Product/200901/o/633683243286727500.jpg', '9789574558902', 1),
+    ('納尼亞傳奇 (7) 最後一戰', null, @歐美文學, 2021, @大田出版社,  'https://upload.wikimedia.org/wikipedia/zh/5/56/%E6%9C%80%E5%BE%8C%E7%9A%84%E6%88%B0%E5%BD%B9.jpg', '9574559084', 1),
+    ('VOGUE JAPAN 5月號/2025', null, @時尚, 2021, @VOGUE出版社,  'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/b2b/newItem/2025/03/25/2476_172500915_768_mainCoverImage1.jpg', '4910177270556', 1),
+    ('VOGUE JAPAN 6月號/2025', null, @時尚, 2021, @VOGUE出版社,  'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/b2b/newItem/2025/04/25/2476_170951128_975_mainCoverImage1.jpg', '4910177270655', 1),
+    ('PC home 電腦家庭 02月號/2023 第325期', null, @科技, 2023, @城邦出版集團,  'https://img.pchome.com.tw/cs/items/DJBNAJD900FZ45E/000001_1675357852.jpg', '3121561461325', 1),
+    ('PC home 電腦家庭 06月號/2025 第353期', null, @科技, 2025, @城邦出版集團,  'https://img.pchome.com.tw/cs/items/DJBQ2ZD900IVNX1/000001_1748794115.jpg', '3121561461353', 1),
+    ('Java SE 8 技術手冊', null, @程式設計, 2014, @碁峰,  'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/upload/product/o/2680883616000/361120.jpg', '9789863471714', 1),
+    ('JavaScript 技術手冊', null, @程式設計, 2019, @碁峰,  'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/Upload/Product/201911/o/637092307890993750.jpg', '9789865023188', 1),
+    ('Java SE 17 技術手冊', null, @程式設計, 2022, @碁峰,  'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/upload/product/o/2682168405002/20220505032447675584.jpg', '9786263241435', 1),
+    ('出發！日本自助旅行', null, @生活旅遊, 2023, @墨刻,  'https://taiwan-image.bookwalker.com.tw/product/182909/zoom_big_182909.jpg', '9789862899588', 1),
+    ('京都・大阪・神戶攻略完全制霸2025', null, @生活旅遊, 2024, @墨刻,  'https://taiwan-image.bookwalker.com.tw/product/231036/231036_1.jpg', '9786263980754', 1);
 
 -- 更新上述2個資料的representative欄位
 -- UPDATE `book` SET representative = 0 WHERE title IN ('池袋西口公園 1', '電子之星：池袋西口公園 4');
@@ -506,52 +503,3 @@ SET @空境上A = (SELECT id FROM `book_copy` WHERE unique_code = 'KK001A');
 SET @空境下A = (SELECT id FROM `book_copy` WHERE unique_code = 'KK002A');
 SET @鋼鍊27A = (SELECT id FROM `book_copy` WHERE unique_code = 'HR027A');
 
--- 12. 插入 loan 資料（30天期限）
--- 亞里莎 借了
--- 鄰座的怪同學 1 副本 A (尚未歸還)
--- 銀魂 1 副本 A (已歸還)
--- 銀魂 77 副本 A (尚未歸還)
--- 一拳 32 副本 A (尚未歸還)
--- 鋼之鍊金術師 1 副本 A (尚未歸還)
-INSERT INTO `loan` (`user_id`, `book_copy_id`, `loan_date`, `due_date`, `return_date`, `status`) VALUES
-    (@alisa, @鄰座1A, '2025-06-20 10:00:00', '2025-07-20', NULL, 'OVERDUE'),
-    (@alisa, @銀魂1A, '2025-01-20 10:00:00', '2025-05-20', '2025-04-01 12:00:00', 'RETURNED'),
-    (@alisa, @銀魂77A, '2025-06-20 10:00:00', '2025-07-20', NULL, 'OVERDUE'),
-    (@alisa, @一拳32A, '2025-08-10 10:00:00', '2025-09-09', NULL, 'ON_LOAN'),
-    (@alisa, @鋼鍊1A, '2025-08-10 10:00:00', '2025-09-09', NULL, 'ON_LOAN');
-
--- 李四 借了
--- Java SE 8 技術手冊 副本 A (尚未歸還)
--- Java SE 17 技術手冊 副本 A (已歸還)
--- JavaScript 技術手冊 副本 A (尚未歸還)
--- 鋼之鍊金術師 1 副本 B (尚未歸還)
-INSERT INTO `loan` (`user_id`, `book_copy_id`, `loan_date`, `due_date`, `return_date`, `status`) VALUES
-    (@lee004, @JAVA8A, '2025-06-10 14:30:00', '2025-07-10', NULL, 'OVERDUE'),
-    (@lee004, @JAVA17A, '2025-02-07 14:30:00', '2025-03-09', '2025-02-23 18:00:00', 'RETURNED'),
-    (@lee004, @JSA, '2025-08-18 14:30:00', '2025-09-17', NULL, 'ON_LOAN'),
-    (@lee004, @鋼鍊1B, '2025-08-18 14:30:00', '2025-09-17', NULL, 'ON_LOAN');
-
-SELECT * FROM `loan`;
-SELECT * FROM `loan` WHERE user_id = 2;
-
--- 13. 插入 reservation_status 資料
-INSERT INTO `reservation_status` (`title`) VALUES
-                                               ('可取'),
-                                               ('已取'),
-                                               ('取消'),
-                                               ('過期'),
-                                               ('等待中');
-
-SET @可取 = (SELECT id FROM `reservation_status` WHERE title = '可取');
-SET @已取 = (SELECT id FROM `reservation_status` WHERE title = '已取');
-SET @取消 = (SELECT id FROM `reservation_status` WHERE title = '取消');
-SET @過期 = (SELECT id FROM `reservation_status` WHERE title = '過期');
-SET @等待中 = (SELECT id FROM `reservation_status` WHERE title = '等待中');
-
-
--- 14. 插入 reservation 資料
--- 亞里莎 預約了
-INSERT INTO `reservation` (`user_id`, `book_copy_id`, `reserve_date`, `expiration_date`, `pickup_date`, `reservation_status_id`) VALUES
-    (@alisa, @空境上A, '2025-07-28 09:00:00', '2025-11-28', NULL, @等待中),
-    (@alisa, @空境下A, '2025-07-28 09:00:00', '2025-11-28', NULL, @等待中),
-    (@alisa, @鋼鍊27A, '2025-03-01 11:00:00', '2025-07-01', NULL, @過期);

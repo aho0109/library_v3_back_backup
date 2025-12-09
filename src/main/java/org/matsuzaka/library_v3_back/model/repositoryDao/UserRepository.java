@@ -41,7 +41,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 或者，如果你想直接查詢 DTO (不推薦用於這種巢狀結構，但作為範例)
     @Query(value = """
-            SELECT u.id, ud.name, u.card_id, u.account, ud.email, ud.phone, ud.address
+            SELECT u.id, ud.name, u.card_id, u.account, ud.email, ud.phone, ud.address, 
+                   u.penalty_points, u.status, u.role, u.suspended_until
             FROM user u
             JOIN user_detail ud ON u.id = ud.user_id
             WHERE u.id = :userId;\s""", nativeQuery = true)

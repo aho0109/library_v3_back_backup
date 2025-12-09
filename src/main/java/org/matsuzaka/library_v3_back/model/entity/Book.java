@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.BatchSize;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
@@ -59,7 +60,7 @@ public class Book {
     private Boolean representative = false;
 
     @Column(name = "average_rating", precision = 2, scale = 1)
-    private Double averageRating;
+    private BigDecimal averageRating;
 
     @Column(name = "rating_count", nullable = false)
     private Integer ratingCount = 0;

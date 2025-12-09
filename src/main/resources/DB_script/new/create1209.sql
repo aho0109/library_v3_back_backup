@@ -1,8 +1,30 @@
 CREATE DATABASE IF NOT EXISTS MariaLibraryV3;
 USE MariaLibraryV3;
 
+DROP TABLE IF EXISTS email_log;;
+DROP TABLE IF EXISTS email_template;;
+DROP TABLE IF EXISTS announcement_read;;
+DROP TABLE IF EXISTS announcement;;
+DROP TABLE IF EXISTS notification;;
+DROP TABLE IF EXISTS review_like;;
+DROP TABLE IF EXISTS review;;
+DROP TABLE IF EXISTS book_tag;;
+DROP TABLE IF EXISTS book_author;;
+DROP TABLE IF EXISTS tag;;
+DROP TABLE IF EXISTS reservation;;
+DROP TABLE IF EXISTS favorite;;
+DROP TABLE IF EXISTS loan;;
+DROP TABLE IF EXISTS book_copy;;
+DROP TABLE IF EXISTS book;;
+DROP TABLE IF EXISTS series;;
+DROP TABLE IF EXISTS author;;
+DROP TABLE IF EXISTS category_sub;;
+DROP TABLE IF EXISTS category;;
+DROP TABLE IF EXISTS publisher;;
+DROP TABLE IF EXISTS user_detail;;
+DROP TABLE IF EXISTS user;;
 
--- 1. user 表 
+-- 1. user 表
 -- 新增 penalty_points 用於處罰機制
 -- role 擴展支援市民
 CREATE TABLE IF NOT EXISTS user
@@ -110,7 +132,7 @@ CREATE TABLE IF NOT EXISTS book
     rating_count    INT          NOT NULL DEFAULT 0 COMMENT '評分人數',
     
     -- 新增欄位
-    added_date      DATE         NOT NULL COMMENT '上架日期',
+    added_date      DATE         NOT NULL DEFAULT CURRENT_DATE COMMENT '上架日期',
     total_loan_count INT         NOT NULL DEFAULT 0 COMMENT '累計借閱次數',
     
     FOREIGN KEY (series_id) REFERENCES series (id) ON DELETE SET NULL ON UPDATE CASCADE,
@@ -382,12 +404,26 @@ CREATE INDEX idx_book_rating ON book (average_rating DESC, rating_count DESC);
 -- 結束
 -- ============================================
 
+
 SELECT * FROM user;
+SELECT * FROM user_detail;
+SELECT * FROM publisher;
+SELECT * FROM category;
+SELECT * FROM category_sub;
+SELECT * FROM author;
+SELECT * FROM series;
 SELECT * FROM book;
 SELECT * FROM book_copy;
 SELECT * FROM loan;
+SELECT * FROM favorite;
 SELECT * FROM reservation;
+SELECT * FROM tag;
+SELECT * FROM book_author;
+SELECT * FROM book_tag;
 SELECT * FROM review;
+SELECT * FROM review_like;
 SELECT * FROM notification;
 SELECT * FROM announcement;
+SELECT * FROM announcement_read;
+SELECT * FROM email_template;
 SELECT * FROM email_log;

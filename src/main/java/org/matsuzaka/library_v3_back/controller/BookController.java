@@ -119,6 +119,13 @@ public class BookController {
 
     // Review Endpoints
 
+    /**
+     * 新增書籍評論
+     * @param bookId
+     * @param currentUser
+     * @param request
+     * @return
+     */
     @PostMapping("/{bookId}/reviews")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ReviewResponseDto> addReview(@PathVariable Long bookId,
@@ -127,6 +134,13 @@ public class BookController {
         return ResponseEntity.ok(reviewService.addReview(currentUser.getUser().getId(), bookId, request));
     }
 
+    /**
+     * 取得書籍評論列表
+     * @param bookId
+     * @param currentUser
+     * @param pageable
+     * @return
+     */
     @GetMapping("/{bookId}/reviews")
     public ResponseEntity<Page<ReviewResponseDto>> getReviews(@PathVariable Long bookId,
                                                               @AuthenticationPrincipal UserDetailSecu currentUser, // Optional
@@ -135,6 +149,13 @@ public class BookController {
         return ResponseEntity.ok(reviewService.getReviewsByBookId(bookId, userId, pageable));
     }
 
+    /**
+     * 書籍評論按讚
+     * @param bookId
+     * @param reviewId
+     * @param currentUser
+     * @return
+     */
     @PostMapping("/{bookId}/reviews/{reviewId}/like")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> likeReview(@PathVariable Long bookId,

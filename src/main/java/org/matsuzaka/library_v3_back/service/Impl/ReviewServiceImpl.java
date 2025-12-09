@@ -17,6 +17,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -36,6 +38,13 @@ public class ReviewServiceImpl implements ReviewService {
         this.userRepository = userRepository;
     }
 
+    /**
+     * 新增書籍評論
+     * @param userId
+     * @param bookId
+     * @param request
+     * @return
+     */
     @Override
     public ReviewResponseDto addReview(Long userId, Long bookId, ReviewRequestDto request) {
         User user = userRepository.findById(userId)
@@ -65,17 +74,17 @@ public class ReviewServiceImpl implements ReviewService {
 
     private void updateBookRating(Book book) {
         // 載入該書籍所有評論（可透過 JPQL 優化）
-        java.util.List<Review> reviews = reviewRepository.findByBookId(book.getId());
+        List<Review> reviews = reviewRepository.findByBookId(book.getId());
         
         if (reviews.isEmpty()) {
-            book.setAverageRating(0.0);
+            book.setAverageRating(BigDecimal.valueOf(0.0));
             book.setRatingCount(0);
         } else {
             double avgRating = reviews.stream()
                     .mapToInt(Review::getRating)
                     .average()
                     .orElse(0.0);
-            book.setAverageRating(avgRating);
+            book.setAverageRating(BigDecimal.valueOf(avgRating));
             book.setRatingCount(reviews.size());
         }
         bookRepository.save(book);
@@ -96,9 +105,16 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public void likeReview(Long userId, Long reviewId) {
+        // 已經按過讚
         if (reviewLikeRepository.existsByUserIdAndReviewId(userId, reviewId)) {
-            return; // 已經按過讚
+            /* TODO: 把客製化訊息回傳給前端 */
+            System.out.println("您已按過讚");
+            System.out.println("使用者 " + userId + " 已經按過讚評論 " + reviewId);
+            return;
         }
+
+        // 按自己的讚無效
+
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("找不到使用者"));
