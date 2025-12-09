@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -105,6 +106,12 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public void likeReview(Long userId, Long reviewId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("找不到使用者"));
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new EntityNotFoundException("找不到評論"));
+
         // 已經按過讚
         if (reviewLikeRepository.existsByUserIdAndReviewId(userId, reviewId)) {
             /* TODO: 把客製化訊息回傳給前端 */
@@ -114,12 +121,11 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         // 按自己的讚無效
+        if (Objects.equals(review.getUser().getId(), userId)) {
+            System.out.println("您不能按自己的讚");
+            throw new IllegalStateException("您不能按自己的讚");
+        }
 
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到使用者"));
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到評論"));
 
         ReviewLike like = new ReviewLike();
         like.setUser(user);
