@@ -24,7 +24,9 @@ public interface BookCopyMapper {
         switch (statusCode) {
             case "A": return "BCM可借閱";
             case "L": return "BCM已借出";
+            case "P": return "BCM處理中";
             case "R": return "BCM已預約";
+            case "U": return "BCM已下架";
             default: return "BCM未知狀態";
         }
     }
