@@ -20,127 +20,79 @@ import java.util.stream.Collectors;
 public class ReservationServiceImpl implements ReservationService {
 
     private final ReservationRepository reservationRepository;
-    private final BookRepository bookRepository;
     private final BookCopyRepository bookCopyRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
-    public ReservationServiceImpl(ReservationRepository reservationRepository, BookRepository bookRepository,
-                                  BookCopyRepository bookCopyRepository, UserRepository userRepository,
+    public ReservationServiceImpl(ReservationRepository reservationRepository,
+                                  BookCopyRepository bookCopyRepository, 
+                                  UserRepository userRepository,
                                   NotificationService notificationService) {
         this.reservationRepository = reservationRepository;
-        this.bookRepository = bookRepository;
         this.bookCopyRepository = bookCopyRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
     }
 
     @Override
-    public void reserveBook(Long userId, Long bookId) {
+    public void reserveBookCopy(Long userId, Long bookCopyId) {
+        // 1. 驗證使用者
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("找不到使用者"));
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new IllegalStateException("使用者帳號未啟用");
+            throw new IllegalStateException("使用者帳號未啟用，無法預約");
         }
 
-        // 檢查預約額度：一般民眾 5 本，市民 10 本
+        // 2. 檢查預約額度：一般民眾 5 本，市民 10 本
         int limit = user.getRole() == Role.ROLE_CITIZEN ? 10 : 5;
-        // 計算活躍預約數（PENDING 或 AVAILABLE）
         List<Reservation> userReservations = reservationRepository.findByUserIdAndStatusIn(userId, 
                 List.of(ReservationStatus.PENDING, ReservationStatus.AVAILABLE));
         if (userReservations.size() >= limit) {
-            throw new IllegalStateException("預約數量已達上限");
+            throw new IllegalStateException("預約數量已達上限（" + limit + " 本）");
         }
 
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到書籍"));
+        // 3. 驗證書籍副本
+        BookCopy bookCopy = bookCopyRepository.findById(bookCopyId)
+                .orElseThrow(() -> new EntityNotFoundException("找不到此書籍副本"));
 
-        // 檢查是否已預約此書
+        // 4. 檢查副本狀態：只有 L（已借出）的副本才能預約
+        if (bookCopy.getStatus() != BookCopyStatus.L) {
+            throw new IllegalStateException("此書籍副本目前無法預約（狀態：" + bookCopy.getStatus() + "）。只有已借出的書籍可以預約。");
+        }
+
+        // 5. 檢查是否已預約此副本
         boolean alreadyReserved = userReservations.stream()
-                .anyMatch(r -> r.getBookCopy().getBook().getId().equals(bookId));
+                .anyMatch(r -> r.getBookCopy().getId().equals(bookCopyId));
         if (alreadyReserved) {
-            throw new IllegalStateException("您已預約過此書籍");
+            throw new IllegalStateException("您已預約此書籍副本");
         }
 
-        List<BookCopy> copies = bookCopyRepository.findByBook(book);
-        if (copies.isEmpty()) {
-            throw new IllegalStateException("此書籍目前無任何副本");
-        }
+        // 6. 計算排隊位置
+        List<Reservation> existingQueue = reservationRepository.findByBookCopyIdAndStatusOrderByQueuePositionAsc(
+                bookCopyId, ReservationStatus.PENDING);
+        
+        int queuePosition = existingQueue.isEmpty() ? 1 : 
+                existingQueue.get(existingQueue.size() - 1).getQueuePosition() + 1;
 
-        BookCopy selectedCopy = null;
-        BookCopy availableCopy = copies.stream()
-                .filter(c -> c.getStatus() == BookCopyStatus.A)
-                .findFirst().orElse(null);
-
-        if (availableCopy != null) {
-            // 有可借閱副本，直接預約並通知
-            selectedCopy = availableCopy;
-            createReservation(user, selectedCopy, true);
-        } else {
-            // 無可借閱副本，找排隊人數最少的副本
-            BookCopy bestCopy = null;
-            int minQueue = Integer.MAX_VALUE;
-            
-            for (BookCopy copy : copies) {
-                if (copy.getStatus() == BookCopyStatus.U) continue; // 跳過下架的副本
-                
-                int queueSize = reservationRepository.findByBookCopyIdAndStatusOrderByQueuePositionAsc(
-                        copy.getId(), ReservationStatus.PENDING).size();
-                
-                if (queueSize < minQueue) {
-                    minQueue = queueSize;
-                    bestCopy = copy;
-                }
-            }
-            
-            if (bestCopy == null) {
-                 throw new IllegalStateException("目前無可用書籍副本可預約");
-            }
-            selectedCopy = bestCopy;
-            createReservation(user, selectedCopy, false);
-        }
-    }
-
-    private void createReservation(User user, BookCopy copy, boolean isAvailableNow) {
+        // 7. 創建預約記錄
         Reservation reservation = new Reservation();
         reservation.setUser(user);
-        reservation.setBookCopy(copy);
-        reservation.setStatus(isAvailableNow ? ReservationStatus.AVAILABLE : ReservationStatus.PENDING);
-        
-        if (isAvailableNow) {
-            // 書籍可立即取閱
-            reservation.setNotifyDate(LocalDateTime.now());
-            reservation.setExpirationDate(LocalDate.now().plusDays(7)); // 7天內取書
-            reservation.setQueuePosition(0);
-            
-            // 更新副本狀態為預約中
-            copy.setStatus(BookCopyStatus.R);
-            bookCopyRepository.save(copy);
-            
-            // 發送通知
-            notificationService.sendNotification(user, NotificationType.RESERVE_AVAILABLE, 
-                    "書籍已到館", "您預約的《" + copy.getBook().getTitle() + "》已可取書，請於 7 天內至館取書。", 
-                    null, null, ReferenceType.RESERVATION);
-        } else {
-            // 需排隊等候
-            // 計算排隊位置
-            Integer maxPos = reservationRepository.findFirstByBookCopyIdAndStatusOrderByQueuePositionDesc(
-                    copy.getId(), ReservationStatus.PENDING)
-                    .map(Reservation::getQueuePosition)
-                    .orElse(0);
-            
-            reservation.setQueuePosition(maxPos + 1);
-            reservation.setExpirationDate(LocalDate.now().plusDays(7)); // 預留取書期限（實際會在通知時更新）
-            
-            // 發送通知
-            notificationService.sendNotification(user, NotificationType.RESERVE_SUCCESS, 
-                    "預約成功", "您已成功預約《" + copy.getBook().getTitle() + "》，目前排隊位置：第 " + reservation.getQueuePosition() + " 位", 
-                    null, null, ReferenceType.RESERVATION);
-        }
+        reservation.setBookCopy(bookCopy);
+        reservation.setStatus(ReservationStatus.PENDING);
+        reservation.setQueuePosition(queuePosition);
+        reservation.setExpirationDate(LocalDate.now().plusDays(7)); // 預設值，實際在通知時更新
         
         reservationRepository.save(reservation);
+
+        // 8. 發送通知
+        notificationService.sendNotification(user, NotificationType.RESERVE_SUCCESS, 
+                "預約成功", 
+                "您已成功預約《" + bookCopy.getBook().getTitle() + "》（副本編號：" + bookCopy.getUniqueCode() + "），" +
+                "目前排隊位置：第 " + queuePosition + " 位。書籍歸還後將依序通知取書。", 
+                null, reservation.getId(), ReferenceType.RESERVATION);
     }
+
 
     @Override
     public void cancelReservation(Long userId, Long reservationId) {

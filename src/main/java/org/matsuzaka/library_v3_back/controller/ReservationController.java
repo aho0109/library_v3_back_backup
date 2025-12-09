@@ -24,12 +24,12 @@ public class ReservationController {
 
     @PostMapping("/reserve")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> reserveBook(@AuthenticationPrincipal UserDetailSecu currentUser,
-                                         @RequestBody ReservationRequestDto request) {
+    public ResponseEntity<?> reserveBookCopy(@AuthenticationPrincipal UserDetailSecu currentUser,
+                                             @RequestBody ReservationRequestDto request) {
         try {
-            reservationService.reserveBook(currentUser.getUser().getId(), request.getBookId());
-            return ResponseEntity.ok("Reservation successful");
-        } catch (IllegalStateException e) {
+            reservationService.reserveBookCopy(currentUser.getUser().getId(), request.getBookCopyId());
+            return ResponseEntity.ok("預約成功");
+        } catch (IllegalStateException | jakarta.persistence.EntityNotFoundException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
@@ -40,7 +40,7 @@ public class ReservationController {
                                                @PathVariable Long id) {
         try {
             reservationService.cancelReservation(currentUser.getUser().getId(), id);
-            return ResponseEntity.ok("Reservation cancelled");
+            return ResponseEntity.ok("取消預約成功");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

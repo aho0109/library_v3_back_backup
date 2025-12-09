@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class ReservationRequestDto {
-    private Long bookId;
+    private Long bookCopyId; // 直接預約特定的副本
 }
 
