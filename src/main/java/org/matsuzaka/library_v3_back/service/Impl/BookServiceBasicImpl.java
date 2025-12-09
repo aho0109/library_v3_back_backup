@@ -7,6 +7,7 @@ import org.matsuzaka.library_v3_back.model.entity.Author;
 import org.matsuzaka.library_v3_back.model.entity.Book;
 import org.matsuzaka.library_v3_back.model.mapper.BookMapper;
 import org.matsuzaka.library_v3_back.model.repositoryDao.BookRepository;
+import org.matsuzaka.library_v3_back.model.repositoryDao.LoanRepository;
 import org.matsuzaka.library_v3_back.service.BookServiceBasic;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,11 +21,13 @@ import java.util.stream.Collectors;
 public class BookServiceBasicImpl implements BookServiceBasic {
 
     private final BookRepository bookRepository;
+    private final LoanRepository loanRepository;
     private final BookMapper bookMapper; // 建構子注入，這是更推薦的方式，記得要在 BookServiceImpl 的建構子中注入 BookMapper
 
 
-    public BookServiceBasicImpl(BookRepository bookRepository, BookMapper bookMapper) {
+    public BookServiceBasicImpl(BookRepository bookRepository, LoanRepository loanRepository, BookMapper bookMapper) {
         this.bookRepository = bookRepository;
+        this.loanRepository = loanRepository;
         this.bookMapper = bookMapper;
     }
 
@@ -86,17 +89,27 @@ public class BookServiceBasicImpl implements BookServiceBasic {
     // @EntityGraph + mapstruct(BookMapper類、BookCopyMapper類)
     @Override
     public Optional<BookRespDtoOneDetails> getOneByIdWithDetails(Long bookId) {
-        System.out.println(bookRepository.findOneByIdWithDetails(bookId)
-                .map(bookMapper::toBookRespDtoOneDetails));
-        return bookRepository.findOneByIdWithDetails(bookId)
+        Optional<BookRespDtoOneDetails> opt = bookRepository.findOneByIdWithDetails(bookId)
                 .map(bookMapper::toBookRespDtoOneDetails);
-        // 這是Java 8的方法引用（Method Reference）語法，
-        // bookMapper::toBookRespDtoOneDetails 等同於 book -> bookMapper.toBookRespDtoOneDetails(book)。
-        //
-        // 這種寫法的前提是：
-        // 你的BookMapper中應該有類似這樣的方法：
-        // public BookRespDtoOneDetails toBookRespDtoOneDetails(Book book);
-        // Optional的map操作：當Optional有值時，會將值傳遞給mapper方法；如果為空，則直接返回空的Optional
-        // 這種方法引用的寫法比lambda表達式更簡潔，是函數式編程的推薦做法。
+
+        // 補上每本副本的預計歸還日（如果該副本為「已借出」）
+        opt.ifPresent(dto -> {
+            if (dto.getBookCopies() != null) {
+                dto.getBookCopies().forEach(copyDto -> {
+                    // 判斷是否為借出狀態：依照你的 mapStatusToChinese 會產生包含「借出」字樣
+                    // 也可以改為檢查 BookCopy 的 status enum (若 DTO 有該欄位)
+                    if (copyDto.getStatusDescription() != null && copyDto.getStatusDescription().contains("已借出")) {
+                        loanRepository.findFirstByBookCopyIdAndReturnDateIsNullOrderByLoanDateDesc(copyDto.getId())
+                                .ifPresent(loan -> {
+                                    if (loan.getDueDate() != null) {
+                                        copyDto.setStatusDescription(copyDto.getStatusDescription() + "(" + loan.getDueDate() + " 到期)"); // 想要特定格式可改用 DateTimeFormatter
+                                    }
+                                });
+                    }
+                });
+            }
+        });
+
+        return opt;
     }
 }

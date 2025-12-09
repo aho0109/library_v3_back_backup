@@ -40,13 +40,19 @@ public class BookCopyDTO {
         // 設定狀態顯示文字
         switch (bookCopy.getStatus()) {
             case A:
-                dto.setStatusDisplay("可借閱");
+                dto.setStatusDisplay("在館");
                 break;
             case L:
                 dto.setStatusDisplay("已借出");
                 break;
-            case R:
+            case P:
                 dto.setStatusDisplay("已預約");
+                break;
+            case R:
+                dto.setStatusDisplay("處理中");
+                break;
+            case U:
+                dto.setStatusDisplay("已下架");
                 break;
         }
 

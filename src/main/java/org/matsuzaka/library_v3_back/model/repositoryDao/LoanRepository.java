@@ -91,6 +91,8 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
     List<LoanItemRespDto> findOverdueByUserId(@Param("userId") Long userId);
 
 
+    // 找到指定 book_copy 的「目前借閱紀錄」(未還)，回傳最近一筆
+    Optional<Loan> findFirstByBookCopyIdAndReturnDateIsNullOrderByLoanDateDesc(Long bookCopyId);
 
 }
 
