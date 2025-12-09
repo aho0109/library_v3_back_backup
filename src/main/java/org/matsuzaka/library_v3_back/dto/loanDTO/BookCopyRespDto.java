@@ -12,7 +12,7 @@ public class BookCopyRespDto {
     private Integer id;
     private String uniqueCode;
     private String statusDescription; // 用於儲存轉換後的中文狀態描述
-    // private String returnDate; // 如果已借出，顯示預計歸還日期，否則為 null
+    private String returnDate; // 如果已借出，顯示預計歸還日期，否則為 null
 
 
 }

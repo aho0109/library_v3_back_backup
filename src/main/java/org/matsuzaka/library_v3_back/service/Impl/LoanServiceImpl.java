@@ -3,6 +3,7 @@ package org.matsuzaka.library_v3_back.service.Impl;
 import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.loanDTO.BorrowRespDto;
 import org.matsuzaka.library_v3_back.dto.loanDTO.LoanItemRespDto;
+import org.matsuzaka.library_v3_back.dto.loanDTO.RenewResponseDto;
 import org.matsuzaka.library_v3_back.dto.loanDTO.ReturnResponseDto;
 import org.matsuzaka.library_v3_back.model.entity.*;
 import org.matsuzaka.library_v3_back.model.enums.*;
@@ -87,7 +88,7 @@ public class LoanServiceImpl implements LoanService {
                 userRepository.save(user);
             }
         }
-        
+
         if (user.getStatus() != UserStatus.ACTIVE) {
              return new BorrowRespDto(false, "使用者帳號未啟用", null, null);
         }
@@ -131,18 +132,18 @@ public class LoanServiceImpl implements LoanService {
         loan.setDueDate(LocalDate.now().plusDays(30));
         loan.setStatus(LoanStatus.ON_LOAN);
         loan.setRenewCount(0);
-        
+
         Loan savedLoan = loanRepository.save(loan);
 
         // 更新副本狀態為已借出
         copy.setStatus(BookCopyStatus.L);
         bookCopyRepository.save(copy);
-        
+
         // 增加書籍的累計借閱次數
         Book book = copy.getBook();
         book.setTotalLoanCount(book.getTotalLoanCount() + 1);
         bookRepository.save(book);
-        
+
         // 更新預約記錄（如果存在）
         if (matchedReservation != null) {
             matchedReservation.setStatus(ReservationStatus.PICKED_UP);
@@ -158,14 +159,14 @@ public class LoanServiceImpl implements LoanService {
         // 根據唯一碼找到副本
         BookCopy copy = bookCopyRepository.findByUniqueCode(uniqueCode)
                 .orElseThrow(() -> new EntityNotFoundException("找不到書籍副本"));
-        
+
         // 找到此副本的活躍借閱記錄
         Optional<Loan> loanOpt = loanRepository.findByBookCopyIdAndStatus(copy.getId(), LoanStatus.ON_LOAN);
-        
+
         if (loanOpt.isEmpty()) {
              return new ReturnResponseDto(false, "此書無借出記錄", uniqueCode);
         }
-        
+
         Loan loan = loanOpt.get();
         User user = loan.getUser();
 
@@ -174,22 +175,22 @@ public class LoanServiceImpl implements LoanService {
         if (overdueDays > 0) {
             int points = (int) overdueDays; // 一天一點
             user.setPenaltyPoints(user.getPenaltyPoints() + points);
-            
+
             if (user.getPenaltyPoints() >= 10) {
                 user.setPenaltyPoints(0);
                 user.setStatus(UserStatus.SUSPENDED);
-                
-                LocalDateTime baseTime = (user.getSuspendedUntil() != null && user.getSuspendedUntil().isAfter(LocalDateTime.now())) 
-                        ? user.getSuspendedUntil() 
+
+                LocalDateTime baseTime = (user.getSuspendedUntil() != null && user.getSuspendedUntil().isAfter(LocalDateTime.now()))
+                        ? user.getSuspendedUntil()
                         : LocalDateTime.now();
                 user.setSuspendedUntil(baseTime.plusDays(30));
-                
-                notificationService.sendNotification(user, NotificationType.PENALTY, "帳號停權通知", 
-                        "您因累積違規點數達 10 點，帳號將停權 30 天至 " + user.getSuspendedUntil(), 
+
+                notificationService.sendNotification(user, NotificationType.PENALTY, "帳號停權通知",
+                        "您因累積違規點數達 10 點，帳號將停權 30 天至 " + user.getSuspendedUntil(),
                         loan.getId(), null, ReferenceType.PENALTY);
             } else {
-                 notificationService.sendNotification(user, NotificationType.PENALTY, "逾期違規通知", 
-                        "您本次逾期產生 " + points + " 點違規點數，目前累積點數：" + user.getPenaltyPoints(), 
+                 notificationService.sendNotification(user, NotificationType.PENALTY, "逾期違規通知",
+                        "您本次逾期產生 " + points + " 點違規點數，目前累積點數：" + user.getPenaltyPoints(),
                         loan.getId(), null, ReferenceType.PENALTY);
             }
             userRepository.save(user);
@@ -206,8 +207,13 @@ public class LoanServiceImpl implements LoanService {
         return new ReturnResponseDto(true, "歸還成功", uniqueCode);
     }
 
+    /**
+     * 續借書籍。
+     * @param loanId
+     * @param userId
+     */
     @Override
-    public void renewBook(Long loanId, Long userId) {
+    public RenewResponseDto renewBook(Long loanId, Long userId) {
         Loan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new EntityNotFoundException("找不到借閱記錄"));
         
@@ -239,5 +245,8 @@ public class LoanServiceImpl implements LoanService {
         loan.setDueDate(loan.getDueDate().plusDays(10));
         loan.setRenewCount(loan.getRenewCount() + 1);
         loanRepository.save(loan);
+
+        // 回傳最新到期日期
+        return new RenewResponseDto(true, "續借成功", loan.getDueDate());
     }
 }

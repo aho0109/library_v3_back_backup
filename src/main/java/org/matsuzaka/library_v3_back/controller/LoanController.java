@@ -22,7 +22,6 @@ public class LoanController {
         this.loanService = loanService;
     }
 
-    /* 借閱 */
     /**
      * 處理書籍借閱請求 (Admin).
      * @param requestDto 包含 uniqueCode 和 cardId 的借閱請求 DTO
@@ -39,7 +38,6 @@ public class LoanController {
         }
     }
 
-    /* 歸還 */
     /**
      * 處理書籍歸還請求 (Admin).
      * @param requestDto 包含 uniqueCode 的歸還請求 DTO
@@ -62,7 +60,7 @@ public class LoanController {
     public ResponseEntity<?> renewBook(@PathVariable Long loanId, @AuthenticationPrincipal UserDetailSecu currentUser) {
         try {
             loanService.renewBook(loanId, currentUser.getUser().getId());
-            return ResponseEntity.ok("Renew successful");
+            return ResponseEntity.ok("續借成功");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

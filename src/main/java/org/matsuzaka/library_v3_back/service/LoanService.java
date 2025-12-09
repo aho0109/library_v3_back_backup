@@ -3,6 +3,7 @@ package org.matsuzaka.library_v3_back.service;
 
 import org.matsuzaka.library_v3_back.dto.loanDTO.BorrowRespDto;
 import org.matsuzaka.library_v3_back.dto.loanDTO.LoanItemRespDto;
+import org.matsuzaka.library_v3_back.dto.loanDTO.RenewResponseDto;
 import org.matsuzaka.library_v3_back.dto.loanDTO.ReturnResponseDto;
 
 import java.util.List;
@@ -33,6 +34,6 @@ public interface LoanService {
     /**
      * User renews book.
      */
-    void renewBook(Long loanId, Long userId);
+    RenewResponseDto renewBook(Long loanId, Long userId);
 
 }

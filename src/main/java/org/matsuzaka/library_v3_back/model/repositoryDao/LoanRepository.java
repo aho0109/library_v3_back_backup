@@ -90,5 +90,7 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
                         ORDER BY l.due_date Desc;""", nativeQuery = true) 
     List<LoanItemRespDto> findOverdueByUserId(@Param("userId") Long userId);
 
+
+
 }
 
