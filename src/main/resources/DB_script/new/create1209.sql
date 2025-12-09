@@ -427,3 +427,14 @@ SELECT * FROM announcement;
 SELECT * FROM announcement_read;
 SELECT * FROM email_template;
 SELECT * FROM email_log;
+
+SELECT l.id, b.id, b.title, b.image_url, bc.unique_code, l.loan_date, l.due_date, l.return_date, GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR ', ') AS author_name
+FROM loan l
+         JOIN book_copy bc ON l.book_copy_id = bc.id
+         JOIN book b ON bc.book_id = b.id
+         JOIN book_author ba ON b.id = ba.book_id
+         JOIN author a ON ba.author_id = a.id
+WHERE l.user_id = 1
+  AND l.status = 'ON_LOAN'
+GROUP BY l.id, b.id, b.title, b.image_url, bc.unique_code, l.loan_date, l.due_date, l.return_date
+ORDER BY l.loan_date DESC ;

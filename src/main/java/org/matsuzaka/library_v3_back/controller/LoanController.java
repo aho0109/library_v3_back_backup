@@ -79,7 +79,7 @@ public class LoanController {
      * @return 當前登入者的借閱中書籍列表。
      */
     @GetMapping("/my-current")
-    @PreAuthorize("isAuthenticated() and (hasAuthority('ROLE_ADMIN'))") // 可根據需求調整權限
+    //@PreAuthorize("isAuthenticated() and (hasAuthority('ROLE_ADMIN'))") // 可根據需求調整權限
     public ResponseEntity<Set<LoanItemRespDto>> getCurrentLoans(@AuthenticationPrincipal UserDetailSecu currentUser) {
         Long userId = currentUser.getUser().getId(); // 從安全的物件中獲取 ID
         Set<LoanItemRespDto> loans = loanService.getCurrentByUserId(userId);

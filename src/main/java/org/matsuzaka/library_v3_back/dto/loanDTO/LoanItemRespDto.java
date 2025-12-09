@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.Date;
 
 @Data
@@ -24,9 +25,9 @@ public class LoanItemRespDto {
     private String imageUrl; // 建議也包含圖片URL，方便顯示
 
     private String uniqueCode; // 書籍副本的唯一碼
-    private Date loanDate; // 借閱日期
-    private Date dueDate; // 預計歸還日期
-    private Date returnDate; // 歸還日期 (如果已歸還，否則為 null)
+    private LocalDate loanDate; // 借閱日期
+    private LocalDate dueDate; // 預計歸還日期
+    private LocalDate returnDate; // 歸還日期 (如果已歸還，否則為 null)
 
     private String authors; // 作者名稱列表，用於顯示多個作者
 
