@@ -405,12 +405,10 @@ INSERT INTO `book_tag` (`book_id`, `tag_id`) VALUES
                                                  (@`電子之星：池袋西口公園 4`, @動畫化),
                                                  (@`G少年冬戰爭：池袋西口公園 7`, @動畫化);
 
-
-
 -- 11. 插入 book_copy 資料
 INSERT INTO `book_copy` (`book_id`, `unique_code`, `status`) VALUES
-                                                                 (@`鋼之鍊金術師 (1)`, 'HR001A', 'L'),
-                                                                 (@`鋼之鍊金術師 (1)`, 'HR001B', 'L'),
+                                                                 (@`鋼之鍊金術師 (1)`, 'HR001A', 'A'),
+                                                                 (@`鋼之鍊金術師 (1)`, 'HR001B', 'A'),
                                                                  (@`鋼之鍊金術師 (24)`, 'HR024A', 'A'),
                                                                  (@`鋼之鍊金術師 (24)`, 'HR024B', 'A'),
                                                                  (@`鋼之鍊金術師 (25)`, 'HR025A', 'A'),
@@ -425,17 +423,17 @@ INSERT INTO `book_copy` (`book_id`, `unique_code`, `status`) VALUES
                                                                  (@`銀之匙 (15)`, 'SP015B', 'A'),
                                                                  (@`銀魂 (1)`, 'GT001A', 'A'),
                                                                  (@`銀魂 (1)`, 'GT001B', 'A'),
-                                                                 (@`銀魂 (77)`, 'GT077A', 'L'),
+                                                                 (@`銀魂 (77)`, 'GT077A', 'A'),
                                                                  (@`銀魂 (77)`, 'GT077B', 'A'),
                                                                  (@`ONE-PUNCH MAN 一拳超人 (1)`, 'OP001A', 'A'),
                                                                  (@`ONE-PUNCH MAN 一拳超人 (1)`, 'OP001B', 'A'),
-                                                                 (@`ONE-PUNCH MAN 一拳超人 (32)`, 'OP032A', 'L'),
+                                                                 (@`ONE-PUNCH MAN 一拳超人 (32)`, 'OP032A', 'A'),
                                                                  (@`ONE-PUNCH MAN 一拳超人 (32)`, 'OP032B', 'A'),
                                                                  (@`路人超能100 (1)`, 'MOB001A', 'A'),
                                                                  (@`路人超能100 (1)`, 'MOB001B', 'A'),
                                                                  (@`路人超能100 (16)`, 'MOB016A', 'A'),
                                                                  (@`路人超能100 (16)`, 'MOB016B', 'A'),
-                                                                 (@`鄰座的怪同學 (1)`, 'TH001A', 'L'),
+                                                                 (@`鄰座的怪同學 (1)`, 'TH001A', 'A'),
                                                                  (@`鄰座的怪同學 (1)`, 'TH001B', 'A'),
                                                                  (@`鄰座的怪同學 (13)`, 'TH013A', 'A'),
                                                                  (@`鄰座的怪同學 (13)`, 'TH013B', 'A'),
@@ -468,10 +466,10 @@ INSERT INTO `book_copy` (`book_id`, `unique_code`, `status`) VALUES
                                                                  (@`VOGUE JAPAN 6月號/2025`, 'VJ202506A', 'A'),
                                                                  (@`PC home 電腦家庭 02月號/2023 第325期`, 'PCH325A', 'A'),
                                                                  (@`PC home 電腦家庭 06月號/2025 第353期`, 'PCH353A', 'A'),
-                                                                 (@`Java SE 8 技術手冊`, 'JV008A', 'L'),
+                                                                 (@`Java SE 8 技術手冊`, 'JV008A', 'A'),
                                                                  (@`Java SE 8 技術手冊`, 'JV008B', 'A'),
                                                                  (@`Java SE 8 技術手冊`, 'JV008C', 'A'),
-                                                                 (@`JavaScript 技術手冊`, 'JS001A', 'L'),
+                                                                 (@`JavaScript 技術手冊`, 'JS001A', 'A'),
                                                                  (@`JavaScript 技術手冊`, 'JS001B', 'A'),
                                                                  (@`JavaScript 技術手冊`, 'JS001C', 'A'),
                                                                  (@`Java SE 17 技術手冊`, 'JV017A', 'A'),
