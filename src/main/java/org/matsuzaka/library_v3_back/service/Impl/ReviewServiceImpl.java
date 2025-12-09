@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -78,14 +79,16 @@ public class ReviewServiceImpl implements ReviewService {
         List<Review> reviews = reviewRepository.findByBookId(book.getId());
         
         if (reviews.isEmpty()) {
-            book.setAverageRating(BigDecimal.valueOf(0.0));
+            book.setAverageRating(BigDecimal.ZERO);
             book.setRatingCount(0);
         } else {
             double avgRating = reviews.stream()
                     .mapToInt(Review::getRating)
                     .average()
                     .orElse(0.0);
-            book.setAverageRating(BigDecimal.valueOf(avgRating));
+            // 轉換為 BigDecimal 並設定精度（保留一位小數）
+            book.setAverageRating(BigDecimal.valueOf(avgRating)
+                    .setScale(1, RoundingMode.HALF_UP));
             book.setRatingCount(reviews.size());
         }
         bookRepository.save(book);

@@ -40,7 +40,8 @@ public class BookController {
     /**
      * GET /api/books
      * 書籍搜尋與多重篩選 API。
-     * * @param keyword          搜尋關鍵字
+     * 
+     * @param keyword          搜尋關鍵字
      * @param mainCategoryId   主分類ID
      * @param subCategoryId    子分類ID
      * @param seriesDisplay    系列作顯示模式 (1:顯示系列作, 0:只顯示單行本)
@@ -48,23 +49,29 @@ public class BookController {
      * @param publisherId      出版社ID
      * @param tagIds           標籤ID列表
      * @param seriesId         系列ID
-     * @param pageable         分頁資訊，由 Spring 自動解析 URL 參數 (e.g., ?page=0&size=10&sort=title,asc)
+     * @param pageable         分頁資訊，由 Spring 自動解析 URL 參數
+     *                         - page: 頁碼（從0開始），例如 ?page=0
+     *                         - size: 每頁數量，例如 ?size=20
+     *                         - sort: 排序欄位和方向，例如：
+     *                           ?sort=addedDate,desc (上架日期新到舊)
+     *                           ?sort=addedDate,asc (上架日期舊到新)
+     *                           ?sort=totalLoanCount,desc (熱門借閱)
+     *                           ?sort=totalLoanCount,asc (冷門借閱)
+     *                           ?sort=title,asc (書名A-Z)
      * @return 包含書籍列表和分頁資訊的 HTTP 200 OK 回應
      */
     @GetMapping
-    public ResponseEntity<BookSearchResponseDTO> searchBooksAndStats( // Page 改成 PageResponseDTO<，因spring boot建議
+    public ResponseEntity<BookSearchResponseDTO> searchBooksAndStats(
                                                                       @RequestParam(required = false) String keyword,
                                                                       @RequestParam(required = false) Long mainCategoryId,
                                                                       @RequestParam(required = false) Long subCategoryId,
-                                                                      @RequestParam(required = false/*, defaultValue = "1"*/) Integer seriesDisplay,
+                                                                      @RequestParam(required = false) Integer seriesDisplay,
                                                                       @RequestParam(required = false) Long authorId,
                                                                       @RequestParam(required = false) Long publisherId,
                                                                       @RequestParam(name = "tags", required = false) List<Long> tagIds,
                                                                       @RequestParam(required = false) Long seriesId,
-                                                                      //@PageableDefault: 這是 Spring Data 的一個強大功能。
-                                                                      // 它會自動從 URL 參數（例如 ?page=0&size=10&sort=title,asc）中解析出分頁和排序資訊，並將其封裝成 Pageable 物件，極大地簡化了分頁的處理。
-                                                                      // 這裡的 pageable 參數會自動處理分頁和排序，默認每頁20條，按標題升序排列
-                                                                      @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+                                                                      // 預設按上架日期降序排列（新書優先）
+                                                                      @PageableDefault(size = 10, sort = "addedDate", direction = Sort.Direction.DESC) Pageable pageable) {
 
         // 將所有參數傳遞給服務層，執行業務邏輯
         BookSearchResponseDTO response = bookService.searchAndFilterAndGetStats(

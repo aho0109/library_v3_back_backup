@@ -31,6 +31,6 @@ public class BookRespDtoOneDetails {
     private Set<BookCopyRespDto> bookCopies; // 新增：書籍副本列表
     
     // New fields for V3
-    private Double averageRating;
+    private BigDecimal averageRating;
     private Integer ratingCount;
 }
