@@ -79,7 +79,7 @@ public class LoanController {
      * @return 當前登入者的借閱中書籍列表。
      */
     @GetMapping("/my-current")
-    //@PreAuthorize("isAuthenticated() and (hasAuthority('ROLE_ADMIN'))") // 可根據需求調整權限
+    @PreAuthorize("isAuthenticated()") // 可根據需求調整權限
     public ResponseEntity<Set<LoanItemRespDto>> getCurrentLoans(@AuthenticationPrincipal UserDetailSecu currentUser) {
         Long userId = currentUser.getUser().getId(); // 從安全的物件中獲取 ID
         Set<LoanItemRespDto> loans = loanService.getCurrentByUserId(userId);
@@ -87,7 +87,7 @@ public class LoanController {
     }
 
     @GetMapping("/my-history")
-    @PreAuthorize("isAuthenticated() and (hasAuthority('ROLE_ADMIN'))") // 可根據需求調整權限
+    @PreAuthorize("isAuthenticated()") // 可根據需求調整權限
     public ResponseEntity<List<LoanItemRespDto>> getLoanHistory(@AuthenticationPrincipal UserDetailSecu currentUser) {
         Long userId = currentUser.getUser().getId(); // 從安全的物件中獲取 ID
         List<LoanItemRespDto> history = loanService.getHistoryByUserId(userId);
@@ -95,7 +95,7 @@ public class LoanController {
     }
 
     @GetMapping("/my-overdue")
-    @PreAuthorize("isAuthenticated() and (hasAuthority('ROLE_ADMIN'))") // 可根據需求調整權限
+    @PreAuthorize("isAuthenticated()") // 可根據需求調整權限
     public ResponseEntity<List<LoanItemRespDto>> getOverdueLoans(@AuthenticationPrincipal UserDetailSecu currentUser) {
         Long userId = currentUser.getUser().getId(); // 從安全的物件中獲取 ID
         List<LoanItemRespDto> overdue = loanService.getOverdueByUserId(userId);

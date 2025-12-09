@@ -63,7 +63,7 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
 
     // 個人借閱歷史，新增 loanId
     @Query(value = """
-                        SELECT l.id, b.id, b.title, b.image_url, bc.unique_code, l.loan_date, l.due_date, l.return_date, GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR ', ') AS author_name
+                        SELECT l.id, b.id, b.title, b.image_url, bc.unique_code, DATE(l.loan_date), l.due_date, DATE(l.return_date), GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR ', ') AS author_name
                         FROM loan l
                         JOIN book_copy bc ON l.book_copy_id = bc.id
                         JOIN book b ON bc.book_id = b.id
@@ -77,7 +77,7 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
 
     // 個人逾期未歸還 (使用 due_date 判斷)，新增 loanId
     @Query(value = """
-                        SELECT l.id, b.id, b.title, b.image_url, bc.unique_code, l.loan_date, l.due_date, l.return_date, GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR ', ') AS author_name
+                        SELECT l.id, b.id, b.title, b.image_url, bc.unique_code, DATE(l.loan_date), l.due_date, DATE(l.return_date), GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR ', ') AS author_name
                         FROM loan l
                         JOIN book_copy bc ON l.book_copy_id = bc.id
                         JOIN book b ON bc.book_id = b.id
