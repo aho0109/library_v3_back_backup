@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新增書籍 - 圖書館後台管理</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Axios (for API requests) -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Tom Select (for advanced select boxes) -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Custom styles for Tom Select to match Tailwind's aesthetic */
+        .ts-control {
+            border-radius: 0.375rem;
+            border-color: #D1D5DB;
+            padding: 0.6rem 0.75rem; /* 增加垂直內距以加高 */
+            min-height: 48px; /* 設定最小高度 */
+        }
+        .ts-control .item {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .ts-wrapper.multi .ts-control > div {
+            cursor: text;
+            margin: 0 0.25rem 0.25rem 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+<div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <!-- 主內容區 -->
+    <main class="w-full">
+        <div class="bg-white rounded-lg shadow-md p-6 min-h-full">
+
+            <!-- 訊息提示區域 -->
+            <div v-if="message.text" :class="message.type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'" class="border px-4 py-3 rounded relative mb-6" role="alert">
+                <span class="block sm:inline">{{ message.text }}</span>
+            </div>
+
+            <!-- 畫面狀態 1: 新增書籍表單 -->
+            <div v-if="viewState === 'form'">
+                <h1 class="text-2xl font-bold mb-6 text-gray-800">新增書籍</h1>
+                <form @submit.prevent="confirmSubmission" class="space-y-6">
+                    <!-- Basic Information Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="title" class="block text-sm font-medium text-gray-700">書籍標題</label>
+                            <input type="text" v-model="newBook.title" id="title" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-3 h-12">
+                        </div>
+                        <div>
+                            <label for="isbn" class="block text-sm font-medium text-gray-700">ISBN</label>
+                            <input type="text" v-model="newBook.isbn" id="isbn" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-3 h-12">
+                        </div>
+                        <div>
+                            <label for="publishYear" class="block text-sm font-medium text-gray-700">出版年份</label>
+                            <input type="number" v-model.number="newBook.publishYear" id="publishYear" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-3 h-12">
+                        </div>
+                        <div>
+                            <label for="price" class="block text-sm font-medium text-gray-700">價格</label>
+                            <input type="number" step="0.01" v-model.number="newBook.price" id="price" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-3 h-12">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="imageUrl" class="block text-sm font-medium text-gray-700">封面圖片 URL</label>
+                            <input type="url" v-model="newBook.imageUrl" id="imageUrl" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-3 h-12">
+                        </div>
+                    </div>
+
+                    <!-- Relational Information Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- *** 新增：主分類 *** -->
+                        <div>
+                            <label for="mainCategoryId" class="block text-sm font-medium text-gray-700">主分類</label>
+                            <select id="mainCategoryId" ref="mainCategorySelect" required placeholder="選擇主分類..."></select>
+                        </div>
+                        <div>
+                            <label for="subCategoryId" class="block text-sm font-medium text-gray-700">子分類</label>
+                            <select id="subCategoryId" ref="subCategorySelect" required placeholder="請先選擇主分類..."></select>
+                        </div>
+                        <div>
+                            <label for="publisherId" class="block text-sm font-medium text-gray-700">出版社</label>
+                            <select id="publisherId" ref="publisherSelect" required placeholder="選擇出版社..."></select>
+                        </div>
+                        <div>
+                            <label for="seriesId" class="block text-sm font-medium text-gray-700">系列 (可選)</label>
+                            <select id="seriesId" ref="seriesSelect" placeholder="選擇系列..."></select>
+                        </div>
+                    </div>
+
+                    <!-- Many-to-Many Section -->
+                    <div class="space-y-6">
+                        <div>
+                            <label for="authors" class="block text-sm font-medium text-gray-700">作者 (可搜尋或新增)</label>
+                            <select id="authors" ref="authorSelect" multiple placeholder="選擇或輸入新作者..."></select>
+                        </div>
+                        <div>
+                            <label for="tags" class="block text-sm font-medium text-gray-700">標籤 (可搜尋或新增)</label>
+                            <select id="tags" ref="tagSelect" multiple placeholder="選擇或輸入新標籤..."></select>
+                        </div>
+                    </div>
+
+                    <!-- Submission Button -->
+                    <div class="flex justify-end pt-4">
+                        <button type="submit" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            預覽並確認
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 畫面狀態 2: 成功新增後顯示結果 -->
+            <div v-if="viewState === 'success'">
+                <h1 class="text-2xl font-bold mb-6 text-gray-800">書籍新增成功</h1>
+                <div class="space-y-6">
+                    <!-- 上框：書籍資訊 -->
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 shadow-sm flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-6">
+                        <!-- 書籍封面 -->
+                        <div class="flex-shrink-0 w-48 h-64 md:w-64 md:h-80 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center text-gray-400 text-sm shadow-md">
+                            <img :src="createdBook.imageUrl || 'https://placehold.co/256x320/e2e8f0/64748b?text=無圖片'"
+                                 :alt="createdBook.title"
+                                 class="h-full w-auto object-contain"
+                                 onerror="this.onerror=null;this.src='https://placehold.co/256x320/e2e8f0/64748b?text=無圖片';" />
+                        </div>
+                        <!-- 書本詳細資訊 -->
+                        <div class="flex-grow text-center md:text-left">
+                            <h1 class="text-3xl font-bold text-gray-900 mb-3">{{ createdBook.title }}</h1>
+                            <p class="text-xl text-gray-700 mb-2"><strong>作者:</strong> {{ createdBook.authors ? createdBook.authors.join(', ') : '未知作者' }}</p>
+                            <p class="text-lg text-gray-600 mb-2"><strong>主類別:</strong> {{ createdBook.mainCategoryTitle || '未知' }}</p>
+                            <p class="text-lg text-gray-600 mb-2"><strong>次類別:</strong> {{ createdBook.subCategoryTitle || '未知' }}</p>
+                            <p class="text-lg text-gray-600 mb-2"><strong>出版商:</strong> {{ createdBook.publisher || '未知出版商' }}</p>
+                            <p class="text-lg text-gray-600 mb-2"><strong>出版年份:</strong> {{ createdBook.publishYear || 'N/A' }}</p>
+                            <p class="text-lg text-gray-600 mb-4"><strong>ISBN:</strong> {{ createdBook.isbn || 'N/A' }}</p>
+                            <div v-if="createdBook.seriesTitle" class="mb-4">
+                                <p class="text-lg text-gray-600"><strong>系列:</strong> {{ createdBook.seriesTitle }}</p>
+                            </div>
+                            <div v-if="createdBook.tags && createdBook.tags.length > 0" class="mb-4">
+                                <p class="text-lg text-gray-600 mb-2"><strong>標籤:</strong></p>
+                                <div class="flex flex-wrap gap-2 justify-center md:justify-start">
+                                    <span v-for="tag in createdBook.tags" :key="tag" class="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">{{ tag }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 返回按鈕 -->
+                    <div class="flex justify-end pt-4">
+                        <a href="/html/admin/adminPanel" class="inline-flex items-center justify-center rounded-md border border-transparent bg-gray-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-700">
+                            回到管理頁面
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 確認視窗 Modal -->
+    <div v-if="viewState === 'confirm'" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <h2 class="text-xl font-bold p-6 border-b">確認書籍資訊</h2>
+            <div class="p-6 space-y-4 overflow-y-auto custom-scrollbar">
+                <div v-for="(value, key) in confirmationData" :key="key" class="grid grid-cols-3 gap-4">
+                    <strong class="text-gray-600 col-span-1">{{ key }}</strong>
+                    <span class="text-gray-800 col-span-2 break-words">{{ value }}</span>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-4 p-6 border-t bg-gray-50 rounded-b-lg">
+                <button @click="viewState = 'form'" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">返回修改</button>
+                <button @click="handleCreateBook" :disabled="isSubmitting" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition disabled:opacity-50 inline-flex items-center">
+                    <span v-if="!isSubmitting">確認送出</span>
+                    <svg v-if="isSubmitting" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // 從 Vue 導入 Composition API 相關的函數
+    // createApp: 建立 Vue 應用程式的進入點
+    // ref: 用於建立基本型別 (如 string, number, boolean) 的響應式數據。當 ref 的值改變時，Vue 會自動更新畫面。
+    // reactive: 用於建立物件或陣列的響應式數據。當物件的屬性改變時，Vue 會自動更新畫面。
+    // onMounted: Vue 的生命週期鉤子，會在元件掛載到 DOM 之後執行。適合用來做初始化的 API 請求或設定非 Vue 的函式庫。
+    // nextTick: 將一個回呼函式延遲到下一次 DOM 更新循環之後執行。這在需要操作剛被 Vue 更新的 DOM 時非常有用。
+    const { createApp, ref, reactive, onMounted, nextTick } = Vue;
+
+    // 建立 Vue 應用實例，並掛載到 id 為 'app' 的 HTML 元素上
+    createApp({
+        // setup() 是 Vue 3 Composition API 的核心。所有響應式狀態、計算屬性和方法都在這裡定義。
+        // 這樣做的好處是能將相關的邏輯組織在一起，而不是像過去一樣分散在 data, methods, computed 等選項中。
+        setup() {
+            // --- 組態設定 ---
+            // 將所有後端 API 的路徑統一定義在此處。
+            // 這樣做的好處是，如果未來 API 路徑變更，只需要修改這個地方，而不用在程式碼中到處尋找和替換。
+            const API_BASE_URL = '/api';
+            const API_ENDPOINTS = {
+                categories: `${API_BASE_URL}/categories`, // 獲取所有主分類及其下的子分類
+                publishers: `${API_BASE_URL}/publishers`,
+                series: `${API_BASE_URL}/series`,
+                authors: `${API_BASE_URL}/authors`,
+                tags: `${API_BASE_URL}/tags`,
+                createBook: `${API_BASE_URL}/admin/books`
+            };
+
+            // --- 狀態管理 (State Management) ---
+            // 這裡定義了控制整個頁面行為和顯示的「狀態」。
+            const viewState = ref('form'); // 控制目前顯示的畫面。'form': 輸入表單, 'confirm': 確認彈窗, 'success': 成功結果頁。
+            const isSubmitting = ref(false); // 控制提交按鈕的狀態，防止使用者重複點擊。true 時按鈕會顯示載入中動畫且不可點擊。
+            const confirmationData = ref({}); // 用於儲存整理過後、準備顯示在確認彈窗中的資料。
+            const createdBook = ref({}); // 儲存書籍成功建立後，從後端 API 收到的完整書籍資訊，用於成功頁面的顯示。
+            const message = reactive({ text: '', type: 'success' }); // 頁面頂部的訊息提示物件，包含訊息內容和類型 ('success' 或 'error')。
+            const allCategories = ref([]); // 儲存從 API 獲取的所有分類原始資料 (包含主分類和其下的子分類)，用於主/子分類的連動。
+            let payload = {}; // 一個普通的 JavaScript 物件，用來暫存使用者點擊「預覽」後，準備要發送到後端的最終資料。
+
+            // --- 表單狀態 (Form State) ---
+            // 這裡定義了與表單輸入欄位直接綁定 (v-model) 的數據。
+            const newBook = reactive({
+                title: '', isbn: '', publishYear: null, price: null, imageUrl: '',
+            });
+
+            // 存放 Tom Select 這個外部函式庫的實例。
+            // 為什麼需要存放？因為後續需要呼叫這些實例的方法，例如 .clear(), .addOptions(), .getValue() 等。
+            const tomSelectInstances = {};
+            // 建立對應模板中 <select> 元素的 ref。
+            // 這樣 Vue 就能將這些變數與實際的 DOM 元素連結起來，讓我們可以在 onMounted 鉤子中存取它們。
+            const selectRefs = {
+                mainCategorySelect: ref(null),
+                subCategorySelect: ref(null),
+                publisherSelect: ref(null),
+                seriesSelect: ref(null),
+                authorSelect: ref(null),
+                tagSelect: ref(null)
+            };
+
+            // --- 方法定義 (Methods) ---
+            /**
+             * 顯示全域提示訊息。
+             * @param {string} text - 要顯示的訊息內容。
+             * @param {string} type - 訊息的類型，'success' (綠色) 或 'error' (紅色)。
+             */
+            const showMessage = (text, type = 'success') => {
+                message.text = text;
+                message.type = type;
+                // 設定一個計時器，5 秒後自動清除訊息，提升使用者體驗。
+                setTimeout(() => message.text = '', 5000);
+            };
+
+            /**
+             * 處理多對多關聯欄位 (作者、標籤) 的輸入值。
+             * Tom Select 允許使用者選擇已存在的項目 (值為數字 ID) 或輸入新項目 (值為字串)。
+             * 這個函式就是為了將這兩種混合的值，轉換成後端 DTO 需要的格式 { existingIds: [...], newNames: [...] }。
+             * @param {Array<string>} values - Tom Select 的 .getValue() 方法返回的值陣列。
+             * @returns {{existingIds: Array<number>, newNames: Array<string>}}
+             */
+            const processManyToManyInput = (values) => {
+                const result = { existingIds: [], newNames: [] };
+                if (!values) return result;
+                values.forEach(val => {
+                    // 使用正規表示式判斷值是否為純數字。
+                    if (/^\d+$/.test(val)) {
+                        result.existingIds.push(parseInt(val, 10)); // 是數字，視為已存在的 ID。
+                    } else {
+                        result.newNames.push(val); // 不是數字，視為使用者輸入的新名稱。
+                    }
+                });
+                return result;
+            };
+
+            /**
+             * 異步載入資料並初始化一個 Tom Select 下拉選單。
+             * 這是一個通用的輔助函式，避免重複撰寫初始化邏輯。
+             * @param {ref} elementRef - Vue 的 ref 物件，指向 <select> DOM 元素。
+             * @param {string} url - 獲取選項資料的 API URL。
+             * @param {object} options - 傳遞給 Tom Select 的額外設定，例如 { allowEmptyOption: true }。
+             */
+            const initializeSelect = async (elementRef, url, options = {}) => {
+                try {
+                    const response = await axios.get(url);
+                    // 將後端回傳的資料陣列，透過 .map() 轉換成 Tom Select 需要的 { value, text } 格式。
+                    const data = response.data.map(item => ({
+                        value: item.id,
+                        text: item.name || item.title || item.pubName || item.categoryTitle || item.categorySubTitle
+                    }));
+
+                    const elementId = elementRef.value.id;
+                    // 建立 Tom Select 實例，並將其存放在 tomSelectInstances 物件中，以便後續操作。
+                    tomSelectInstances[elementId] = new TomSelect(elementRef.value, { options: data, ...options });
+                    return tomSelectInstances[elementId]; // 返回實例，方便在 onMounted 中鏈式呼叫 .on() 等方法。
+                } catch (error) {
+                    console.error(`無法載入 ${elementRef.value.id} 的資料:`, error);
+                    showMessage(`無法載入 ${elementRef.value.id} 的資料。`, 'error');
+                }
+            };
+
+            /**
+             * 根據選擇的主分類 ID，動態更新子分類的選項。
+             * 這是實現「下拉選單連動」功能的關鍵。
+             * @param {string} mainCategoryId - 被選中的主分類的 ID。
+             */
+            const updateSubCategoryOptions = (mainCategoryId) => {
+                const subCategoryTomSelect = tomSelectInstances['subCategoryId'];
+                if (!subCategoryTomSelect) return;
+
+                // 先清空子分類的當前選項和已選中的值。
+                subCategoryTomSelect.clear();
+                subCategoryTomSelect.clearOptions();
+
+                if (mainCategoryId) {
+                    // 從先前儲存的 allCategories 資料中，找到 id 與使用者選中 id 相同的主分類物件
+                    const selectedCategory = allCategories.value.find(cat => cat.id == mainCategoryId);
+                    // 如果找到了，且該主分類下有子分類 (categorySubs)。
+                    if (selectedCategory && selectedCategory.categorySubs) {
+                        // 將子分類資料轉換成 Tom Select 需要的格式。
+                        const subOptions = selectedCategory.categorySubs.map(sub => ({
+                            value: sub.id,
+                            text: sub.categorySubTitle
+                        }));
+                        // 將新的選項加入到子分類下拉選單中。
+                        subCategoryTomSelect.addOptions(subOptions);
+                        subCategoryTomSelect.enable(); // 啟用下拉選單，讓使用者可以選擇。
+                    }
+                } else {
+                    // 如果沒有選擇主分類 (例如使用者清空了選擇)，則禁用子分類下拉選單。
+                    subCategoryTomSelect.disable();
+                }
+            };
+
+            /**
+             * 當使用者點擊 "預覽並確認" 按鈕時觸發。
+             * 它的職責是收集所有表單的資料，整理成人類可讀的格式，然後切換到確認畫面。
+             */
+            const confirmSubmission = () => {
+                // 輔助函式，用於從 Tom Select 實例中獲取選中項的「文字」，而不是 ID，這樣在確認畫面更直觀。
+                const getSelectText = (instance) => instance ? instance.items.map(id => instance.options[id].text).join(', ') : '未選擇';
+
+                // 填充 confirmationData 物件，這個物件會被 v-for 用來渲染確認列表。
+                confirmationData.value = {
+                    '書籍標題': newBook.title,
+                    '出版年份': newBook.publishYear || '未填寫',
+                    '價格': newBook.price || '未填寫',
+                    '圖片URL': newBook.imageUrl || '未填寫',
+                    'ISBN': newBook.isbn,
+                    '出版社': getSelectText(tomSelectInstances['publisherId']),
+                    '子分類': getSelectText(tomSelectInstances['subCategoryId']),
+                    /*'主分類': getSelectText(tomSelectInstances['mainCategoryId']),*/
+                    '系列': getSelectText(tomSelectInstances['seriesId']),
+                    '作者': getSelectText(tomSelectInstances['authors']),
+                    '標籤': getSelectText(tomSelectInstances['tags']),
+                };
+
+                // 同時，準備好要發送到後端的、符合 API 格式的 payload 資料，並暫存起來。
+                payload = {
+                    ...newBook,
+                    publisherId: parseInt(tomSelectInstances['publisherId']?.getValue()),
+                    categorySubId: parseInt(tomSelectInstances['subCategoryId']?.getValue()),
+                    seriesId: tomSelectInstances['seriesId']?.getValue() ? parseInt(tomSelectInstances['seriesId'].getValue()) : null,
+                    authors: processManyToManyInput(tomSelectInstances['authors']?.getValue()),
+                    tags: processManyToManyInput(tomSelectInstances['tags']?.getValue())
+                };
+
+                // 將畫面狀態切換到 'confirm'，觸發 v-if 顯示確認彈窗。
+                viewState.value = 'confirm';
+            };
+
+            /**
+             * 當使用者在確認視窗點擊 "確認送出" 按鈕時觸發。
+             * 它的職責是將暫存的 payload 資料透過 API 發送到後端伺服器。
+             */
+            const handleCreateBook = async () => {
+                isSubmitting.value = true; // 進入提交中狀態
+                message.text = '';
+
+                try {
+                    const response = await axios.post(API_ENDPOINTS.createBook, payload);
+                    // HTTP 狀態碼 201 (Created) 通常代表資源成功建立。
+                    if (response.status === 201) {
+                        createdBook.value = response.data; // 儲存後端回傳的完整書籍資料。
+                        viewState.value = 'success'; // 切換到成功畫面。
+                    }
+                } catch (error) {
+                    console.error('新增書籍時發生錯誤:', error);
+                    // 優先顯示後端回傳的錯誤訊息，如果沒有，則顯示一個通用的錯誤訊息。
+                    const errorMessage = error.response?.data?.message || '新增書籍失敗，請檢查輸入或聯絡管理員。';
+                    showMessage(errorMessage, 'error');
+                    viewState.value = 'form'; // 發生錯誤時，返回表單畫面，讓使用者可以檢查並修改資料。
+                } finally {
+                    isSubmitting.value = false; // 無論成功或失敗，都要結束提交中狀態。
+                }
+            };
+
+            // --- 生命週期鉤子 (Lifecycle Hooks) ---
+            // onMounted 會在 Vue 元件掛載到 DOM 後執行，這是執行初始化操作的最佳時機。
+            onMounted(() => {
+                // 使用 nextTick 確保所有 DOM 元素都已經被 Vue 渲染完畢。
+                // 這對於需要直接操作 DOM 的函式庫 (如 Tom Select) 來說是必要的，可以避免找不到元素的問題。
+                nextTick(async () => {
+                    // 1. 初始化那些選項是靜態的、不需要連動的下拉選單。
+                    initializeSelect(selectRefs.publisherSelect, API_ENDPOINTS.publishers);
+                    initializeSelect(selectRefs.seriesSelect, API_ENDPOINTS.series, { allowEmptyOption: true });
+
+                    // 針對作者和標籤，啟用 "create" 功能，允許使用者在下拉選單中即時新增選項。
+                    const createOption = {
+                        create: true, persist: false, createOnBlur: true,
+                        render: {
+                            option_create: (data, escape) => `<div class="create">新增 <strong>${escape(data.input)}</strong>&hellip;</div>`,
+                        }
+                    };
+                    initializeSelect(selectRefs.authorSelect, API_ENDPOINTS.authors, createOption);
+                    initializeSelect(selectRefs.tagSelect, API_ENDPOINTS.tags, createOption);
+
+                    // 2. 初始化子分類下拉選單。一開始先建立一個空的、被禁用的實例。
+                    // 因為它的選項依賴於主分類的選擇。
+                    tomSelectInstances['subCategoryId'] = new TomSelect(selectRefs.subCategorySelect.value, {});
+                    tomSelectInstances['subCategoryId'].disable();
+
+                    // 3. 獲取所有分類資料，然後用這些資料來初始化主分類下拉選單。
+                    try {
+                        const response = await axios.get(API_ENDPOINTS.categories);
+                        allCategories.value = response.data; // 將完整的分類資料存起來，以備後用。
+                        const mainCategoryOptions = allCategories.value.map(cat => ({
+                            value: cat.id,
+                            text: cat.categoryTitle
+                        }));
+                        const mainCategoryTomSelect = new TomSelect(selectRefs.mainCategorySelect.value, {
+                            options: mainCategoryOptions,
+                            // 這是實現連動的核心：當主分類的選項改變時，呼叫 updateSubCategoryOptions 方法。
+                            onChange: updateSubCategoryOptions
+                        });
+                        tomSelectInstances['mainCategoryId'] = mainCategoryTomSelect;
+                    } catch (error) {
+                        showMessage('無法載入分類資料', 'error');
+                    }
+                });
+            });
+
+            // setup() 函數必須返回一個物件。
+            // 這個物件中的所有屬性 (無論是 ref, reactive 還是方法) 都可以在 HTML 模板中直接使用。
+            return {
+                viewState, message, isSubmitting, newBook,
+                // JavaScript 的展開運算子（spread operator）語法，
+                // ...selectRefs 會將 selectRefs 物件中的所有屬性展開並合併到返回的物件裡。這樣在 Vue 的 setup() 返回值中，可以直接在模板裡使用 selectRefs 內的每個 ref 變數。
+                ...selectRefs,
+                confirmationData, createdBook,
+                confirmSubmission, handleCreateBook,
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

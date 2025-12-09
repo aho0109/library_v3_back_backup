@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>圖書館首頁</title>
+  <!-- Tailwind CSS CDN for styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    /* 自定義RWD樣式 */
+    @media (max-width: 1023px) {
+      .sidebar {
+        width: 100% !important;
+        min-width: 100% !important;
+      }
+    }
+    @media (min-width: 1024px) {
+      .sidebar {
+        width: 300px !important;
+        min-width: 300px !important;
+      }
+    }
+    /* 隱藏滾動條但保持滾動功能 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+<div id="app" class="flex-grow flex flex-col">
+  <!-- 導覽列 (header) -->
+  <header class="bg-indigo-700 text-white p-4 shadow-md">
+    <div class="container mx-auto flex items-center justify-between">
+      <a href="index.html" class="text-2xl font-bold rounded-md px-3 py-2 hover:bg-indigo-600 transition">我的圖書館</a>
+      <div class="flex items-center space-x-4">
+        <div class="relative">
+          <input type="text" placeholder="搜尋書籍..." class="py-2 px-4 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+          <button class="absolute right-0 top-0 h-full px-3 rounded-r-md bg-indigo-600 hover:bg-indigo-500 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-white">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+          </button>
+        </div>
+        <!-- 個人頁面 (有登入才會顯示) - 暫時隱藏，待後續實作 -->
+        <!-- <a href="#" class="hover:underline">個人頁面</a> -->
+        <!-- 管理者頁面，導向 html/admin/adminPanel.html-->
+        <a href="/html/admin/adminPanel.html" class="hover:underline">管理者頁面</a>
+        <a href="#" class="bg-indigo-500 px-3 py-2 rounded-md hover:bg-indigo-400 transition">登入</a>
+        <a href="#" class="bg-indigo-500 px-3 py-2 rounded-md hover:bg-indigo-400 transition">註冊</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主要內容區塊 -->
+  <main class="container mx-auto p-8 flex-grow flex flex-col gap-8">
+    <!-- 橫向分類篩選列 -->
+    <section class="bg-white rounded-lg shadow-md p-6 mb-4">
+      <h2 class="text-xl font-bold mb-4 text-gray-800">書籍分類</h2>
+      <div class="flex flex-wrap gap-4">
+        <div v-for="category in categories" :key="category.id" class="relative group">
+          <div class="flex items-center px-4 py-2 rounded-md hover:bg-indigo-50 transition duration-150 ease-in-out cursor-pointer text-gray-700 font-medium"
+               :class="{'bg-indigo-100 text-indigo-700 font-medium': filters.mainCategoryId === category.id}"
+               @click="toggleMainCategoryFilter(category.id)">
+            <span>{{ category.categoryTitle }}</span>
+            <svg class="w-4 h-4 text-gray-500 ml-2 transform group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+          </div>
+          <!-- 次分類浮現 (hover 效果) -->
+          <ul class="absolute left-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-hover:visible transition-all duration-300 invisible z-10">
+            <li v-for="subCategory in category.categorySubs" :key="subCategory.id"
+                class="p-2 hover:bg-indigo-50 cursor-pointer text-gray-700"
+                @click="goToBookSearch('subCategoryId', subCategory.id)">
+              {{ subCategory.categorySubTitle }}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 精選推薦（圖片輪播牆） -->
+    <section class="bg-white rounded-lg shadow-md p-6 relative overflow-hidden">
+      <h2 class="text-xl font-bold mb-4 text-gray-800">精選推薦</h2>
+      <div class="relative w-full h-64 overflow-hidden rounded-lg">
+        <img :src="carouselImages[currentSlideIndex]" alt="Carousel Image" class="w-full h-full object-cover transition-opacity duration-500" :class="{'opacity-100': true, 'opacity-0': false}">
+        <button @click="prevSlide" class="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition">
+          &#10094;
+        </button>
+        <button @click="nextSlide" class="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition">
+          &#10095;
+        </button>
+      </div>
+    </section>
+
+    <!-- 熱門借閱前五名 -->
+    <section class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-xl font-bold mb-4 text-gray-800">熱門借閱</h2>
+      <div class="relative">
+        <button @click="scrollBooks('hotBorrowedBooksContainer', -264)" class="absolute left-0 top-1/2 -translate-y-1/2 bg-gray-300 bg-opacity-75 text-gray-800 p-2 rounded-full hover:bg-opacity-100 transition z-10">
+          &#10094;
+        </button>
+        <!-- 書籍列表 -->
+        <div ref="hotBorrowedBooksContainer" class="flex overflow-x-auto no-scrollbar pb-4 -mx-2 scroll-smooth">
+          <div v-for="book in hotBorrowedBooks" :key="book.id" class="flex-shrink-0 w-64 px-2">
+            <div class="bg-gray-50 rounded-lg shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition flex flex-col"
+                 style="width: 240px; height: 420px;">
+              <div class="h-[350px] bg-gray-200 flex items-center justify-center overflow-hidden">
+                <img :src="book.imageUrl"
+                     :alt="book.title"
+                     class="h-full w-auto object-contain"
+                     onerror="this.onerror=null;this.src='https://placehold.co/400x300/e2e8f0/64748b?text=無圖片';">
+              </div>
+              <!-- 詳情區塊 (固定高度為170px，約為整體高度的2/5) -->
+              <div class="p-4 h-[150px] flex flex-col">
+                <!-- 標題（兩行） -->
+                <!--<h3 class="font-bold text-lg text-gray-800 line-clamp-2 mb-2">{{ book.title }}</h3>-->
+                <h3 class="font-bold text-lg text-gray-800 mb-2 overflow-hidden" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; height: 2.75em; line-height: 1.375em;">{{ book.title }}</h3>
+                <!-- 作者（一行） -->
+                <div class="text-sm text-gray-700 flex items-center mb-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1 text-gray-500 flex-shrink-0">
+                    <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="line-clamp-1">{{ book.authors ? book.authors.join(', ') : '未知作者' }}</span>
+                </div>
+                <!-- 出版商（一行） -->
+                <div class="text-sm text-gray-700 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1 text-gray-500 flex-shrink-0">
+                    <path d="M11.584 2.376a.75.75 0 0 1 .832 0l9 6a.75.75 0 1 1-.832 1.248L12 3.901 3.416 9.624a.75.75 0 0 1-.832-1.248l9-6Z" />
+                    <path fill-rule="evenodd" d="M5.25 10.5A.75.75 0 0 1 6 9.75v10.5a.75.75 0 0 1-1.5 0V9.75a.75.75 0 0 1 .75-.75Zm2.25 0a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H9v8.25a.75.75 0 0 1-1.5 0v-9Zm4.5 0a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5H13.5v2.25h2.25a.75.75 0 0 1 0 1.5H13.5v3.75a.75.75 0 0 1-1.5 0v-9Z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="line-clamp-1">{{ book.publisherName || '未知出版商' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button @click="scrollBooks('hotBorrowedBooksContainer', 264)" class="absolute right-0 top-1/2 -translate-y-1/2 bg-gray-300 bg-opacity-75 text-gray-800 p-2 rounded-full hover:bg-opacity-100 transition z-10">
+          &#10095;
+        </button>
+      </div>
+    </section>
+
+    <!-- 最新上架前五名 -->
+    <section class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-xl font-bold mb-4 text-gray-800">最新上架</h2>
+      <div class="relative">
+        <button @click="scrollBooks('newArrivalBooksContainer', -264)" class="absolute left-0 top-1/2 -translate-y-1/2 bg-gray-300 bg-opacity-75 text-gray-800 p-2 rounded-full hover:bg-opacity-100 transition z-10">
+          &#10094;
+        </button>
+        <!-- 書籍列表 -->
+        <div ref="newArrivalBooksContainer" class="flex overflow-x-auto no-scrollbar pb-4 -mx-2 scroll-smooth">
+          <div v-for="book in newArrivalBooks" :key="book.id" class="flex-shrink-0 w-64 px-2">
+            <div class="bg-gray-50 rounded-lg shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition flex flex-col"
+                 style="width: 240px; height: 420px;">
+              <div class="h-[350px] bg-gray-200 flex items-center justify-center overflow-hidden">
+                <img :src="book.imageUrl"
+                     :alt="book.title"
+                     class="h-full w-auto object-contain"
+                     onerror="this.onerror=null;this.src='https://placehold.co/400x300/e2e8f0/64748b?text=無圖片';">
+              </div>
+              <!-- 詳情區塊 (固定高度為170px，約為整體高度的2/5) -->
+              <div class="p-4 h-[150px] flex flex-col">
+                <!-- 標題（兩行） -->
+                <!--<h3 class="font-bold text-lg text-gray-800 line-clamp-2 mb-2">{{ book.title }}</h3>-->
+                <h3 class="font-bold text-lg text-gray-800 mb-2 overflow-hidden" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; height: 2.75em; line-height: 1.375em;">{{ book.title }}</h3>
+                <!-- 作者（一行） -->
+                <div class="text-sm text-gray-700 flex items-center mb-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1 text-gray-500 flex-shrink-0">
+                    <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="line-clamp-1">{{ book.authors ? book.authors.join(', ') : '未知作者' }}</span>
+                </div>
+                <!-- 出版商（一行） -->
+                <div class="text-sm text-gray-700 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1 text-gray-500 flex-shrink-0">
+                    <path d="M11.584 2.376a.75.75 0 0 1 .832 0l9 6a.75.75 0 1 1-.832 1.248L12 3.901 3.416 9.624a.75.75 0 0 1-.832-1.248l9-6Z" />
+                    <path fill-rule="evenodd" d="M5.25 10.5A.75.75 0 0 1 6 9.75v10.5a.75.75 0 0 1-1.5 0V9.75a.75.75 0 0 1 .75-.75Zm2.25 0a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H9v8.25a.75.75 0 0 1-1.5 0v-9Zm4.5 0a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5H13.5v2.25h2.25a.75.75 0 0 1 0 1.5H13.5v3.75a.75.75 0 0 1-1.5 0v-9Z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="line-clamp-1">{{ book.publisherName || '未知出版商' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button @click="scrollBooks('newArrivalBooksContainer', 264)" class="absolute right-0 top-1/2 -translate-y-1/2 bg-gray-300 bg-opacity-75 text-gray-800 p-2 rounded-full hover:bg-opacity-100 transition z-10">
+          &#10095;
+        </button>
+      </div>
+    </section>
+
+    <!-- 熱門標籤前十名 -->
+    <section class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-xl font-bold mb-4 text-gray-800">熱門標籤</h2>
+      <div class="flex flex-wrap gap-2">
+      <span v-for="tag in hotTags" :key="tag.id"
+            class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium cursor-pointer hover:bg-indigo-200 transition"
+            @click="goToBookSearch('tags', tag.id)">
+        {{ tag.title }}
+      </span>
+      </div>
+    </section>
+  </main>
+
+  <!-- 尾部 (footer) -->
+  <footer class="bg-gray-800 text-white p-6 mt-8">
+    <div class="container mx-auto text-center text-sm">
+      <p>&copy; 2025 我的圖書館. 版權所有.</p>
+      <div class="mt-2 space-x-4">
+        <a href="#" class="hover:underline">關於我們</a>
+        <a href="#" class="hover:underline">聯絡我們</a>
+        <a href="#" class="hover:underline">隱私政策</a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- Vue.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+<script>
+  new Vue({
+    el: '#app',
+    data: {
+      categories: [],
+      hotBorrowedBooks: [],
+      newArrivalBooks: [],
+      hotTags: [],
+      carouselImages: [
+              'https://becomingatranslator.wordpress.com/wp-content/uploads/2014/01/baigaeshi2.jpg',
+              'https://pic.pimg.tw/erikasky/1380365655-2901437797.jpg',
+              'https://kenshin.hk/blog/2020-02/hanzawa2/02/hanzawa2-02-00.jpg',
+              'https://kenshin.hk/blog/2020-02/hanzawa2/03/hanzawa2-03-00.jpg',
+              'https://placehold.co/1200x400/a78bfa/ffffff?text=ADVERTISEMENT 01',
+              'https://placehold.co/1200x400/818cf8/ffffff?text=ADVERTISEMENT 02',
+              'https://placehold.co/1200x400/6366f1/ffffff?text=ADVERTISEMENT 03'
+      ],
+      currentSlideIndex: 0,
+      filters: { // 新增 filters 物件來追蹤選中的主類別
+        mainCategoryId: null
+      },
+      // 共用方法，用於導航到書籍搜尋頁面
+      goToBookSearch: function(filterType, id) {
+        const params = new URLSearchParams();
+        if (filterType === 'keyword') {
+          params.set('keyword', filterType);
+        } else if (filterType === 'mainCategoryId') {
+          params.append('mainCategoryId', id);
+        } else if (filterType === 'subCategoryId') {
+          params.append('subCategoryId', id);
+        } else if (filterType === 'authorId') {
+          params.append('authorId', id);
+        } else if (filterType === 'publisherId') {
+          params.append('publisherId', id);
+        } else if (filterType === 'seriesId') {
+          params.append('seriesId', id);
+        } else if (filterType === 'tags') {
+          params.append('tagIds', id);
+        }
+        window.location.href = `bookQuery.html?${params.toString()}`;
+      },
+      // 點擊書籍卡片導向詳情頁面 (目前為佔位符)
+      goToBookDetail: function(bookId) {
+        console.log(`點擊書籍 ID: ${bookId}，導向詳情頁面 (待實作)`);
+        // window.location.href = `bookDetail.html?bookId=${bookId}`; // 假設詳情頁面為 bookDetail.html
+      }
+    },
+    mounted() {
+      this.fetchCategories();
+      this.fetchHomepageContent(); // 呼叫新的方法來獲取所有首頁內容
+      this.startCarousel();
+    },
+    methods: {
+      // 新增方法：統一獲取首頁所有動態內容
+      fetchHomepageContent() {
+        this.fetchHotBorrowedBooks();
+        this.fetchNewArrivalBooks();
+        this.fetchHotTags();
+      },
+      fetchCategories() {
+        fetch('/api/categories')
+                .then(response => response.json())
+                .then(data => {
+                  this.categories = data;
+                })
+                .catch(error => {
+                  console.error('Error fetching categories:', error);
+                });
+      },
+      fetchHotBorrowedBooks() {
+        let url = '/api/books/home/top5loan';
+        if (this.filters.mainCategoryId) {
+          url += `/${this.filters.mainCategoryId}`;
+        }
+        console.log("Fetching hot borrowed books from:", url); // Debugging line
+        fetch(url)
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`API 請求失敗: ${response.status}`);
+                  }
+                  return response.json();
+                })
+                .then(data => {
+                  this.hotBorrowedBooks = data;
+                  console.log('Hot borrowed books data:', this.hotBorrowedBooks); // Debugging line
+                })
+                .catch(error => {
+                  console.error('Error fetching hot borrowed books:', error);
+                });
+      },
+      fetchNewArrivalBooks() {
+        let url = '/api/books/home/top5new';
+        if (this.filters.mainCategoryId) {
+          url += `/${this.filters.mainCategoryId}`;
+        }
+        console.log("Fetching new arrival books from:", url); // Debugging line
+        fetch(url)
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`API 請求失敗: ${response.status}`);
+                  }
+                  return response.json();
+                })
+                .then(data => {
+                  this.newArrivalBooks = data;
+                  console.log('New arrival books data:', this.newArrivalBooks); // Debugging line
+                })
+                .catch(error => {
+                  console.error('Error fetching new arrival books:', error);
+                });
+      },
+      fetchHotTags() {
+        let url = '/api/tags/home/top10';
+        if (this.filters.mainCategoryId) {
+          url += `/${this.filters.mainCategoryId}`;
+        }
+        console.log("Fetching hot tags from:", url); // Debugging line
+        fetch(url)
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`API 請求失敗: ${response.status}`);
+                  }
+                  return response.json();
+                })
+                .then(data => {
+                  this.hotTags = data;
+                  console.log('Hot tags data:', this.hotTags); // Debugging line
+                })
+                .catch(error => {
+                  console.error('Error fetching hot tags:', error);
+                });
+      },
+      // 新增方法：切換主類別篩選
+      toggleMainCategoryFilter(id) {
+        if (this.filters.mainCategoryId === id) {
+          this.filters.mainCategoryId = null; // 再次點擊清除篩選
+        } else {
+          this.filters.mainCategoryId = id;
+        }
+        this.fetchHomepageContent(); // 重新載入所有受篩選影響的內容
+      },
+      startCarousel() {
+        setInterval(() => {
+          this.nextSlide();
+        }, 5000); // 每 5 秒切換一次
+      },
+      nextSlide() {
+        this.currentSlideIndex = (this.currentSlideIndex + 1) % this.carouselImages.length;
+      },
+      prevSlide() {
+        this.currentSlideIndex = (this.currentSlideIndex - 1 + this.carouselImages.length) % this.carouselImages.length;
+      },
+      // 新增：水平滾動書籍列表
+      scrollBooks(containerRef, amount) {
+        const container = this.$refs[containerRef];
+        if (container) {
+          container.scrollBy({
+            left: amount,
+            behavior: 'smooth'
+          });
+        }
+      }
+    }
+  });
+</script>
+</body>
+</html>

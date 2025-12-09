@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>圖書館後台管理</title>
+  <!-- Tailwind CSS CDN for styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    /* 自定義滾動條樣式 */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #2d3748; /* bg-gray-800 */
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #4a5568; /* bg-gray-700 */
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #6b7280; /* bg-gray-600 */
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex">
+
+<div id="app" class="flex flex-grow">
+  <!-- 左側導覽列 -->
+  <aside class="w-64 bg-gray-900 text-white flex flex-col shadow-lg custom-scrollbar overflow-y-auto">
+    <div class="p-6 text-2xl font-bold border-b border-gray-700">
+      管理面板
+    </div>
+    <nav class="flex-grow p-4 space-y-2">
+      <!-- 書籍管理 -->
+      <div>
+        <button @click="toggleMenu('books')" class="w-full flex items-center justify-between p-3 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out">
+          <span class="font-medium">書籍</span>
+          <svg :class="{'rotate-90': activeMenu === 'books'}" class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+        <ul v-if="activeMenu === 'books'" class="ml-4 mt-1 space-y-1">
+          <li><a @click="setActiveContent('queryBooks')" class="block p-2 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'queryBooks'}">查詢書籍</a></li>
+          <li><a @click="setActiveContent('addBook')" class="block p-2 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'addBook'}">新增書籍</a></li>
+        </ul>
+      </div>
+
+      <!-- 分類管理 -->
+      <div>
+        <button @click="toggleMenu('categories')" class="w-full flex items-center justify-between p-3 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out">
+          <span class="font-medium">分類</span>
+          <svg :class="{'rotate-90': activeMenu === 'categories'}" class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+        <ul v-if="activeMenu === 'categories'" class="ml-4 mt-1 space-y-1">
+          <li><a @click="setActiveContent('queryCategories')" class="block p-2 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'queryCategories'}">查詢分類</a></li>
+          <li><a @click="setActiveContent('addCategory')" class="block p-2 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'addCategory'}">新增分類</a></li>
+        </ul>
+      </div>
+
+      <!-- 作者管理 -->
+      <div>
+        <button @click="toggleMenu('authors')" class="w-full flex items-center justify-between p-3 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out">
+          <span class="font-medium">作者</span>
+          <svg :class="{'rotate-90': activeMenu === 'authors'}" class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+        <ul v-if="activeMenu === 'authors'" class="ml-4 mt-1 space-y-1">
+          <li><a @click="setActiveContent('queryAuthors')" class="block p-2 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'queryAuthors'}">查詢作者</a></li>
+          <li><a @click="setActiveContent('addAuthor')" class="block p-2 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'addAuthor'}">新增作者</a></li>
+        </ul>
+      </div>
+
+      <!-- 出版商管理 -->
+      <div>
+        <button @click="toggleMenu('publishers')" class="w-full flex items-center justify-between p-3 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out">
+          <span class="font-medium">出版商</span>
+          <svg :class="{'rotate-90': activeMenu === 'publishers'}" class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+        <ul v-if="activeMenu === 'publishers'" class="ml-4 mt-1 space-y-1">
+          <li><a @click="setActiveContent('queryPublishers')" class="block p-2 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'queryPublishers'}">查詢出版商</a></li>
+          <li><a @click="setActiveContent('addPublisher')" class="block p-2 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'addPublisher'}">新增出版商</a></li>
+        </ul>
+      </div>
+
+      <!-- 系列管理 -->
+      <div>
+        <button @click="toggleMenu('series')" class="w-full flex items-center justify-between p-3 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out">
+          <span class="font-medium">系列</span>
+          <svg :class="{'rotate-90': activeMenu === 'series'}" class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+        <ul v-if="activeMenu === 'series'" class="ml-4 mt-1 space-y-1">
+          <li><a @click="setActiveContent('querySeries')" class="block p-2 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'querySeries'}">查詢系列</a></li>
+          <li><a @click="setActiveContent('addSeries')" class="block p-2 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'addSeries'}">新增系列</a></li>
+        </ul>
+      </div>
+
+      <!-- 標籤管理 -->
+      <div>
+        <button @click="toggleMenu('tags')" class="w-full flex items-center justify-between p-3 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out">
+          <span class="font-medium">標籤</span>
+          <svg :class="{'rotate-90': activeMenu === 'tags'}" class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+        <ul v-if="activeMenu === 'tags'" class="ml-4 mt-1 space-y-1">
+          <li><a @click="setActiveContent('queryTags')" class="block p-2 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'queryTags'}">查詢標籤</a></li>
+          <li><a @click="setActiveContent('addTag')" class="block p-2 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'addTag'}">新增標籤</a></li>
+        </ul>
+      </div>
+
+      <!-- 會員管理 -->
+      <div>
+        <a @click="setActiveContent('memberManagement')" class="block p-3 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'memberManagement'}">會員管理</a>
+      </div>
+
+      <!-- 數據分析 -->
+      <div>
+        <a @click="setActiveContent('dataAnalysis')" class="block p-3 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out cursor-pointer" :class="{'bg-gray-700': activeContent === 'dataAnalysis'}">數據分析</a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- 右側內容區 -->
+  <main class="flex-grow p-8 bg-gray-100">
+    <div class="bg-white rounded-lg shadow-md p-6 min-h-full">
+      <!-- 內容標題 -->
+      <h1 class="text-2xl font-bold mb-6 text-gray-800">{{ contentTitle }}</h1>
+
+      <!-- 查詢書籍內容 -->
+      <div v-if="activeContent === 'queryBooks'">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <!-- 主類別 -->
+          <div>
+            <label for="mainCategoryFilter" class="block text-sm font-medium text-gray-700">主類別</label>
+            <select v-model="filters.mainCategoryId" id="mainCategoryFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" @change="searchBooks">
+              <option :value="null">所有主類別</option>
+              <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.categoryTitle }}</option>
+            </select>
+          </div>
+          <!-- 次類別 -->
+          <div>
+            <label for="subCategoryFilter" class="block text-sm font-medium text-gray-700">次類別</label>
+            <select v-model="filters.subCategoryId" id="subCategoryFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" @change="searchBooks">
+              <option :value="null">所有次類別</option>
+              <template v-for="cat in categories">
+                <option v-for="subCat in cat.categorySubs" :key="subCat.id" :value="subCat.id" v-if="filters.mainCategoryId === cat.id || filters.mainCategoryId === null">{{ subCat.categorySubTitle }}</option>
+              </template>
+            </select>
+          </div>
+          <!-- 出版年份 -->
+          <div>
+            <label for="publishYearFilter" class="block text-sm font-medium text-gray-700">出版年份</label>
+            <input v-model.lazy="filters.publishYear" type="number" id="publishYearFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" @keyup.enter="searchBooks">
+          </div>
+          <!-- 作者模糊搜尋 -->
+          <div>
+            <label for="authorKeywordFilter" class="block text-sm font-medium text-gray-700">作者關鍵字</label>
+            <input v-model.lazy="filters.authorKeyword" type="text" id="authorKeywordFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" @keyup.enter="searchBooks">
+          </div>
+          <!-- 出版商模糊搜尋 -->
+          <div>
+            <label for="publisherKeywordFilter" class="block text-sm font-medium text-gray-700">出版商關鍵字</label>
+            <input v-model.lazy="filters.publisherKeyword" type="text" id="publisherKeywordFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" @keyup.enter="searchBooks">
+          </div>
+          <!-- 書名模糊搜尋 -->
+          <div>
+            <label for="bookTitleKeywordFilter" class="block text-sm font-medium text-gray-700">書名關鍵字</label>
+            <input v-model.lazy="filters.bookTitleKeyword" type="text" id="bookTitleKeywordFilter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" @keyup.enter="searchBooks">
+          </div>
+        </div>
+        <div class="mb-6">
+          <label for="isbnSearch" class="block text-sm font-medium text-gray-700">ISBN 精確搜尋</label>
+          <input v-model.lazy="filters.isbn" type="text" id="isbnSearch" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" @keyup.enter="searchBooks">
+        </div>
+        <button @click="searchBooks" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">執行搜尋</button>
+        <button @click="clearAllFilters" class="ml-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">清除篩選</button>
+
+        <!-- 書籍列表表格 -->
+        <div class="mt-8 overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">ID</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">書名</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">系列</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">主分類</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">次分類</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">出版年份</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">出版商</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">ISBN</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">代表作</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">借閱狀況</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">操作</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">副本</th>
+            </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-if="books.content.length === 0">
+              <td colspan="12" class="px-6 py-4 whitespace-nowrap text-center text-gray-500">無書籍資料</td>
+            </tr>
+            <tr v-for="book in books.content" :key="book.id">
+              <td class="px-6 py-4 whitespace-nowrap">{{ book.id }}</td>
+              <td class="px-6 py-4 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis">{{ book.title }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ book.seriesTitle || 'N/A' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ book.mainCategoryTitle || 'N/A' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ book.subCategoryTitle || 'N/A' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ book.publishYear || 'N/A' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ book.publisherName || 'N/A' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ book.isbn }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ book.representative ? '是' : '否' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ book.availableCopies }}/{{ book.totalCopies }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <button @click="editBook(book.id)" class="text-indigo-600 hover:text-indigo-900 mr-2">編輯</button>
+                <button @click="confirmDeleteBook(book.id, book.title)" class="text-red-600 hover:text-red-900">刪除</button>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <button @click="viewCopies(book.id, book.title)" class="text-blue-600 hover:text-blue-900">查看副本</button>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 分頁導航 -->
+        <div v-if="books.totalPages > 1" class="mt-8 flex justify-center items-center space-x-2">
+          <button @click="prevPage" :disabled="books.first" class="px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 ease-in-out">
+            上一頁
+          </button>
+          <span class="text-sm font-medium text-gray-700">
+                            頁數 {{ books.currentPage + 1 }} / {{ books.totalPages }}
+                        </span>
+          <button @click="nextPage" :disabled="books.last" class="px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 ease-in-out">
+            下一頁
+          </button>
+        </div>
+
+        <!-- 副本列表 (點擊查看副本後顯示) -->
+        <div v-if="currentBookCopies.length > 0" class="mt-8">
+          <h3 class="text-xl font-bold mb-4 text-gray-800">副本列表</h3>
+          <h4 class="text-xl font-bold mb-4 text-gray-800">ID:{{ currentBookIdForCopies }} | 書名:{{currentBookTitle}}</h4>
+          <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">ID</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">唯一碼</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">狀態</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">目前借閱者</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">借閱日</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">到期日</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">歸還日</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">操作</th>
+              <th class="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">記錄</th>
+            </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="copy in currentBookCopies" :key="copy.id">
+              <td class="px-6 py-4 whitespace-nowrap">{{ copy.id }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ copy.uniqueCode }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                                        <span :class="{'text-green-600': copy.status === 'A', 'text-yellow-600': copy.status === 'L', 'text-blue-600': copy.status === 'R'}">
+                                            {{ copy.statusDisplay }}
+                                        </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ copy.currentBorrowerAccount || '無' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ formatDateTime(copy.loanDate) }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ formatDate(copy.dueDate) }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">{{ formatDateTime(copy.returnDate) }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <!-- 操作按鈕 -->
+                <button @click="editBookCopy(copy.id)" class="text-indigo-600 hover:text-indigo-900 mr-2">編輯</button>
+                <button @click="confirmDeleteBookCopy(copy.id, copy.uniqueCode)" class="text-red-600 hover:text-red-900 mr-2">刪除</button>
+                <button v-if="copy.status === 'L'" @click="forceReturn(copy.id, copy.loanId, copy.userId)" class="text-green-600 hover:text-green-900 mr-2">強制歸還</button>
+                <button v-if="copy.status === 'A'" @click="forceCheckout(copy.id)" class="text-blue-600 hover:text-blue-900">強制借出</button>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <!-- 記錄按鈕 -->
+                <button @click="viewLoanRecord(copy.id)" class="text-purple-600 hover:text-purple-900 mr-2">借閱</button>
+                <button @click="viewReservationRecord(copy.id)" class="text-purple-600 hover:text-purple-900">預約</button>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 其他管理內容 (佔位符) -->
+      <div v-else class="text-gray-600">
+        <p>這是 {{ contentTitle }} 的內容區塊。</p>
+        <p>功能待實作...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- 強制借出/歸還的輸入彈窗 -->
+  <div v-if="showForceCheckoutModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-96">
+      <h3 class="text-lg font-bold mb-4">強制借出副本</h3>
+      <p class="mb-4">請輸入借閱者的帳號：</p>
+      <input v-model="forceCheckoutAccount" type="text" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 mb-4">
+      <div class="flex justify-end space-x-4">
+        <button @click="cancelForceCheckout" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">取消</button>
+        <button @click="submitForceCheckout" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">確認借出</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 刪除確認彈窗 -->
+  <div v-if="showDeleteConfirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-96">
+      <h3 class="text-lg font-bold mb-4">確認刪除</h3>
+      <p class="mb-4">您確定要刪除 <span class="font-semibold text-red-600">{{ deleteConfirmMessage }}</span> 嗎？此操作不可逆。</p>
+      <div class="flex justify-end space-x-4">
+        <button @click="cancelDelete" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">取消</button>
+        <button @click="executeDelete" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">確認刪除</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+
+
+
+
+<!-- Vue.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+<script>
+  new Vue({
+    el: '#app',
+    data: {
+      activeMenu: 'books', // 當前展開的菜單
+      activeContent: 'queryBooks', // 當前顯示的內容區塊
+      contentTitle: '查詢書籍', // 內容區塊的標題
+
+      categories: [], // 用於篩選的主分類和次分類數據
+
+      // 查詢書籍篩選條件
+      filters: {
+        mainCategoryId: null,
+        subCategoryId: null,
+        publishYear: null,
+        authorKeyword: null,
+        publisherKeyword: null,
+        bookTitleKeyword: null,
+        isbn: null
+      },
+      // 書籍列表分頁數據
+      books: {
+        content: [],
+        totalPages: 0,
+        currentPage: 0,
+        pageSize: 10,
+        totalElements: 0,
+        last: true,
+        first: true
+      },
+      // 副本列表數據
+      currentBookCopies: [],
+      currentBookIdForCopies: null,
+      currentBookTitle: null,
+      currentBorrowerAccount: null,
+
+      loading: false,
+      error: null,
+
+      // 刪除確認彈窗相關
+      showDeleteConfirmModal: false,
+      deleteConfirmMessage: '',
+      deleteTargetType: null, // 'book' or 'bookCopy'
+      deleteTargetId: null,
+
+      // 強制借出/歸還彈窗相關
+      showForceCheckoutModal: false,
+      forceCheckoutCopyId: null,
+      forceCheckoutAccount: null,
+    },
+    mounted() {
+      this.fetchCategories(); // 載入分類數據
+      this.searchBooks(); // 初始載入書籍列表
+    },
+    watch: {
+      // 當主分類篩選改變時，清空次分類篩選
+      'filters.mainCategoryId': function(newVal, oldVal) {
+        if (newVal !== oldVal) {
+          this.filters.subCategoryId = null;
+        }
+      }
+    },
+    methods: {
+      // 切換左側菜單的展開/收起狀態
+      toggleMenu(menu) {
+        this.activeMenu = this.activeMenu === menu ? null : menu;
+      },
+      // 設定右側顯示的內容區塊
+      setActiveContent(content) {
+        this.activeContent = content;
+        switch (content) {
+          case 'queryBooks':
+            this.contentTitle = '查詢書籍';
+            this.searchBooks(); // 重新載入書籍列表
+            this.currentBookCopies = []; // 清空副本列表
+            break;
+          case 'addBook':
+            this.contentTitle = '新增書籍';
+            break;
+          case 'memberManagement':
+            this.contentTitle = '會員管理';
+            break;
+                // ... 其他內容標題
+          default:
+            this.contentTitle = '未知內容';
+        }
+      },
+      // 獲取分類數據 (用於篩選下拉選單)
+      fetchCategories() {
+        fetch('/api/categories')
+                .then(response => response.json())
+                .then(data => {
+                  this.categories = data;
+                })
+                .catch(error => {
+                  console.error('Error fetching categories:', error);
+                  this.error = '無法載入分類資料。';
+                });
+      },
+      // 執行書籍搜尋
+      searchBooks() {
+        this.loading = true;
+        this.error = null;
+        /* TODO 何時何地正確回到第一頁 */
+        // this.books.currentPage = 0; // 每次新搜尋都回到第一頁
+
+        const params = new URLSearchParams();
+        // 添加分頁參數
+        params.append('page', this.books.currentPage);
+        params.append('size', this.books.pageSize);
+        // 這裡可以添加排序參數，例如 params.append('sort', 'id,asc');
+
+        // 添加篩選參數
+        if (this.filters.keyword) params.append('keyword', this.filters.keyword);
+        if (this.filters.mainCategoryId) params.append('mainCategoryId', this.filters.mainCategoryId);
+        if (this.filters.subCategoryId) params.append('subCategoryId', this.filters.subCategoryId);
+        if (this.filters.publishYear) params.append('publishYear', this.filters.publishYear);
+        if (this.filters.authorKeyword) params.append('authorKeyword', this.filters.authorKeyword);
+        if (this.filters.publisherKeyword) params.append('publisherKeyword', this.filters.publisherKeyword);
+        if (this.filters.bookTitleKeyword) params.append('bookTitleKeyword', this.filters.bookTitleKeyword);
+        if (this.filters.isbn) params.append('isbn', this.filters.isbn); // ISBN 精確搜尋
+
+        fetch(`/api/admin/books?${params.toString()}`)
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`API 請求失敗: ${response.status}`);
+                  }
+                  return response.json();
+                })
+                .then(data => {
+                  this.books = data.bookPage; // 假設後端返回的結構是 { bookPage: {...} }
+                  console.log(this.books.content);
+                })
+                .catch(err => {
+                  console.error('Error fetching books:', err);
+                  this.error = '無法獲取書籍列表，請稍後再試。';
+                })
+                .finally(() => {
+                  this.loading = false;
+                });
+      },
+      // 清除所有篩選條件
+      clearAllFilters() {
+        this.filters = {
+          mainCategoryId: null,
+          subCategoryId: null,
+          publishYear: null,
+          authorKeyword: null,
+          publisherKeyword: null,
+          bookTitleKeyword: null,
+          isbn: null
+        };
+        this.books.currentPage = 0; // 每次新搜尋都回到第一頁，要先執行
+        this.searchBooks(); // 清除後重新搜尋
+      },
+      // 分頁：下一頁
+      nextPage() {
+        if (!this.books.last) {
+          this.books.currentPage++;
+          this.searchBooks();
+        }
+      },
+      // 分頁：上一頁
+      prevPage() {
+        if (!this.books.first) {
+          this.books.currentPage--;
+          this.searchBooks();
+        }
+      },
+      // 編輯書籍 (導向新頁面，暫不實作)
+      editBook(bookId) {
+        console.log(`編輯書籍 ID: ${bookId} (導向 bookUpdate.html)`);
+        // window.location.href = `bookUpdate.html?bookId=${bookId}`;
+      },
+      // 刪除書籍確認彈窗
+      confirmDeleteBook(bookId, bookTitle) {
+        this.showDeleteConfirmModal = true;
+        this.deleteConfirmMessage = `書籍 "${bookTitle}" (ID: ${bookId})`;
+        this.deleteTargetType = 'book';
+        this.deleteTargetId = bookId;
+      },
+      // 執行刪除操作
+      executeDelete() {
+        if (this.deleteTargetType === 'book') {
+          this.deleteBook(this.deleteTargetId);
+        } else if (this.deleteTargetType === 'bookCopy') {
+          this.deleteBookCopy(this.deleteTargetId);
+        }
+        this.cancelDelete(); // 關閉彈窗
+      },
+      // 取消刪除操作
+      cancelDelete() {
+        this.showDeleteConfirmModal = false;
+        this.deleteConfirmMessage = '';
+        this.deleteTargetType = null;
+        this.deleteTargetId = null;
+      },
+      // 實際刪除書籍的 API 呼叫
+      deleteBook(bookId) {
+        console.log(`正在刪除書籍 ID: ${bookId}`);
+        fetch(`/api/admin/books/${bookId}`, {
+          method: 'DELETE'
+        })
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`刪除書籍失敗: ${response.status}`);
+                  }
+                  return response.text(); // 或 response.json()
+                })
+                .then(() => {
+                  alert('書籍刪除成功！'); // 替換為更友好的訊息提示
+                  this.searchBooks(); // 重新載入書籍列表
+                  this.currentBookCopies = []; // 清空副本列表
+                })
+                .catch(err => {
+                  console.error('Error deleting book:', err);
+                  alert(`刪除書籍失敗: ${err.message}`); // 替換為更友好的訊息提示
+                });
+      },
+      // 查看書籍副本
+      viewCopies(bookId, title) {
+        this.loading = true;
+        this.error = null;
+        this.currentBookIdForCopies = bookId;
+        this.currentBookTitle = title;
+        this.currentBookCopies = []; // 清空之前的副本列表
+
+        fetch(`/api/admin/books/${bookId}/copies`)
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`API 請求失敗: ${response.status}`);
+                  }
+                  return response.json();
+                })
+                .then(data => {
+                  this.currentBookCopies = data.map(copy => {
+                    // 轉換狀態顯示
+                    let statusDisplay = '';
+                    switch (copy.status) {
+                      case 'A': statusDisplay = '可借閱'; break;
+                      case 'L': statusDisplay = '已借出'; break;
+                      case 'R': statusDisplay = '已預約'; break;
+                      default: statusDisplay = copy.status;
+                    }
+                    return { ...copy, statusDisplay };
+                  });
+                })
+                .catch(err => {
+                  console.error('Error fetching book copies:', err);
+                  this.error = '無法獲取書籍副本資料，請稍後再試。';
+                })
+                .finally(() => {
+                  this.loading = false;
+                });
+      },
+      // 編輯書籍副本 (導向新頁面，暫不實作)
+      editBookCopy(copyId) {
+        console.log(`編輯書籍副本 ID: ${copyId}`);
+        // window.location.href = `bookCopyUpdate.html?copyId=${copyId}`;
+      },
+      // 刪除書籍副本確認彈窗
+      confirmDeleteBookCopy(copyId, uniqueCode) {
+        this.showDeleteConfirmModal = true;
+        this.deleteConfirmMessage = `書籍副本 "${uniqueCode}" (ID: ${copyId})`;
+        this.deleteTargetType = 'bookCopy';
+        this.deleteTargetId = copyId;
+      },
+      // 實際刪除書籍副本的 API 呼叫
+      deleteBookCopy(copyId) {
+        console.log(`正在刪除書籍副本 ID: ${copyId}`);
+        fetch(`/api/admin/book-copies/${copyId}`, {
+          method: 'DELETE'
+        })
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`刪除書籍副本失敗: ${response.status}`);
+                  }
+                  return response.text();
+                })
+                .then(() => {
+                  alert('書籍副本刪除成功！');
+                  this.viewCopies(this.currentBookIdForCopies); // 重新載入副本列表
+                })
+                .catch(err => {
+                  console.error('Error deleting book copy:', err);
+                  alert(`刪除書籍副本失敗: ${err.message}`);
+                });
+      },
+      // 強制歸還書籍副本
+      forceReturn(copyId, loanId, userId) {
+        console.log(`強制歸還書籍副本 ID: ${copyId}`);
+        fetch(`/api/admin/book-copies/force-return`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+            body: JSON.stringify({ loanId:loanId, userId:userId })
+        })
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error(`強制歸還失敗: ${response.status}`);
+                  }
+                  return response.text();
+                })
+                .then(() => {
+                  alert('強制歸還成功！');
+                  this.viewCopies(this.currentBookIdForCopies); // 重新載入副本列表
+                })
+                .catch(err => {
+                  console.error('Error force returning book copy:', err);
+                  alert(`強制歸還失敗: ${err.message}`);
+                });
+      },
+      // 強制借出書籍副本 (彈窗輸入借閱者帳號)
+      forceCheckout(copyId) {
+        this.showForceCheckoutModal = true;
+        this.forceCheckoutCopyId = copyId;
+        this.forceCheckoutAccount = ''; // 清空上次輸入
+      },
+      // 取消強制借出
+      cancelForceCheckout() {
+        this.showForceCheckoutModal = false;
+        this.forceCheckoutCopyId = null;
+        this.forceCheckoutAccount = null;
+      },
+      // 提交強制借出
+      submitForceCheckout() {
+        if (!this.forceCheckoutAccount) {
+          alert('請輸入借閱者帳號！');
+          return;
+        }
+        console.log(`強制借出書籍副本 ID: ${this.forceCheckoutCopyId} 給帳號: ${this.forceCheckoutAccount}`);
+        fetch(`/api/admin/book-copies/${this.forceCheckoutCopyId}/force-checkout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ borrowerAccount: this.forceCheckoutAccount })
+        })
+                .then(response => {
+                  if (!response.ok) {
+                    // 嘗試解析錯誤訊息
+                    return response.json().catch(() => {
+                      throw new Error(`強制借出失敗: ${response.status}`);
+                    }).then(errorData => {
+                      throw new Error(errorData.message || `強制借出失敗: ${response.status}`);
+                    });
+                  }
+                  return response.text();
+                })
+                .then(() => {
+                  alert('強制借出成功！');
+                  this.cancelForceCheckout(); // 關閉彈窗
+                  this.viewCopies(this.currentBookIdForCopies); // 重新載入副本列表
+                })
+                .catch(err => {
+                  console.error('Error force checking out book copy:', err);
+                  alert(`強制借出失敗: ${err.message}`);
+                });
+      },
+      // 導向借閱記錄頁面 (暫不實作)
+      viewLoanRecord(copyId) {
+        console.log(`查看副本 ID: ${copyId} 的借閱記錄 (導向 loanRecord.html)`);
+        // window.location.href = `loanRecord.html?copyId=${copyId}`;
+      },
+      // 導向預約記錄頁面 (暫不實作)
+      viewReservationRecord(copyId) {
+        console.log(`查看副本 ID: ${copyId} 的預約記錄 (導向 reservationRecord.html)`);
+        // window.location.href = `reservationRecord.html?copyId=${copyId}`;
+      },
+      // 格式化日期時間 (顯示年月日時分)
+      formatDateTime(dateTime) {
+        if (!dateTime) return '無';
+        const date = new Date(dateTime);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
+      },
+
+      // 格式化日期 (只顯示年月日)
+      formatDate(date) {
+        if (!date) return '無';
+        const dateObj = new Date(date);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+
+    }
+  });
+</script>
+</body>
+</html>

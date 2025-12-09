@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圖書館</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Axios CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- 引入外部 CSS 檔案 -->
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* 自定義RWD樣式 */
+        @media (max-width: 1023px) {
+            .sidebar {
+                width: 100% !important;
+                min-width: 100% !important;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .sidebar {
+                width: 300px !important;
+                min-width: 300px !important;
+            }
+        }
+
+        /* 狀態點樣式 */
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-available {
+            background-color: #10b981; /* 綠色 - 可借閱 */
+        }
+
+        .status-borrowed {
+            background-color: #ef4444; /* 紅色 - 已借出 */
+        }
+
+        .status-reserved {
+            background-color: #f59e0b; /* 黃色 - 已預約 */
+        }
+
+        .status-other {
+            background-color: #6b7280; /* 灰色 - 其他狀態 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+<div id="app" class="flex-grow flex flex-col">
+    <!-- 導覽列 (header) -->
+    <header class="bg-indigo-700 text-white p-4 shadow-md">
+        <div class="container mx-auto flex items-center justify-between">
+            <a href="/" class="text-2xl font-bold rounded-md px-3 py-2 hover:bg-indigo-600 transition">日比野線上圖書館 V2</a>
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <input type="text" placeholder="搜尋書籍..." class="py-2 px-4 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    <button class="absolute right-0 top-0 h-full px-3 rounded-r-md bg-indigo-600 hover:bg-indigo-500 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-white">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                        </svg>
+                    </button>
+                </div>
+                <!-- 個人頁面 (有登入才會顯示) -->
+                <a v-if="isLoggedIn" :href="'/html/myPage'" class="hover:text-indigo-200 transition-colors">個人頁面</a>
+                <!-- 管理者頁面 -->
+                <a href="/html/admin/adminPanel" class="hover:underline">管理者頁面</a>
+                <!-- 登入/登出按鈕 -->
+                <button @click="isLoggedIn ? logout() : showLoginModal()"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-4 rounded-full shadow-lg transition-all duration-300 flex items-center space-x-2">
+                    <svg v-if="!isLoggedIn" class="lucide lucide-log-in w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+                    <svg v-else class="lucide lucide-log-out w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="17 17 22 12 17 7"/><line x1="22" x2="10" y1="12" y2="12"/></svg>
+                    <span>{{ isLoggedIn ? '登出' : '登入' }}</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容容器 -->
+    <main class="container mx-auto p-4 md:p-8 flex-grow">
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- 左側篩選面板 -->
+            <div class="lg:w-1/4 flex flex-col gap-4 sidebar" style="width: 300px; min-width: 300px;">
+                <!-- 顯示模式 -->
+                <div class="p-6 bg-white rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">顯示模式</h3>
+                    <div class="flex items-center space-x-4">
+                        <label class="flex items-center">
+                            <input type="radio" v-model="seriesDisplay" :value="1" class="form-radio text-indigo-600" @change="changeSeriesDisplay">
+                            <span class="ml-2">顯示系列代表作</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" v-model="seriesDisplay" :value="0" class="form-radio text-indigo-600" @change="changeSeriesDisplay">
+                            <span class="ml-2">顯示所有書籍</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 關鍵字搜尋 -->
+                <div class="p-6 bg-white rounded-lg shadow-md">
+                    <label for="keyword" class="block text-sm font-medium text-gray-700 mb-1">關鍵字</label>
+                    <input v-model.lazy="keyword" @keyup.enter="applyKeyword" type="text" id="keyword" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+
+
+
+                <!-- 主類別 -->
+                <div v-if="stats.categories && stats.categories.length > 0" class="p-6 bg-white rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">主類別</h3>
+                    <ul class="space-y-1">
+                        <li v-for="item in stats.categories" :key="item.id"
+                            class="flex items-center justify-between p-2 rounded-md transition duration-150 ease-in-out cursor-pointer"
+                            :class="{'bg-indigo-100 text-indigo-700 font-medium': filters.mainCategoryId === item.id, 'hover:bg-gray-50': filters.mainCategoryId !== item.id}"
+                            @click="toggleSingleFilter('mainCategoryId', item.id)">
+                            <span>{{ item.name }}</span>
+                            <span class="text-xs font-semibold px-2 py-1 bg-gray-200 rounded-full">{{ item.count }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 次類別 -->
+                <div v-if="stats.subCategories && stats.subCategories.length > 0" class="p-6 bg-white rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">次類別</h3>
+                    <ul class="space-y-1">
+                        <li v-for="item in stats.subCategories" :key="item.id"
+                            class="flex items-center justify-between p-2 rounded-md transition duration-150 ease-in-out cursor-pointer"
+                            :class="{'bg-indigo-100 text-indigo-700 font-medium': filters.subCategoryId === item.id, 'hover:bg-gray-50': filters.subCategoryId !== item.id}"
+                            @click="toggleSingleFilter('subCategoryId', item.id)">
+                            <span>{{ item.name }}</span>
+                            <span class="text-xs font-semibold px-2 py-1 bg-gray-200 rounded-full">{{ item.count }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 作者 -->
+                <div v-if="stats.authors && stats.authors.length > 0" class="p-6 bg-white rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">作者</h3>
+                    <ul class="space-y-1">
+                        <li v-for="item in stats.authors" :key="item.id"
+                            class="flex items-center justify-between p-2 rounded-md transition duration-150 ease-in-out cursor-pointer"
+                            :class="{'bg-indigo-100 text-indigo-700 font-medium': filters.authorId === item.id, 'hover:bg-gray-50': filters.authorId !== item.id}"
+                            @click="toggleSingleFilter('authorId', item.id)">
+                            <span>{{ item.name }}</span>
+                            <span class="text-xs font-semibold px-2 py-1 bg-gray-200 rounded-full">{{ item.count }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 出版商 -->
+                <div v-if="stats.publishers && stats.publishers.length > 0" class="p-6 bg-white rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">出版商</h3>
+                    <ul class="space-y-1">
+                        <li v-for="item in stats.publishers" :key="item.id"
+                            class="flex items-center justify-between p-2 rounded-md transition duration-150 ease-in-out cursor-pointer"
+                            :class="{'bg-indigo-100 text-indigo-700 font-medium': filters.publisherId === item.id, 'hover:bg-gray-50': filters.publisherId !== item.id}"
+                            @click="toggleSingleFilter('publisherId', item.id)">
+                            <span>{{ item.name }}</span>
+                            <span class="text-xs font-semibold px-2 py-1 bg-gray-200 rounded-full">{{ item.count }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 系列 -->
+                <div v-if="stats.series && stats.series.length > 0" class="p-6 bg-white rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">系列</h3>
+                    <ul class="space-y-1">
+                        <li v-for="item in stats.series" :key="item.id"
+                            class="flex items-center justify-between p-2 rounded-md transition duration-150 ease-in-out cursor-pointer"
+                            :class="{'bg-indigo-100 text-indigo-700 font-medium': filters.seriesId === item.id, 'hover:bg-gray-50': filters.seriesId !== item.id}"
+                            @click="toggleSingleFilter('seriesId', item.id)">
+                            <span>{{ item.name }}</span>
+                            <span class="text-xs font-semibold px-2 py-1 bg-gray-200 rounded-full">{{ item.count }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 標籤 -->
+                <div v-if="stats.tags && stats.tags.length > 0" class="p-6 bg-white rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">標籤</h3>
+                    <ul class="space-y-1">
+                        <li v-for="item in stats.tags.filter(tag => tag.name)" :key="item.id"
+                            class="flex items-center justify-between p-2 rounded-md hover:bg-gray-50 transition duration-150 ease-in-out cursor-pointer"
+                            :class="{'bg-indigo-100 text-indigo-700 font-medium': filters.tagIds.includes(item.id)}"
+                            @click="toggleTagFilter(item.id)">
+                            <span>{{ item.name }}</span>
+                            <span class="text-xs font-semibold px-2 py-1 bg-gray-200 rounded-full">{{ item.count }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+
+
+            </div>
+
+            <!-- 右側書籍顯示區 -->
+            <div class="lg:w-3/4 flex flex-col space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-md text-gray-700">
+                    <span class="font-medium">總計書籍：</span>
+                    <span class="text-indigo-600 font-bold">{{ books.totalElements }}</span>
+                </div>
+
+                <!-- 加載中/錯誤訊息 -->
+                <div v-if="loading" class="flex items-center justify-center p-12 bg-white rounded-lg shadow-md">
+                    <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>加載中...</span>
+                </div>
+                <div v-if="error" class="p-4 bg-red-100 text-red-700 rounded-lg shadow-md">{{ error }}</div>
+
+                <!-- 卡片視圖 -->
+                <div class="flex flex-wrap justify-start gap-6">
+                    <div v-for="book in books.content" :key="book.id"
+                         class="bg-white rounded-lg shadow-md overflow-hidden transition duration-300 ease-in-out hover:shadow-lg hover:scale-[1.02] cursor-pointer flex flex-col"
+                         style="width: 300px; height: 500px; margin: 0 0 24px 0;">
+                        <!-- 圖片區塊 (固定高度為350px, 約為整體高度的3/5) -->
+                        <div class="h-[350px] bg-gray-200 flex items-center justify-center overflow-hidden">
+                            <img :src="book.imageUrl"
+                                 :alt="book.title + '封面'"
+                                 class="h-full w-auto object-contain"
+                                 onerror="this.onerror=null;this.src='https://placehold.co/400x300/e2e8f0/64748b?text=無圖片';"
+                                 @click="goToBookDetail(book.id)">
+                        </div>
+
+                        <!-- 詳情區塊 (固定高度為170px，約為整體高度的2/5) -->
+                        <div class="p-4 h-[170px] flex flex-col">
+                            <!-- 標題（兩行） -->
+                            <h3 class="font-bold text-lg text-gray-900 line-clamp-2 mb-2">{{ book.title }}</h3>
+
+                            <!-- 系列（即便沒有也保持空白一行） -->
+                            <div class="text-sm font-medium text-indigo-600 h-6 mb-1">
+                                <div v-if="book.series" class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1">
+                                        <path fill-rule="evenodd" d="M3.75 6.75a.75.75 0 0 1 .75-.75h15a.75.75 0 0 1 0 1.5h-15a.75.75 0 0 1-.75-.75ZM3.75 12a.75.75 0 0 1 .75-.75h15a.75.75 0 0 1 0 1.5h-15a.75.75 0 0 1-.75-.75ZM4.5 18a.75.75 0 0 0 0 1.5h15a.75.75 0 0 0 0-1.5h-15Z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>{{ book.seriesTitle }}系列</span>
+                                </div>
+                            </div>
+
+                            <!-- 可否借閱/點擊查看（一行） -->
+                            <div class="my-1">
+                                <!-- 系列作的點擊查看按鈕 -->
+                                <button v-if="book.series && book.displayType === 'DTO點擊查看'"
+                                        class="px-3 py-1 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700 transition"
+                                        @click="toggleSingleFilter('seriesId', book.seriesId)">
+                                    查看系列
+                                </button>
+
+                                <!-- 系列作可借閱狀態 -->
+                                <div v-else-if="book.series && book.displayType === 'DTO單集可借閱'"
+                                     class="inline-flex items-center px-3 py-1 rounded-md bg-green-600 text-white text-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1">
+                                        <path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 0 1 1.04-.208Z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>單集可借閱</span>
+                                </div>
+
+                                <!-- 系列作不可借閱狀態 -->
+                                <div v-else-if="book.series && book.displayType === 'DTO單集不可借閱'"
+                                     class="inline-flex items-center px-3 py-1 rounded-md bg-red-600 text-white text-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1">
+                                        <path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>單集不可借閱</span>
+                                </div>
+
+                                <!-- 單行本可借閱狀態 -->
+                                <div v-else-if="book.displayType === '可借閱'"
+                                     class="inline-flex items-center px-3 py-1 rounded-md bg-green-600 text-white text-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1">
+                                        <path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 0 1 1.04-.208Z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>可借閱</span>
+                                </div>
+
+                                <!-- 單行本不可借閱狀態 -->
+                                <div v-else-if="book.displayType === '不可借閱'"
+                                     class="inline-flex items-center px-3 py-1 rounded-md bg-red-600 text-white text-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1">
+                                        <path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>不可借閱</span>
+                                </div>
+                            </div>
+
+                            <!-- 作者（一行） -->
+                            <div class="text-sm text-gray-700 flex items-center mb-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1 text-gray-500 flex-shrink-0">
+                                    <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="line-clamp-1">{{ book.authors ? book.authors.join(', ') : '未知作者' }}</span>
+                            </div>
+
+                            <!-- 出版商（一行） -->
+                            <div class="text-sm text-gray-700 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1 text-gray-500 flex-shrink-0">
+                                    <path d="M11.584 2.376a.75.75 0 0 1 .832 0l9 6a.75.75 0 1 1-.832 1.248L12 3.901 3.416 9.624a.75.75 0 0 1-.832-1.248l9-6Z" />
+                                    <path fill-rule="evenodd" d="M5.25 10.5A.75.75 0 0 1 6 9.75v10.5a.75.75 0 0 1-1.5 0V9.75a.75.75 0 0 1 .75-.75Zm2.25 0a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H9v8.25a.75.75 0 0 1-1.5 0v-9Zm4.5 0a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5H13.5v2.25h2.25a.75.75 0 0 1 0 1.5H13.5v3.75a.75.75 0 0 1-1.5 0v-9Z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="line-clamp-1">{{ book.publisherName || '未知出版商' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 分頁導航 -->
+                <div v-if="books.totalPages > 1" class="mt-8 flex justify-center items-center space-x-2">
+                    <button @click="prevPage" :disabled="books.first" class="px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 ease-in-out">
+                        上一頁
+                    </button>
+                    <span class="text-sm font-medium text-gray-700">
+                            頁數 {{ books.currentPage + 1 }} / {{ books.totalPages }}
+                        </span>
+                    <button @click="nextPage" :disabled="books.last" class="px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 ease-in-out">
+                        下一頁
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 登入模態框 -->
+    <div v-if="showLoginModalFlag" class="modal-overlay" @click.self="hideLoginModal">
+        <div class="modal-content">
+            <button class="close-button" @click="hideLoginModal">&times;</button>
+            <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">登入</h2>
+            <form @submit.prevent="handleLogin">
+                <div class="mb-4">
+                    <label for="account" class="block text-gray-700 text-sm font-bold mb-2">帳號:</label>
+                    <input type="text" id="account" v-model="loginForm.account"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-gray-700 text-sm font-bold mb-2">密碼:</label>
+                    <input type="password" id="password" v-model="loginForm.password"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
+                           required>
+                </div>
+                <div v-if="loginError" class="text-red-500 text-sm mb-4 text-center">{{ loginError }}</div>
+                <div class="flex items-center justify-between">
+                    <button type="submit"
+                            class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-full focus:outline-none focus:shadow-outline w-full transition-colors duration-200">
+                        登入
+                    </button>
+                </div>
+            </form>
+            <div class="mt-4 text-center">
+                <a href="/html/register" class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold">
+                    還沒有帳號？加入會員
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, reactive, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            /** 響應式數據
+             */
+            const books = reactive({
+                content: [],
+                totalPages: 0,
+                currentPage: 0,
+                pageSize: 10,
+                totalElements: 0,
+                last: true,
+                first: true
+            });
+
+            const stats = ref({});
+
+            const filters = reactive({
+                mainCategoryId: null,
+                subCategoryId: null,
+                authorId: null,
+                publisherId: null,
+                seriesId: null,
+                tagIds: [],
+            });
+
+            const seriesDisplay = ref(1);
+            const keyword = ref('');
+            const loading = ref(false);
+            const error = ref(null);
+
+            // 登入相關狀態
+            const showLoginModalFlag = ref(false);
+            const loginForm = ref({ account: '', password: '' });
+            const loginError = ref('');
+            const isLoggedIn = ref(false);
+            const currentUserId = ref(null); // 從 JWT 獲取的使用者 ID
+            const currentUserRole = ref(null); // 從 JWT 獲取的使用者角色
+
+            // 登入
+            // --- Axios Interceptor (自動添加 JWT) ---
+            axios.interceptors.request.use(
+                config => {
+                    const token = localStorage.getItem('jwtToken');
+                    if (token) {
+                        config.headers.Authorization = `Bearer ${token}`;
+                    }
+                    return config;
+                },
+                error => {
+                    return Promise.reject(error);
+                }
+            );
+
+            // 檢查初始登入狀態
+            const checkLoginStatus = () => {
+                const token = localStorage.getItem('jwtToken');
+                const storedUserId = localStorage.getItem('userId');
+                const storedUserRole = localStorage.getItem('userRole');
+
+                if (token && storedUserId && storedUserRole) {
+                    isLoggedIn.value = true;
+                    currentUserId.value = parseInt(storedUserId);
+                    currentUserRole.value = storedUserRole;
+                    // 可以選擇驗證 JWT 的有效性，但通常交給後端處理
+                } else {
+                    isLoggedIn.value = false;
+                    currentUserId.value = null;
+                    currentUserRole.value = null;
+                }
+            };
+
+            // 顯示登入模態框
+            const showLoginModal = () => {
+                console.log('點擊登入按鈕 - 顯示模態框'); // 加入這行來調試
+                showLoginModalFlag.value = true;
+                loginError.value = ''; // 清除之前的錯誤訊息
+                loginForm.value = { account: '', password: '' }; // 重置表單
+            };
+
+            // 隱藏登入模態框
+            const hideLoginModal = () => {
+                showLoginModalFlag.value = false;
+            };
+
+            // 處理登入請求
+            const handleLogin = async () => {
+                loginError.value = ''; // 清除錯誤訊息
+                try {
+                    const response = await axios.post('/api/auth/login', loginForm.value);
+                    const { jwt, userId, role } = response.data;
+
+                    // 儲存 JWT 和使用者資訊到 localStorage
+                    localStorage.setItem('jwtToken', jwt);
+                    localStorage.setItem('userId', userId);
+                    localStorage.setItem('userRole', role);
+
+                    checkLoginStatus(); // 更新登入狀態
+                    hideLoginModal(); // 隱藏模態框
+                    alert('登入成功！');
+                    // 登入成功後，可以刷新頁面或導向個人頁面
+                    // window.location.href = 'myPage.html';
+                } catch (error) {
+                    console.error('登入失敗:', error);
+                    if (error.response && error.response.status === 401) {
+                        loginError.value = '帳號或密碼錯誤，請重試。';
+                    } else {
+                        loginError.value = '登入時發生錯誤，請稍後再試。';
+                    }
+                }
+            };
+
+            // 處理登出
+            const logout = () => {
+                localStorage.removeItem('jwtToken');
+                localStorage.removeItem('userId');
+                localStorage.removeItem('userRole');
+                checkLoginStatus(); // 更新登入狀態
+                alert('已登出。');
+                // 登出後可以導向首頁或刷新當前頁面
+                window.location.href = '/'; // 回到根目錄首頁
+            };
+
+
+            /** 方法定義
+             */
+            // 從 URL 讀取初始篩選參數
+            const initFiltersFromUrl = () => {
+                const urlParams = new URLSearchParams(window.location.search);
+
+                // 讀取並設置各項篩選參數
+                const mainCategoryId = urlParams.get('mainCategoryId');
+                if (mainCategoryId) filters.mainCategoryId = parseInt(mainCategoryId);
+
+                const subCategoryId = urlParams.get('subCategoryId');
+                if (subCategoryId) filters.subCategoryId = parseInt(subCategoryId);
+
+                const authorId = urlParams.get('authorId');
+                if (authorId) filters.authorId = parseInt(authorId);
+
+                const publisherId = urlParams.get('publisherId');
+                if (publisherId) filters.publisherId = parseInt(publisherId);
+
+                const seriesId = urlParams.get('seriesId');
+                if (seriesId) filters.seriesId = parseInt(seriesId);
+
+                // 處理標籤 ID
+                const tagIds = urlParams.get('tagIds');
+                if (tagIds) {
+                    // 將標籤 ID 轉換為數字並添加到篩選條件中
+                    filters.tagIds = [parseInt(tagIds)];
+                }
+
+                // 處理關鍵字
+                const keywordParam = urlParams.get('keyword');
+                if (keywordParam) keyword.value = keywordParam;
+
+                // 處理顯示模式
+                const seriesDisplayParam = urlParams.get('seriesDisplay');
+                if (seriesDisplayParam) seriesDisplay.value = parseInt(seriesDisplayParam);
+            };
+
+            // 將當前篩選狀態同步到 URL
+            const updateUrlFromFilters = () => {
+                const params = new URLSearchParams();
+
+                // 添加篩選參數到 URL
+                if (filters.mainCategoryId) params.set('mainCategoryId', filters.mainCategoryId);
+                if (filters.subCategoryId) params.set('subCategoryId', filters.subCategoryId);
+                if (filters.authorId) params.set('authorId', filters.authorId);
+                if (filters.publisherId) params.set('publisherId', filters.publisherId);
+                if (filters.seriesId) params.set('seriesId', filters.seriesId);
+                if (filters.tagIds.length > 0) {
+                    // 目前只處理第一個標籤，如需支援多標籤可調整
+                    params.set('tagIds', filters.tagIds[0]);
+                }
+                if (keyword.value) params.set('keyword', keyword.value);
+                if (seriesDisplay.value !== 1) params.set('seriesDisplay', seriesDisplay.value);
+
+                // 更新 URL（不刷新頁面）
+                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                //window.history.pushState({ filters: {...filters}, keyword: keyword.value, seriesDisplay: seriesDisplay.value }, '', newUrl);
+                // window.history.pushState() 無法直接序列化 Vue 的響應式物件（reactive objects），特別是包含陣列的物件。
+                // 當嘗試複製 filters 物件時，由於它是 Vue 的響應式代理物件，會導致序列化失敗。
+
+                // 修復：創建可序列化的狀態物件
+                const stateData = {
+                    mainCategoryId: filters.mainCategoryId,
+                    subCategoryId: filters.subCategoryId,
+                    authorId: filters.authorId,
+                    publisherId: filters.publisherId,
+                    seriesId: filters.seriesId,
+                    tagIds: filters.tagIds.length > 0 ? [filters.tagIds[0]] : [],
+                    keyword: keyword.value,
+                    seriesDisplay: seriesDisplay.value
+                };
+                window.history.pushState(stateData, '', newUrl);
+            };
+
+            // 初始載入書籍資料和統計資訊
+            const fetchDataAndStats = async () => {
+                loading.value = true;
+                error.value = null;
+
+                const params = new URLSearchParams();
+                params.append('page', books.currentPage);
+                params.append('size', books.pageSize);
+                params.append('seriesDisplay', seriesDisplay.value);
+                if (keyword.value) params.append('keyword', keyword.value);
+                if (filters.mainCategoryId) params.append('mainCategoryId', filters.mainCategoryId);
+                if (filters.subCategoryId) params.append('subCategoryId', filters.subCategoryId);
+                if (filters.authorId) params.append('authorId', filters.authorId);
+                if (filters.publisherId) params.append('publisherId', filters.publisherId);
+                if (filters.seriesId) params.append('seriesId', filters.seriesId);
+                filters.tagIds.forEach(id => params.append('tags', id));
+
+                try {
+                    const response = await fetch(`/api/books?${params.toString()}`);
+                    if (!response.ok) {
+                        throw new Error(`API 請求失敗: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    Object.assign(books, data.bookPage);
+                    stats.value = data.stats;
+                    console.log('書籍資料和統計資訊已成功獲取', books, stats.value);
+                    console.log("看這裡 seriesDisplay" , seriesDisplay.value);
+                } catch (err) {
+                    console.error(err);
+                    error.value = '無法獲取書籍資料，請稍後再試。';
+                } finally {
+                    loading.value = false;
+                }
+            };
+
+            // 統一單選篩選的切換邏輯
+            const toggleSingleFilter = (filterType, id) => {
+                if (filters[filterType] === id) {
+                    filters[filterType] = null;
+                } else {
+                    filters[filterType] = id;
+                }
+                books.currentPage = 0;
+                updateUrlFromFilters(); // 同步更新 URL
+                fetchDataAndStats();
+            };
+
+            const toggleTagFilter = (id) => {
+                const index = filters.tagIds.indexOf(id);
+                if (index > -1) {
+                    filters.tagIds.splice(index, 1);
+                } else {
+                    filters.tagIds.push(id);
+                }
+                books.currentPage = 0;
+                updateUrlFromFilters(); // 同步更新 URL
+                fetchDataAndStats();
+            };
+
+            const applyKeyword = () => {
+                books.currentPage = 0;
+                updateUrlFromFilters(); // 同步更新 URL
+                fetchDataAndStats();
+            };
+
+            // 修改顯示模式時也要同步 URL
+            const changeSeriesDisplay = () => {
+                books.currentPage = 0;
+                updateUrlFromFilters(); // 同步更新 URL
+                fetchDataAndStats();
+            };
+
+            const nextPage = () => {
+                if (!books.last) {
+                    books.currentPage++;
+                    fetchDataAndStats();
+                }
+            };
+
+            const prevPage = () => {
+                if (!books.first) {
+                    books.currentPage--;
+                    fetchDataAndStats();
+                }
+            };
+
+            // 跳轉到書籍詳情頁面
+            const goToBookDetail = (bookId) => {
+                window.location.href = `/oneBook?id=${bookId}`;
+            };
+
+            // 生命週期鉤子
+            onMounted(() => {
+                checkLoginStatus(); // 檢查初始登入狀態
+                initFiltersFromUrl();
+                fetchDataAndStats();
+
+                // 監聽瀏覽器的前進/後退事件，重新初始化篩選參數和數據
+                // HTML5 的 pushState/replaceState 只會改變網址和瀏覽器歷史，不會自動觸發 Vue 的資料更新或重新查詢。
+                // 瀏覽器前進/後退時會觸發 popstate 事件，你需要監聽這個事件，並在事件發生時重新解析 URL、更新 filters 並重新查詢。
+                window.addEventListener('popstate', () => {
+                    initFiltersFromUrl();
+                    fetchDataAndStats();
+                });
+            });
+
+            // 返回所有需要在模板中使用的數據和方法
+            return {
+                books,
+                stats,
+                filters,
+                seriesDisplay,
+                keyword,
+                loading,
+                error,
+
+                // 登入相關
+                showLoginModalFlag,
+                loginForm,
+                loginError,
+                isLoggedIn,
+                currentUserId,
+                currentUserRole,
+                showLoginModal,
+                hideLoginModal,
+                handleLogin,
+                logout,
+
+                initFiltersFromUrl, // 初始化篩選參數，要在先
+                fetchDataAndStats, // 獲取書籍和統計數據，要在後
+                toggleSingleFilter,
+                toggleTagFilter,
+                applyKeyword,
+                nextPage,
+                prevPage,
+                goToBookDetail, // 跳轉到書籍詳情頁面
+
+                changeSeriesDisplay
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

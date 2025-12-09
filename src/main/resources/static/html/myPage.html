@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>個人頁面 - 日比野線上圖書館</title>
+  <!-- Tailwind CSS CDN for styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Vue.js 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- Axios CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- 引入外部 CSS 檔案 -->
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* 自定義RWD樣式 */
+    @media (max-width: 1023px) {
+      .sidebar {
+        width: 100% !important;
+        min-width: 100% !important;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .sidebar {
+        width: 300px !important;
+        min-width: 300px !important;
+      }
+    }
+
+    /* 隱藏滾動條但保持滾動功能 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+<div id="app" class="flex-grow flex flex-col">
+  <!-- 導覽列 (header) -->
+  <header class="bg-indigo-700 text-white p-4 shadow-md">
+    <div class="container mx-auto flex items-center justify-between">
+      <a href="/" class="text-2xl font-bold rounded-md px-3 py-2 hover:bg-indigo-600 transition">日比野線上圖書館 V2</a>
+      <div class="flex items-center space-x-4">
+        <div class="relative">
+          <input type="text" placeholder="搜尋書籍..." class="py-2 px-4 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+          <button class="absolute right-0 top-0 h-full px-3 rounded-r-md bg-indigo-600 hover:bg-indigo-500 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-white">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+          </button>
+        </div>
+        <!-- 個人頁面 (有登入才會顯示) -->
+        <!-- <a href="#" class="hover:underline">個人頁面</a> -->
+        <a v-if="isLoggedIn" :href="'/html/myPage'" class="hover:text-indigo-200 transition-colors">個人頁面</a>
+        <!-- 管理者頁面，導向 html/admin/adminPanel.html-->
+        <a href="/html/admin/adminPanel" class="hover:underline">管理者頁面</a>
+        <!-- 登入/登出按鈕 -->
+        <button @click="isLoggedIn ? logout() : showLoginModal()"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-4 rounded-full shadow-lg transition-all duration-300 flex items-center space-x-2">
+          <svg v-if="!isLoggedIn" class="lucide lucide-log-in w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+          <svg v-else class="lucide lucide-log-out w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="17 17 22 12 17 7"/><line x1="22" x2="10" y1="12" y2="12"/></svg>
+          <span>{{ isLoggedIn ? '登出' : '登入' }}</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主要內容區域 -->
+  <main class="container mx-auto p-4 md:p-8 flex-grow">
+    <div class="flex flex-col lg:flex-row gap-8">
+      <!-- 左側篩選面板 -->
+      <div class="lg:w-1/4 flex flex-col gap-4 sidebar" style="width: 300px; min-width: 300px;">
+        <!-- 功能選擇 -->
+        <div class="p-6 bg-white rounded-lg shadow-md">
+          <h3 class="text-lg font-semibold text-gray-700 mb-2">功能選擇</h3>
+          <ul class="space-y-1">
+            <li>
+              <button @click="selectFunction('profile')"
+                      :class="{'bg-indigo-100 text-indigo-700 font-medium': selectedFunction === 'profile', 'text-gray-700 hover:bg-gray-50': selectedFunction !== 'profile'}"
+                      class="w-full text-left p-2 rounded-md transition-colors duration-200">
+                個人檔案
+              </button>
+            </li>
+            <li>
+              <button @click="selectFunction('current')"
+                      :class="{'bg-indigo-100 text-indigo-700 font-medium': selectedFunction === 'current', 'text-gray-700 hover:bg-gray-50': selectedFunction !== 'current'}"
+                      class="w-full text-left p-2 rounded-md transition-colors duration-200">
+                我的書櫃 (借閱中)
+              </button>
+            </li>
+            <li>
+              <button @click="selectFunction('history')"
+                      :class="{'bg-indigo-100 text-indigo-700 font-medium': selectedFunction === 'history', 'text-gray-700 hover:bg-gray-50': selectedFunction !== 'history'}"
+                      class="w-full text-left p-2 rounded-md transition-colors duration-200">
+                借閱紀錄 (已歸還)
+              </button>
+            </li>
+            <li>
+              <button @click="selectFunction('overdue')"
+                      :class="{'bg-indigo-100 text-indigo-700 font-medium': selectedFunction === 'overdue', 'text-gray-700 hover:bg-gray-50': selectedFunction !== 'overdue'}"
+                      class="w-full text-left p-2 rounded-md transition-colors duration-200">
+                逾期未歸還
+              </button>
+            </li>
+            <li>
+              <button @click="selectFunction('favorites')"
+                      :class="{'bg-indigo-100 text-indigo-700 font-medium': selectedFunction === 'favorites', 'text-gray-700 hover:bg-gray-50': selectedFunction !== 'favorites'}"
+                      class="w-full text-left p-2 rounded-md transition-colors duration-200">
+                我的收藏
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 右側書籍顯示區 -->
+      <div class="lg:w-3/4 flex flex-col space-y-6">
+        <div class="bg-white p-6 rounded-lg shadow-md text-gray-700">
+          <span class="font-medium">{{ currentFunctionTitle }}</span>
+        </div>
+
+        <!-- 個人檔案視圖 -->
+        <div v-if="selectedFunction === 'profile'" class="bg-white p-6 rounded-lg shadow-md">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">會員資訊</h3>
+          <div v-if="userProfile.id">
+            <p class="text-gray-700 mb-2"><strong>姓名:</strong> {{ userProfile.name }}</p>
+            <p class="text-gray-700 mb-2"><strong>借書證ID:</strong> {{ userProfile.cardId }}</p>
+            <p class="text-gray-700 mb-2"><strong>帳號:</strong> {{ userProfile.account }}</p>
+            <p class="text-gray-700 mb-2"><strong>電子郵件:</strong> {{ userProfile.email }}</p>
+            <p class="text-gray-700 mb-2"><strong>電話:</strong> {{ userProfile.phone }}</p>
+            <p class="text-gray-700 mb-2"><strong>地址:</strong> {{ userProfile.address }}</p>
+          </div>
+          <div v-else class="text-gray-500 text-center py-10">
+            <div class="flex items-center justify-center">
+              <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>載入個人檔案中...</span>
+            </div>
+          </div>
+          <div class="mt-6 text-right">
+            <button @click="editProfile"
+                    class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md shadow-lg transition-colors duration-200">
+              編輯檔案
+            </button>
+            <button @click="showChangePasswordModal"
+                    class="ml-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-md shadow-lg transition-colors duration-200">
+              修改密碼
+            </button>
+          </div>
+        </div>
+
+        <!-- 借閱相關列表視圖 -->
+        <div v-else class="bg-white p-6 rounded-lg shadow-md">
+          <div v-if="loanItems.length === 0" class="text-gray-500 text-center py-10">
+            目前沒有符合條件的書籍。
+          </div>
+          <div v-else class="grid grid-cols-1 gap-6">
+            <!-- 列表中的每個書籍卡片 -->
+            <div v-for="item in loanItems" :key="item.uniqueCode"
+                 :class="{'border-red-300 bg-red-50': selectedFunction === 'overdue'}"
+                 class="bg-gray-50 border border-gray-200 rounded-lg shadow-sm overflow-hidden flex flex-col sm:flex-row transition-transform duration-200 hover:scale-[1.01]">
+              <div class="p-4 flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-4 w-full">
+                <!-- 圖片區域 -->
+                <div class="flex-shrink-0 w-24 h-32 bg-gray-200 rounded-md overflow-hidden flex items-center justify-center">
+                  <img :src="item.imageUrl || 'https://placehold.co/96x128/e2e8f0/64748b?text=無圖片'"
+                       :alt="item.title"
+                       class="w-full h-full object-cover"
+                       onerror="this.onerror=null;this.src='https://placehold.co/96x128/e2e8f0/64748b?text=無圖片';" />
+                </div>
+                <!-- 書本資訊 -->
+                <div class="flex-grow text-center sm:text-left">
+                  <h3 class="text-lg font-bold text-gray-900 mb-1">{{ item.title }}</h3>
+                  <p class="text-sm text-gray-700 mb-1 flex items-center justify-center sm:justify-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1 text-gray-500">
+                      <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+                    </svg>
+                    作者: {{ item.authors ? item.authors : '未知作者'  }}
+                  </p>
+                  <p class="text-sm text-gray-600 mb-1">書籍碼: <span class="font-semibold">{{ item.uniqueCode }}</span></p>
+                  <p class="text-sm text-gray-600 mb-1">借閱日期: {{ formatDate(item.loanDate) }}</p>
+                  <p class="text-sm text-gray-600 mb-1">到期日期: {{ formatDate(item.dueDate) }}</p>
+                  <p v-if="item.returnDate" class="text-sm text-gray-600 mb-1">歸還日期: {{ formatDate(item.returnDate) }}</p>
+                  <p v-else class="text-sm text-red-600 font-semibold mb-1">狀態: 借閱中</p>
+                  <p v-if="selectedFunction === 'overdue'" class="text-sm text-red-700 font-bold mt-2 flex items-center justify-center sm:justify-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1">
+                      <path fill-rule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" />
+                    </svg>
+                    已逾期！
+                  </p>
+                </div>
+              </div>
+              <div class="p-4 bg-gray-100 border-t sm:border-t-0 sm:border-l border-gray-200 text-center sm:text-right flex flex-col justify-center space-y-2 min-w-0 sm:min-w-[120px]">
+                <button @click.stop="viewBookDetails(item.id)"
+                        class="bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold py-2 px-4 rounded-md transition-colors duration-200 shadow-sm">
+                  查看詳情
+                </button>
+                <button v-if="selectedFunction === 'current'" @click.stop="showReturnConfirmation(item.loanId, item.title)"
+                        class="bg-green-500 hover:bg-green-600 text-white text-sm font-semibold py-2 px-4 rounded-md transition-colors duration-200 shadow-sm">
+                  歸還
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 歸還確認模態框 (新增) -->
+  <div v-if="showReturnConfirmModal" class="modal-overlay" @click.self="hideReturnConfirmModal">
+    <div class="modal-content">
+      <button class="close-button" @click="hideReturnConfirmModal">&times;</button>
+      <h2 class="text-2xl font-bold mb-4 text-center text-gray-800">確認歸還</h2>
+      <p class="text-gray-700 text-center mb-6">您確定要歸還 **{{ returningBookTitle }}** 嗎？</p>
+      <div class="flex justify-around space-x-4">
+        <button @click="confirmReturn"
+                class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-6 rounded-md transition-colors duration-200">
+          確定
+        </button>
+        <button @click="hideReturnConfirmModal"
+                class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-md transition-colors duration-200">
+          取消
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 修改密碼模態框 (新增) -->
+  <div v-if="showChangePasswordModalFlag" class="modal-overlay" @click.self="hideChangePasswordModal">
+    <div class="modal-content">
+      <button class="close-button" @click="hideChangePasswordModal">&times;</button>
+      <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">修改密碼</h2>
+
+      <!-- 步驟 1: 驗證舊密碼 -->
+      <div v-if="changePasswordStep === 1">
+        <form @submit.prevent="verifyOldPassword">
+          <div class="mb-4 toggle-password-container">
+            <label for="oldPassword" class="block text-gray-700 text-sm font-bold mb-2">原密碼:</label>
+            <input :type="oldPasswordFieldType" id="oldPassword" v-model="changePasswordForm.oldPassword"
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                   required>
+            <span class="toggle-password" @click="toggleOldPasswordVisibility">
+                            <svg v-if="oldPasswordFieldType === 'password'" class="lucide lucide-eye w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg v-else class="lucide lucide-eye-off w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-7-10-7a1.8 1.8 0 0 1 .28-.79"/><path d="M2.81 2.81 2 2.81 2 2.81Z"/><path d="M18.19 6.06A10.07 10.07 0 0 1 22 12c0 0-3 7-10 7a1.8 1.8 0 0 1-.79-.28"/><path d="m21.19 21.19-1.25-1.25"/><path d="M6.06 18.19 2.81 14.94"/><path d="m14.94 6.06-1.25-1.25"/><path d="M12 9a3 3 0 0 1 3 3"/><path d="M12 15a3 3 0 0 1-3-3"/></svg>
+                        </span>
+          </div>
+          <div v-if="changePasswordMessage" :class="{'text-red-500': !changePasswordSuccess, 'text-green-500': changePasswordSuccess}" class="text-sm mb-4 text-center">
+            {{ changePasswordMessage }}
+          </div>
+          <div class="flex items-center justify-between">
+            <button type="submit"
+                    class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-full focus:outline-none focus:shadow-outline w-full transition-colors duration-200">
+              驗證
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 步驟 2: 輸入新密碼 -->
+      <div v-else-if="changePasswordStep === 2">
+        <form @submit.prevent="submitNewPassword">
+          <div class="mb-4 toggle-password-container">
+            <label for="newPassword" class="block text-gray-700 text-sm font-bold mb-2">新密碼:</label>
+            <input :type="newPasswordFieldType" id="newPassword" v-model="changePasswordForm.newPassword"
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                   required minlength="6">
+            <span class="toggle-password" @click="toggleNewPasswordVisibility">
+                            <svg v-if="newPasswordFieldType === 'password'" class="lucide lucide-eye w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <svg v-else class="lucide lucide-eye-off w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-7-10-7a1.8 1.8 0 0 1 .28-.79"/><path d="M2.81 2.81 2 2.81 2 2.81Z"/><path d="M18.19 6.06A10.07 10.07 0 0 1 22 12c0 0-3 7-10 7a1.8 1.8 0 0 1-.79-.28"/><path d="m21.19 21.19-1.25-1.25"/><path d="M6.06 18.19 2.81 14.94"/><path d="m14.94 6.06-1.25-1.25"/><path d="M12 9a3 3 0 0 1 3 3"/><path d="M12 15a3 3 0 0 1-3-3"/></svg>
+                        </span>
+          </div>
+          <div class="mb-4 toggle-password-container">
+            <label for="confirmNewPassword" class="block text-gray-700 text-sm font-bold mb-2">確認新密碼:</label>
+            <input :type="newPasswordFieldType" id="confirmNewPassword" v-model="changePasswordForm.confirmNewPassword"
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                   required>
+            <p v-if="newPasswordMismatch" class="text-red-500 text-xs italic mt-1">兩次輸入的密碼不一致。</p>
+          </div>
+          <div v-if="changePasswordMessage" :class="{'text-red-500': !changePasswordSuccess, 'text-green-500': changePasswordSuccess}" class="text-sm mb-4 text-center">
+            {{ changePasswordMessage }}
+          </div>
+          <div class="flex items-center justify-between">
+            <button type="submit"
+                    :disabled="newPasswordMismatch || changePasswordForm.newPassword.length < 6"
+                    class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-full focus:outline-none focus:shadow-outline w-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+              確認修改
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+</div>
+
+<script>
+  const { createApp, ref, computed, onMounted, watch } = Vue; // 引入 Vue 3 的核心功能
+
+  createApp({
+    setup() {
+      // 響應式數據
+      const selectedFunction = ref('current'); // 預設顯示 '我的書櫃'
+      const loanItems = ref([]); // 儲存借閱相關的書籍列表
+      //const currentUserId = ref(1); // 暫時硬編碼使用者ID，實際應用中應從登入狀態獲取
+      const searchTerm = ref(''); // 搜尋關鍵字 (如果個人頁面也需要搜尋功能)
+      const userProfile = ref({}); // 新增：儲存使用者個人檔案資訊
+
+      // 登入狀態 (從 localStorage 獲取)
+      // --- 核心修改：登入狀態現在完全依賴 JWT ---
+      const isLoggedIn = ref(false);
+      const currentUserId = ref(null);
+      const currentUserRole = ref(null);
+      const currentUsername = ref(null); // 新增：儲存使用者帳號
+
+
+      // 歸還確認模態框狀態 (新增)
+      const showReturnConfirmModal = ref(false);
+      const returningLoanId = ref(null); // 要歸還的借閱記錄 ID
+      const returningBookTitle = ref(''); // 要歸還的書籍標題
+
+      // 修改密碼模態框狀態 (新增)
+      const showChangePasswordModalFlag = ref(false);
+      const changePasswordStep = ref(1); // 1: 驗證舊密碼, 2: 輸入新密碼
+      const changePasswordForm = ref({
+        oldPassword: '',
+        newPassword: '',
+        confirmNewPassword: ''
+      });
+      const oldPasswordFieldType = ref('password'); // 舊密碼輸入框類型
+      const newPasswordFieldType = ref('password'); // 新密碼輸入框類型
+      const changePasswordMessage = ref(''); // 修改密碼的提示訊息
+      const changePasswordSuccess = ref(false); // 修改密碼是否成功
+
+      // --- Axios Interceptor (自動添加 JWT) ---
+      // 注意：這個 interceptor 需要在每個 Vue 應用實例中獨立設置，
+      // 或者確保它在應用程式載入時全局設置一次。
+      // 由於 index.html 和 myPage.html 是獨立頁面，這裡也需要設置。
+      axios.interceptors.request.use(
+              config => {
+                const token = localStorage.getItem('jwtToken');
+                if (token) {
+                  config.headers.Authorization = `Bearer ${token}`;
+                  // 請求的標頭 (Header) 中，新增一個名為 Authorization 的欄位，並把 JWT 字串放進去，格式為 Bearer eyJhbGciOi...。
+                  // 這樣此頁面的每一個 axios 請求都會自動帶上 JWT，後端就能驗證使用者身份。
+                }
+                return config;
+              },
+              error => {
+                return Promise.reject(error);
+              }
+      );
+
+      // --- 核心修改：登出邏輯 ---
+      const logout = () => {
+        // 現在只需要移除 token
+        localStorage.removeItem('jwtToken');
+        /*localStorage.removeItem('userId');*/
+        /*localStorage.removeItem('userRole');*/
+        checkLoginStatus();
+        alert('已登出。');
+        window.location.href = '/'; // 登出後導向首頁
+      };
+
+      /*// 檢查登入狀態
+      const checkLoginStatus = () => {
+        const token = localStorage.getItem('jwtToken');
+        const storedUserId = localStorage.getItem('userId');
+        const storedUserRole = localStorage.getItem('userRole');
+
+        if (token && storedUserId && storedUserRole) {
+          isLoggedIn.value = true;
+          currentUserId.value = parseInt(storedUserId);
+          currentUserRole.value = storedUserRole;
+        } else {
+          isLoggedIn.value = false;
+          currentUserId.value = null;
+          currentUserRole.value = null;
+        }
+      };*/
+      // --- 核心修改：檢查登入狀態的邏輯 ---
+      /** TODO myPage index 的 jwt 解析方式略不同，待統一改 jose **/
+      const checkLoginStatus = () => {
+        const token = localStorage.getItem('jwtToken');
+        if (token) {
+          try {
+            // 1. 解碼 JWT 的 Payload 部分
+            const payloadBase64 = token.split('.')[1];
+            const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/'); // 增強解碼，處理 URL 安全的 Base64
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const decodedPayload = JSON.parse(jsonPayload);
+            // 2. 檢查 token 是否過期 (exp 是標準的過期時間聲明，單位是秒)
+            if (decodedPayload.exp * 1000 < Date.now()) {
+              // JWT 的 exp 欄位是以「秒」為單位的 UNIX 時間戳，而 JavaScript 的 Date.now() 回傳的是「毫秒」。
+              // 所以這裡 decodedPayload.exp \* 1000 是把秒轉成毫秒，才能和 Date.now() 正確比較。
+              // 是為了在頁面操作時即時判斷 JWT 是否已過期，避免使用已失效的 token 發送 API 請求。
+              console.log("Token 已過期。");
+              // 如果 token 過期，只移除 token 並重設狀態，不呼叫 logout() 避免無限循環
+              localStorage.removeItem('jwtToken');
+              isLoggedIn.value = false;
+              currentUserId.value = null;
+              currentUserRole.value = null;
+              currentUsername.value = null;
+              return;
+            }
+            // 3. 從解碼後的 payload 中取得資訊並更新狀態
+            isLoggedIn.value = true;
+            currentUserId.value = parseInt(decodedPayload.sub); // 'sub' 是使用者 ID
+            currentUserRole.value = decodedPayload.role;       // 'role' 是自訂聲明
+            currentUsername.value = decodedPayload.username; // 'username' 也是自訂聲明
+
+          } catch (e) {
+            console.error("無法解碼 JWT:", e);
+            // 如果 token 格式錯誤，同樣只移除 token 並重設狀態
+            localStorage.removeItem('jwtToken');
+            isLoggedIn.value = false;
+            currentUserId.value = null;
+            currentUserRole.value = null;
+            currentUsername.value = null;
+          }
+        } else {
+          // 如果沒有 token，就是未登入狀態
+          isLoggedIn.value = false;
+          currentUserId.value = null;
+          currentUserRole.value = null;
+          currentUsername.value = null;
+        }
+      };
+
+      // 計算搜尋框的提示文字 (如果個人頁面也需要搜尋功能)
+      const searchPlaceholder = computed(() => {
+        const currentTitle = currentFunctionTitle.value;
+        return `在你的 ${currentTitle} 中尋找書籍`;
+      });
+
+      // 計算當前功能區塊的標題
+      const currentFunctionTitle = computed(() => {
+        switch (selectedFunction.value) {
+          case 'profile': return '個人檔案';
+          case 'current': return '我的書櫃 (借閱中)';
+          case 'history': return '借閱紀錄 (已歸還)';
+          case 'overdue': return '逾期未歸還';
+          case 'favorites': return '我的收藏';
+          default: return '個人頁面';
+        }
+      });
+
+      /*// 從後端獲取使用者個人檔案數據
+      const fetchUserProfile = async () => {
+        if (!currentUserId.value) {
+          console.error('未提供使用者 ID，無法獲取個人檔案。');
+          userProfile.value = {};
+          return;
+        }
+        try {
+          // 替換為你的實際路由，例如 /api/users/{userId}/profile
+          const response = await axios.get(`/api/users/${currentUserId.value}/profile`);
+          userProfile.value = response.data;
+          console.log('Fetching user profile:', userProfile.value);
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          userProfile.value = {};
+          // 如果是 403 Forbidden 或 401 Unauthorized，可能需要重新登入
+          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            alert('您的登入狀態已失效，請重新登入。');
+            logout();
+          }
+        }
+      };*/
+      // --- 核心修改：從後端獲取使用者個人檔案數據
+      const fetchUserProfile = async () => {
+        if (!currentUserId.value) {
+          console.error('未提供使用者 ID，無法獲取個人檔案。');
+          userProfile.value = {};
+          return;
+        }
+        try {
+          // 使用新的、更安全的端點，後端會從 JWT 中知道是哪個使用者
+          const response = await axios.get(`/api/users/me/profile`);
+          userProfile.value = response.data;
+        } catch (error) {
+          console.error('獲取個人檔案失敗:', error);
+          if (error.response && [401, 403].includes(error.response.status)) {
+            alert('您的登入狀態已失效，請重新登入。');
+            logout();
+          }
+        }
+      };
+
+      /*
+      // 從後端獲取借閱相關數據
+      const fetchLoans = async (functionType) => {
+        if (!currentUserId.value) {
+          console.error('未提供使用者 ID，無法獲取借閱資訊。');
+          loanItems.value = [];
+          return;
+        }
+
+        let apiUrl = '';
+        const userIdToFetch = currentUserId.value;
+
+        switch (functionType) {
+          case 'current':
+            apiUrl = `/api/loans/current/${userIdToFetch}`;
+            break;
+          case 'history':
+            apiUrl = `/api/loans/history/${userIdToFetch}`;
+            break;
+          case 'overdue':
+            apiUrl = `/api/loans/overdue/${userIdToFetch}`;
+            break;
+          case 'favorites':
+            // apiUrl = `/api/favorites/${userIdToFetch}`; // 收藏功能尚未實現
+            alert('收藏功能尚未實現。');
+            loanItems.value = []; // 暫時清空
+            console.warn('收藏功能尚未實現。');
+            return;
+          default:
+            console.warn('Unknown function type:', functionType);
+            loanItems.value = [];
+            return;
+        }
+
+        try {
+          // 這裡可以根據需要添加分頁和搜尋參數
+          const params = {};
+          // if (searchTerm.value !== '') { params.searchTerm = searchTerm.value; }
+          // if (page !== undefined) { params.page = page; }
+          // if (size !== undefined) { params.size = size; }
+
+          const response = await axios.get(apiUrl, { params: params });
+          // 假設後端直接返回列表數據，或者如果是 Page 物件則為 response.data.content
+          loanItems.value = response.data;
+          console.log(`Fetching ${functionType} loans:`, loanItems.value);
+        } catch (error) {
+          console.error(`Error fetching ${functionType} loans for user ${userIdToFetch}:`, error);
+          console.error('完整錯誤回應:', error.response); // 添加這行來查看完整的錯誤訊息
+          loanItems.value = [];
+          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            alert('您的登入狀態已失效，請重新登入。');
+            logout();
+          }
+        }
+      };
+       */
+
+      // --- 核心修改：從後端獲取借閱相關數據 ---
+      const fetchLoans = async (functionType) => {
+        let apiUrl = '';
+        switch (functionType) {
+                // 使用新的、代表「我自己的」端點
+          case 'current': apiUrl = `/api/loans/my-current`; break;
+          case 'history': apiUrl = `/api/loans/my-history`; break;
+          case 'overdue': apiUrl = `/api/loans/my-overdue`; break;
+          case 'favorites':
+            alert('收藏功能尚未實現。');
+            loanItems.value = [];
+            return;
+          default:
+            loanItems.value = [];
+            return;
+        }
+
+        try {
+          const response = await axios.get(apiUrl);
+          loanItems.value = response.data;
+        } catch (error) {
+          console.error(`獲取 ${functionType} 列表失敗:`, error);
+          loanItems.value = [];
+          if (error.response && [401, 403].includes(error.response.status)) {
+            alert('您的登入狀態已失效，請重新登入。');
+            logout();
+          }
+        }
+      };
+
+
+      // 選擇功能
+      const selectFunction = (type) => {
+        selectedFunction.value = type;
+        if (type === 'profile') {
+          fetchUserProfile(); // 如果選擇個人檔案，則獲取個人檔案數據
+        } else {
+          fetchLoans(type); // 否則獲取借閱相關數據
+        }
+      };
+
+      // 執行搜尋 (如果個人頁面也需要搜尋功能)
+      const performSearch = () => {
+        // 這裡可以根據 selectedFunction.value 和 searchTerm.value 重新呼叫 fetchLoans
+        alert(`在 ${currentFunctionTitle.value} 中搜尋: ${searchTerm.value}`);
+        // fetchLoans(selectedFunction.value, 0, 9, searchTerm.value); // 範例：帶上分頁和搜尋
+      };
+
+
+      // 登入按鈕點擊事件 (在 myPage.html 中，點擊登入會直接導回首頁處理)
+      const showLoginModal = () => {
+        window.location.href = '/'; // 導回首頁處理登入
+      };
+
+      // 查看書籍詳情點擊事件
+      const viewBookDetails = (bookId) => {
+        // 跳轉到書籍詳情頁面，帶上書籍 ID
+        window.location.href = `/oneBook?id=${bookId}`;
+      };
+
+      /*// 歸還書籍按鈕點擊事件
+      const returnBook = (bookId) => {
+        alert(`歸還書籍 ID: ${bookId} 的功能待實現！`);
+        // 實際應用中，你會向後端發送一個 POST/PUT 請求來執行歸還操作
+        // 成功後，重新載入當前列表：fetchLoans(selectedFunction.value);
+      };*/
+
+      // 顯示歸還確認模態框
+      const showReturnConfirmation = (loanId, bookTitle) => {
+        if (!isLoggedIn.value) {
+          alert('請先登入才能歸還書籍！');
+          showLoginModal(); // 導回首頁處理登入
+          return;
+        }
+        returningLoanId.value = loanId;
+        returningBookTitle.value = bookTitle;
+        showReturnConfirmModal.value = true;
+
+        console.log('--- showReturnConfirmation 函數內部調試 ---');
+        console.log('傳入的 loanId 參數:', loanId);
+        console.log('傳入的 bookTitle 參數:', bookTitle);
+        console.log('設定 returningLoanId.value 為:', returningLoanId.value);
+        console.log('設定 returningBookTitle.value 為:', returningBookTitle.value);
+        console.log('---------------------------------------');
+      };
+
+      // 隱藏歸還確認模態框
+      const hideReturnConfirmModal = () => {
+        showReturnConfirmModal.value = false;
+        returningLoanId.value = null;
+        returningBookTitle.value = '';
+      };
+
+      // 確定歸還 (發送請求到後端)
+      const confirmReturn = async () => {
+        console.log('--- confirmReturn 函數內部調試 (API 請求前) ---');
+        console.log('currentUserId.value:', currentUserId.value);
+        console.log('returningLoanId.value:', returningLoanId.value);
+        console.log('returningBookTitle.value:', returningBookTitle.value);
+        console.log('------------------------------------------');
+
+        if (currentUserId.value === null) {
+          alert('無法獲取使用者ID，請重新登入。');
+          showLoginModal(); // 導回首頁處理登入
+          return;
+        }
+
+        if (!returningLoanId.value) {
+          alert('無法獲取借閱記錄ID，請返回列表重試。');
+          return;
+        }
+
+        try {
+          const response = await axios.post('/api/loans/return0822', {
+            loanId: returningLoanId.value,
+            /*userId: currentUserId.value*/ // 現在後端會從 JWT 中獲取使用者 ID
+          });
+
+          if (response.data.success) {
+            alert(`歸還成功！\n書籍副本唯一碼: ${response.data.returnedBookUniqueCode}`);
+            // 歸還成功後，刷新當前列表
+            await fetchLoans(selectedFunction.value);
+          } else {
+            alert(`歸還失敗: ${response.data.message}`);
+          }
+        } catch (error) {
+          console.error('歸還請求失敗:', error);
+          console.error('API 請求錯誤詳情:', error.response);
+          console.error('嘗試歸還的借閱 ID (在 catch 中):', returningLoanId.value);
+          console.error('嘗試歸還的書籍標題 (在 catch 中):', returningBookTitle.value);
+
+          if (error.response && error.response.data && error.response.data.message) {
+            alert(`歸還失敗: ${error.response.data.message}`);
+          } else {
+            alert('歸還時發生錯誤，請稍後再試。');
+          }
+        } finally {
+          hideReturnConfirmModal(); // 無論成功或失敗，最後都隱藏模態框並清除狀態
+        }
+      };
+
+
+      // --- 修改密碼功能相關邏輯 (新增) ---
+
+      // 顯示修改密碼模態框
+      const showChangePasswordModal = () => {
+        if (!isLoggedIn.value) {
+          alert('請先登入才能修改密碼！');
+          showLoginModal();
+          return;
+        }
+        changePasswordStep.value = 1; // 總是從第一步開始
+        changePasswordForm.value = { oldPassword: '', newPassword: '', confirmNewPassword: '' }; // 重置表單
+        oldPasswordFieldType.value = 'password';
+        newPasswordFieldType.value = 'password';
+        changePasswordMessage.value = ''; // 清除訊息
+        changePasswordSuccess.value = false;
+        showChangePasswordModalFlag.value = true;
+      };
+
+      // 隱藏修改密碼模態框
+      const hideChangePasswordModal = () => {
+        showChangePasswordModalFlag.value = false;
+        changePasswordMessage.value = ''; // 清除訊息
+      };
+
+      // 切換舊密碼顯示/隱藏
+      const toggleOldPasswordVisibility = () => {
+        oldPasswordFieldType.value = oldPasswordFieldType.value === 'password' ? 'text' : 'password';
+      };
+
+      // 切換新密碼顯示/隱藏
+      const toggleNewPasswordVisibility = () => {
+        newPasswordFieldType.value = newPasswordFieldType.value === 'password' ? 'text' : 'password';
+      };
+
+      // 計算屬性：檢查新密碼和確認新密碼是否一致
+      const newPasswordMismatch = computed(() => {
+        return changePasswordForm.value.newPassword !== changePasswordForm.value.confirmNewPassword && changePasswordForm.value.confirmNewPassword !== '';
+      });
+
+      // 步驟 1: 驗證舊密碼
+      const verifyOldPassword = async () => {
+        changePasswordMessage.value = '';
+        changePasswordSuccess.value = false;
+
+        if (!currentUserId.value) {
+          changePasswordMessage.value = '使用者ID無效，請重新登入。';
+          return;
+        }
+
+        try {
+          //const response = await axios.post(`/api/users/update/${currentUserId.value}/change-password/verify-old`, {
+          // 使用新的、代表「我自己的」端點
+          const response = await axios.post(`/api/users/me/change-password/verify-old`, {
+            oldPassword: changePasswordForm.value.oldPassword
+          });
+
+          if (response.data.success) {
+            changePasswordStep.value = 2; // 進入第二步
+            changePasswordMessage.value = ''; // 清除成功訊息，因為要輸入新密碼了
+          } else {
+            changePasswordMessage.value = response.data.message || '原密碼驗證失敗。';
+            changePasswordSuccess.value = false;
+          }
+        } catch (error) {
+          console.error('驗證原密碼請求失敗:', error);
+          if (error.response && error.response.data && error.response.data.message) {
+            changePasswordMessage.value = `驗證失敗: ${error.response.data.message}`;
+          } else {
+            changePasswordMessage.value = '驗證原密碼時發生錯誤，請稍後再試。';
+            console.log(error.response)
+          }
+          changePasswordSuccess.value = false;
+        }
+      };
+
+      // 步驟 2: 提交新密碼
+      const submitNewPassword = async () => {
+        changePasswordMessage.value = '';
+        changePasswordSuccess.value = false;
+
+        if (newPasswordMismatch.value) {
+          changePasswordMessage.value = '兩次輸入的新密碼不一致。';
+          return;
+        }
+        if (changePasswordForm.value.newPassword.length < 6) {
+          changePasswordMessage.value = '新密碼長度至少為6個字元。';
+          return;
+        }
+
+        if (!currentUserId.value) {
+          changePasswordMessage.value = '使用者ID無效，請重新登入。';
+          return;
+        }
+
+        try {
+          //const response = await axios.post(`/api/users/update/${currentUserId.value}/change-password`, {
+          // 使用新的、代表「我自己的」端點
+          const response = await axios.post(`/api/users/me/change-password`, {
+            oldPassword: changePasswordForm.value.oldPassword, // 這裡也需要傳遞舊密碼，以便後端再次驗證
+            newPassword: changePasswordForm.value.newPassword
+          });
+
+          if (response.data.success) {
+            changePasswordSuccess.value = true;
+            changePasswordMessage.value = response.data.message;
+            // 密碼修改成功後，強制登出，要求用戶使用新密碼重新登入
+            setTimeout(() => {
+              logout();
+              hideChangePasswordModal();
+            }, 2000);
+          } else {
+            changePasswordMessage.value = response.data.message || '密碼修改失敗。';
+            changePasswordSuccess.value = false;
+          }
+        } catch (error) {
+          console.error('修改密碼請求失敗:', error);
+          if (error.response && error.response.data && error.response.data.message) {
+            changePasswordMessage.value = `修改失敗: ${error.response.data.message}`;
+          } else {
+            changePasswordMessage.value = '修改密碼時發生錯誤，請稍後再試。';
+          }
+          changePasswordSuccess.value = false;
+        }
+      };
+
+
+      // 編輯檔案按鈕點擊事件
+      const editProfile = () => {
+        alert('編輯個人檔案功能待實現！');
+      };
+
+      // 修改密碼按鈕點擊事件
+      const changePassword = () => {
+        alert('修改密碼功能待實現！');
+      };
+
+      // 格式化日期顯示
+      const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+          return dateString; // 如果不是有效日期，返回原始字串
+        }
+        return date.toLocaleDateString('zh-TW', { year: 'numeric', month: 'numeric', day: 'numeric' });
+      };
+
+      // 組件掛載時獲取數據
+      onMounted(() => {
+        // 模擬從 Session 或 JWT Token 獲取 userId
+        // 實際應用中，這裡會是從後端 API 獲取當前登入使用者的 ID，這會是一個非同步操作，需要等待結果
+        // 例如：const response = await axios.get('/api/auth/me');
+        //       currentUserId.value = response.data.userId;
+        /*currentUserId.value = 1; // 暫時硬編碼為 1*/
+
+        checkLoginStatus(); // 檢查登入狀態並獲取 userId
+        // 只有在登入狀態下才嘗試獲取數據
+        if (isLoggedIn.value) {
+          selectFunction(selectedFunction.value); // 預設載入 '個人檔案' 或 '我的書櫃'
+        } else {
+          alert('您尚未登入，請先登入。');
+          // 可以選擇導向登入頁面
+          window.location.href = '/';
+        }
+
+        // 監聽 currentUserId 的變化，確保在它被賦值後才觸發數據載入
+        // 這樣可以避免在 currentUserId 還是 null 時就發送請求
+        /*watch(currentUserId, (newUserId) => {
+          if (newUserId) {
+            // 根據預設選中的功能載入數據
+            selectFunction(selectedFunction.value);
+          }
+        }, { immediate: true }); // immediate: true 讓 watch 在組件掛載時立即執行一次
+        */
+
+
+        /*if (currentUserId.value) {
+          fetchLoans(selectedFunction.value); // 初始載入 '我的書櫃' 數據
+        } else {
+          console.warn('無法獲取使用者 ID，請確保已登入。');
+          alert('請先登入以查看個人頁面！');
+          // window.location.href = 'login.html'; // 範例：導向登入頁
+        }*/
+        lucide.createIcons();
+      });
+
+      return {
+        selectedFunction,
+        loanItems,
+        userProfile, // 暴露 userProfile 給模板
+        searchTerm,
+        searchPlaceholder,
+        currentFunctionTitle,
+        // 登入相關
+        isLoggedIn,
+        currentUserId,
+        currentUserRole,
+        showLoginModal, // 在 myPage.html 中，這個會導回首頁
+        logout,
+        // 歸還相關
+        showReturnConfirmModal,
+        returningBookTitle,
+        showReturnConfirmation,
+        hideReturnConfirmModal,
+        confirmReturn,
+        // 修改密碼相關 (新增)
+        showChangePasswordModalFlag,
+        changePasswordStep,
+        changePasswordForm,
+        oldPasswordFieldType,
+        newPasswordFieldType,
+        changePasswordMessage,
+        changePasswordSuccess,
+        newPasswordMismatch,
+        showChangePasswordModal,
+        hideChangePasswordModal,
+        toggleOldPasswordVisibility,
+        toggleNewPasswordVisibility,
+        verifyOldPassword,
+        submitNewPassword,
+        // 其他方法
+        selectFunction,
+        performSearch,
+        //login,
+        viewBookDetails,
+        //returnBook,
+        editProfile, // 暴露編輯檔案方法
+        // changePassword, // 暴露修改密碼方法
+        formatDate
+      };
+    }
+  }).mount('#app');
+</script>
+</body>
+</html>
+
