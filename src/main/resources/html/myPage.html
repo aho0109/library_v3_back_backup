@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人中心 - Library System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- 全域變數 --- */
+        :root {
+            --primary: #1a1a1a;
+            --accent: #d32f2f; /* 警告/強調色 */
+            --success: #2e7d32; /* 成功/可取書 */
+            --bg: #f9f9f9;
+            --border-color: #000;
+            --gray: #888;
+            --light-border: #ddd;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--primary); padding-bottom: 80px; }
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+
+        /* --- Header (維持一致) --- */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 0 40px; height: 80px; background: #fff; border-bottom: 2px solid var(--border-color); position: sticky; top: 0; z-index: 100; }
+        .header__logo { font-family: 'Noto Serif TC', serif; font-size: 24px; font-weight: 700; letter-spacing: 2px; }
+        .header__search { flex: 1; max-width: 500px; margin: 0 20px; }
+        .header__search input { width: 100%; padding: 10px 15px; border: 1px solid var(--primary); border-radius: 50px; background: #f0f0f0; }
+        .header__actions { display: flex; align-items: center; gap: 20px; font-weight: 500; }
+
+        /* --- Layout: Sidebar + Main Content --- */
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 40px;
+            min-height: 80vh;
+        }
+
+        /* --- Sidebar Navigation --- */
+        .sidebar {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            height: fit-content;
+            position: sticky;
+            top: 120px;
+        }
+        .nav-item {
+            padding: 18px 25px;
+            border-bottom: 1px solid var(--light-border);
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: 0.2s;
+        }
+        .nav-item:last-child { border-bottom: none; }
+        .nav-item:hover { background: #f4f4f4; }
+
+        /* Active State */
+        .nav-item.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* --- Content Area --- */
+        .content-panel { display: none; } /* JS Toggle */
+        .content-panel.active { display: block; animation: fadeIn 0.3s; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .panel-header {
+            font-family: 'Noto Serif TC', serif;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        /* --- Component: Notification List --- */
+        .notif-item {
+            background: #fff;
+            border: 1px solid var(--light-border);
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid transparent;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .notif-item:hover { transform: translateX(5px); }
+        .notif-item.unread {
+            border-left-color: var(--accent);
+            background: #fffafa;
+        }
+        .notif-title { font-weight: 700; font-size: 16px; margin-bottom: 5px; }
+        .notif-content { color: #555; font-size: 14px; }
+        .notif-date { font-size: 12px; color: var(--gray); min-width: 80px; text-align: right; }
+        .badge-dot { display: inline-block; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; margin-right: 8px; }
+
+        /* --- Component: Profile Info --- */
+        .profile-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            padding: 40px;
+        }
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .p-label { font-weight: 700; color: var(--gray); }
+        .p-value { font-weight: 500; }
+        .identity-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+        .profile-actions { display: flex; gap: 20px; }
+        .btn {
+            padding: 10px 25px;
+            border: 1px solid var(--primary);
+            background: transparent;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn:hover { background: var(--primary); color: #fff; }
+        .btn-outline-danger { border-color: var(--accent); color: var(--accent); }
+        .btn-outline-danger:hover { background: var(--accent); color: #fff; }
+
+        /* --- Component: Book List Card (Shared Style) --- */
+        .list-card {
+            background: #fff;
+            border: 1px solid var(--light-border);
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 25px;
+            align-items: flex-start;
+            position: relative;
+        }
+        .list-card:hover { border-color: var(--primary); box-shadow: 5px 5px 0 rgba(0,0,0,0.05); }
+
+        .card-img { width: 100px; height: 140px; background: #eee; flex-shrink: 0; }
+        .card-img img { width: 100%; height: 100%; object-fit: cover; }
+
+        .card-info { flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 140px; }
+        .card-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+        .card-meta { font-size: 13px; color: #555; margin-bottom: 4px; }
+
+        .card-status { min-width: 150px; text-align: right; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; height: 140px; }
+
+        /* Specific Styles */
+        .status-pill { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-bottom: 10px; display: inline-block; }
+        .status-pill.ready { background: #e8f5e9; color: var(--success); border: 1px solid var(--success); }
+        .status-pill.waiting { background: #eee; color: var(--gray); }
+
+        .overdue-border { border: 2px solid var(--accent); }
+        .overdue-text { color: var(--accent); font-weight: 700; font-size: 14px; margin-top: 10px; }
+
+        .btn-sm { padding: 5px 15px; font-size: 13px; }
+
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <a href="index.html" class="header__logo">LIBRARY.SYS</a>
+    <div class="header__search">
+        <input type="text" placeholder="搜尋...">
+    </div>
+    <div class="header__actions">
+        <div><i class="fa-regular fa-bell"></i></div>
+        <div><i class="fa-regular fa-user"></i> 您好，陳小明</div>
+    </div>
+</header>
+
+<div class="dashboard-container">
+
+    <aside class="sidebar">
+        <div class="nav-item active" onclick="switchTab('notifications', this)">
+            <i class="fa-regular fa-bell"></i> 通知中心
+        </div>
+        <div class="nav-item" onclick="switchTab('profile', this)">
+            <i class="fa-regular fa-id-card"></i> 個人檔案
+        </div>
+        <div class="nav-item" onclick="switchTab('reservations', this)">
+            <i class="fa-regular fa-calendar-check"></i> 預約書籍
+        </div>
+        <div class="nav-item" onclick="switchTab('loans', this)">
+            <i class="fa-solid fa-book-open"></i> 目前借閱
+        </div>
+        <div class="nav-item" onclick="switchTab('history', this)">
+            <i class="fa-solid fa-clock-rotate-left"></i> 借閱歷史
+        </div>
+        <div class="nav-item" onclick="switchTab('overdue', this)" style="color: var(--accent);">
+            <i class="fa-solid fa-triangle-exclamation"></i> 逾期未還 (1)
+        </div>
+        <div class="nav-item" onclick="switchTab('favorites', this)">
+            <i class="fa-regular fa-heart"></i> 收藏清單
+        </div>
+    </aside>
+
+    <main>
+
+        <div id="notifications" class="content-panel active">
+            <div class="panel-header">通知中心</div>
+
+            <div class="notif-item unread">
+                <div>
+                    <div class="notif-title"><span class="badge-dot"></span>預約書籍到館通知</div>
+                    <div class="notif-content">您預約的《原子習慣》已送達 中文書庫(B1)，請於 2025-12-15 前取書。</div>
+                </div>
+                <div class="notif-date">2025-12-10</div>
+            </div>
+
+            <div class="notif-item">
+                <div>
+                    <div class="notif-title">系統維護公告</div>
+                    <div class="notif-content">本系統將於 2025-12-20 00:00 - 04:00 進行例行性維護。</div>
+                </div>
+                <div class="notif-date">2025-12-08</div>
+            </div>
+        </div>
+
+        <div id="profile" class="content-panel">
+            <div class="panel-header">個人檔案</div>
+            <div class="profile-card">
+                <div class="profile-grid">
+                    <div class="p-label">姓名</div> <div class="p-value">陳小明</div>
+                    <div class="p-label">借書證號</div> <div class="p-value">LIB202500123</div>
+                    <div class="p-label">帳號</div> <div class="p-value">ming_chen</div>
+                    <div class="p-label">電子信箱</div> <div class="p-value">ming.test@example.com</div>
+                    <div class="p-label">手機號碼</div> <div class="p-value">0912-345-678</div>
+                    <div class="p-label">通訊地址</div> <div class="p-value">台北市信義區測試路100號</div>
+                    <div class="p-label">身份類別</div>
+                    <div class="p-value">
+                        <span class="identity-badge">市民</span> </div>
+                </div>
+                <div class="profile-actions">
+                    <button class="btn">編輯資料</button>
+                    <button class="btn btn-outline-danger">更改密碼</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="reservations" class="content-panel">
+            <div class="panel-header">預約書籍</div>
+
+            <div class="list-card">
+                <div class="card-img"><img src="https://placehold.co/100x140?text=Atom" alt=""></div>
+                <div class="card-info">
+                    <div class="card-title">原子習慣</div>
+                    <div class="card-meta">作者：James Clear</div>
+                    <div class="card-meta">書籍碼：B0012345</div>
+                    <div class="card-meta">預約日期：2025-12-01</div>
+                </div>
+                <div class="card-status">
+                    <span class="status-pill ready">可取書</span>
+                    <div style="font-size:13px;">預計保留至<br>2025-12-15</div>
+                </div>
+            </div>
+
+            <div class="list-card">
+                <div class="card-img"><img src="https://placehold.co/100x140?text=3Body" alt=""></div>
+                <div class="card-info">
+                    <div class="card-title">三體 II：黑暗森林</div>
+                    <div class="card-meta">作者：劉慈欣</div>
+                    <div class="card-meta">書籍碼：B0098765</div>
+                    <div class="card-meta">預約日期：2025-12-05</div>
+                </div>
+                <div class="card-status">
+                    <span class="status-pill waiting">等候到館</span>
+                    <div style="font-size:13px;">順位：3</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loans" class="content-panel">
+            <div class="panel-header">借閱中</div>
+
+            <div class="list-card">
+                <div class="card-img"><img src="https://placehold.co/100x140?text=Python" alt=""></div>
+                <div class="card-info">
+                    <div class="card-title">Python 資料分析實戰</div>
+                    <div class="card-meta">作者：Wes McKinney</div>
+                    <div class="card-meta">書籍碼：C00112233</div>
+                    <div class="card-meta">借閱日期：2025-12-01</div>
+                    <div class="card-meta" style="color:var(--primary); font-weight:700;">到期日期：2025-12-31</div>
+                </div>
+                <div class="card-status">
+                    <button class="btn btn-sm">續借</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="history" class="content-panel">
+            <div class="panel-header">借閱歷史</div>
+
+            <div class="list-card" style="opacity: 0.8; background: #fdfdfd;">
+                <div class="card-img"><img src="https://placehold.co/100x140?text=Harry" alt=""></div>
+                <div class="card-info">
+                    <div class="card-title">哈利波特：消失的密室</div>
+                    <div class="card-meta">作者：J.K. Rowling</div>
+                    <div class="card-meta">書籍碼：H00123</div>
+                    <div class="card-meta">借閱：2025-10-01｜到期：2025-10-31</div>
+                    <div class="card-meta">歸還：2025-10-28</div>
+                </div>
+                <div class="card-status" style="justify-content: center;">
+                    <span style="color:var(--gray); font-size:14px;">已歸還</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="overdue" class="content-panel">
+            <div class="panel-header" style="color: var(--accent); border-color: var(--accent);">逾期未還</div>
+
+            <div class="list-card overdue-border">
+                <div class="card-img"><img src="https://placehold.co/100x140?text=Math" alt=""></div>
+                <div class="card-info">
+                    <div class="card-title">微積分之神</div>
+                    <div class="card-meta">作者：Steven Strogatz</div>
+                    <div class="card-meta">書籍碼：M998877</div>
+                    <div class="card-meta">借閱日期：2025-11-01</div>
+                    <div class="card-meta">到期日期：2025-12-01</div>
+                </div>
+                <div class="card-status">
+                    <div class="overdue-text">
+                        <i class="fa-solid fa-triangle-exclamation"></i> 已逾期 9 天
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="favorites" class="content-panel">
+            <div class="panel-header">收藏清單</div>
+
+            <div class="list-card">
+                <div class="card-img"><img src="https://placehold.co/100x140?text=Design" alt=""></div>
+                <div class="card-info">
+                    <div class="card-title">設計的心理學</div>
+                    <div class="card-meta">作者：Don Norman</div>
+                    <div class="card-meta">書籍碼：D556677</div>
+                    <div class="card-meta">收藏日期：2025-08-15</div>
+                </div>
+                <div class="card-status">
+                    <button class="btn btn-sm btn-outline-danger"><i class="fa-regular fa-trash-can"></i> 取消收藏</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+    function switchTab(tabId, navElement) {
+        // 1. 隱藏所有 panel
+        document.querySelectorAll('.content-panel').forEach(panel => {
+            panel.classList.remove('active');
+        });
+        // 2. 移除所有 nav-item 的 active
+        document.querySelectorAll('.nav-item').forEach(nav => {
+            nav.classList.remove('active');
+        });
+
+        // 3. 顯示目標 panel
+        document.getElementById(tabId).classList.add('active');
+        // 4. 設定當前 nav-item active
+        navElement.classList.add('active');
+    }
+</script>
+
+</body>
+</html>
