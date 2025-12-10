@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圖書館首頁 - Prototype</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #1a1a1a; /* 近乎黑色的深灰 */
+            --accent: #d32f2f;  /* 借用 Accorder/New Topics 的紅色點綴 */
+            --bg: #f9f9f9;
+            --border-color: #000; /* 強烈的黑色邊框風格 */
+            --gray: #888;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--primary); }
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+
+        /* --- Global Header --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+            height: 80px;
+            background: #fff;
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header__logo { font-family: 'Noto Serif TC', serif; font-size: 24px; font-weight: 700; letter-spacing: 2px; }
+
+        .header__search {
+            flex: 1;
+            max-width: 500px;
+            margin: 0 20px;
+            position: relative;
+        }
+        .header__search input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid var(--primary);
+            border-radius: 50px; /* 圓角風格 */
+            background: #f0f0f0;
+        }
+
+        .header__actions { display: flex; align-items: center; gap: 20px; }
+        .user-profile { font-weight: 500; cursor: pointer; transition: 0.3s; }
+        .user-profile:hover { opacity: 0.7; }
+
+        .notificationbox { position: relative; cursor: pointer; font-size: 20px; }
+        .notificationbox .dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+        }
+
+        /* --- Hero Carousel --- */
+        .hero {
+            height: 400px;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-text { font-size: 40px; font-family: 'Noto Serif TC'; letter-spacing: 5px; opacity: 0.3; }
+
+        /* --- Category Navigation (Main & Sub) --- */
+        .cat-nav { background: #fff; border-bottom: 1px solid var(--border-color); }
+
+        /* Main Category */
+        .main-cats {
+            display: flex;
+            justify-content: center;
+            border-bottom: 1px solid #eee;
+        }
+        .main-cats__item {
+            padding: 20px 40px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 18px;
+            border-bottom: 3px solid transparent;
+            transition: 0.3s;
+        }
+        .main-cats__item.active { border-bottom: 3px solid var(--primary); }
+        .main-cats__item:hover { color: var(--gray); }
+
+        /* Sub Category */
+        .sub-cats {
+            display: flex;
+            justify-content: center;
+            background: #f4f4f4;
+            padding: 15px 0;
+            min-height: 50px; /* 防止沒有內容時塌陷 */
+        }
+        .sub-cats__item {
+            margin: 0 15px;
+            font-size: 14px;
+            padding: 5px 15px;
+            border: 1px solid var(--primary);
+            border-radius: 20px;
+            background: #fff;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .sub-cats__item:hover { background: var(--primary); color: #fff; }
+
+        /* --- Common Section Styles --- */
+        .section-container {
+            max-width: 1400px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 10px;
+        }
+        .section-title {
+            font-size: 32px;
+            font-family: 'Noto Serif TC', serif;
+            font-weight: 700;
+        }
+        .section-more { font-size: 14px; text-decoration: underline; cursor: pointer; }
+
+        /* --- Book Grid (5 items) --- */
+        .book-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+        }
+
+        /* --- Book Card Component (Niwacan Style) --- */
+        .book-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+        .book-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .book-card__img-wrapper {
+            width: 100%;
+            aspect-ratio: 3/4;
+            background: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .book-card__img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+
+        .book-card__info { padding: 15px; }
+        .book-card__badge {
+            display: inline-block;
+            font-size: 10px;
+            padding: 2px 6px;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+        .book-card__title { font-size: 16px; font-weight: 700; margin-bottom: 5px; line-height: 1.4; height: 44px; overflow: hidden; }
+        .book-card__meta { font-size: 12px; color: var(--gray); margin-bottom: 2px; }
+
+        /* --- Tags Cloud --- */
+        .tags-wrapper { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tag-pill {
+            padding: 10px 20px;
+            background: #fff;
+            border: 2px solid var(--primary);
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px var(--primary); /* Pop Art / Sticker style */
+            transition: 0.2s;
+        }
+        .tag-pill:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0px var(--primary); }
+        .tag-pill:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px var(--primary); }
+
+        /* Footer */
+        footer { background: var(--primary); color: #fff; padding: 40px; text-align: center; margin-top: 100px; }
+
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <a href="#" class="header__logo">LIBRARY.SYS</a>
+    <div class="header__search">
+        <input type="text" placeholder="搜尋書名、作者、ISBN...">
+    </div>
+    <div class="header__actions">
+        <div class="user-profile">
+            <i class="fa-regular fa-user"></i> 您好，陳小明
+        </div>
+        <div class="notificationbox">
+            <i class="fa-regular fa-bell"></i>
+            <span class="dot"></span>
+        </div>
+    </div>
+</header>
+
+<section class="hero">
+    <div class="hero-text">ADS CAROUSEL AREA</div>
+</section>
+
+<nav class="cat-nav">
+    <ul class="main-cats">
+        <li class="main-cats__item active">文學小說</li>
+        <li class="main-cats__item">商業理財</li>
+        <li class="main-cats__item">藝術設計</li>
+        <li class="main-cats__item">人文社科</li>
+        <li class="main-cats__item">自然科普</li>
+    </ul>
+    <div class="sub-cats">
+        <a href="search.html" class="sub-cats__item">現代文學</a>
+        <a href="search.html" class="sub-cats__item">推理懸疑</a>
+        <a href="search.html" class="sub-cats__item">科幻奇幻</a>
+        <a href="search.html" class="sub-cats__item">歷史小說</a>
+        <a href="search.html" class="sub-cats__item">詩集</a>
+    </div>
+</nav>
+
+<section class="section-container">
+    <div class="section-header">
+        <h2 class="section-title">NEW ARRIVALS <span style="font-size:14px; color:var(--gray); font-weight:400; font-family:'Noto Sans TC'">最新上架</span></h2>
+        <span class="section-more">查看更多</span>
+    </div>
+    <div class="book-grid">
+        <div class="book-card" onclick="window.location.href='search.html'">
+            <div class="book-card__img-wrapper">
+                <img src="https://placehold.co/300x400/eee/333?text=Book+Cover" alt="Book">
+            </div>
+            <div class="book-card__info">
+                <span class="book-card__badge">NEW</span>
+                <h3 class="book-card__title">挪威的森林 (30週年紀念版)</h3>
+                <p class="book-card__meta">作者：村上春樹</p>
+                <p class="book-card__meta">出版：時報出版</p>
+            </div>
+        </div>
+        <div class="book-card">
+            <div class="book-card__img-wrapper"><img src="https://placehold.co/300x400/e0e0e0/333?text=Book" alt=""></div>
+            <div class="book-card__info"><h3 class="book-card__title">被討厭的勇氣</h3><p class="book-card__meta">作者：岸見一郎</p><p class="book-card__meta">出版：究竟出版</p></div>
+        </div>
+        <div class="book-card">
+            <div class="book-card__img-wrapper"><img src="https://placehold.co/300x400/ddd/333?text=Book" alt=""></div>
+            <div class="book-card__info"><h3 class="book-card__title">原子習慣</h3><p class="book-card__meta">作者：James Clear</p><p class="book-card__meta">出版：方智出版</p></div>
+        </div>
+        <div class="book-card">
+            <div class="book-card__img-wrapper"><img src="https://placehold.co/300x400/ccc/333?text=Book" alt=""></div>
+            <div class="book-card__info"><h3 class="book-card__title">底層邏輯</h3><p class="book-card__meta">作者：劉潤</p><p class="book-card__meta">出版：時報出版</p></div>
+        </div>
+        <div class="book-card">
+            <div class="book-card__img-wrapper"><img src="https://placehold.co/300x400/bbb/333?text=Book" alt=""></div>
+            <div class="book-card__info"><h3 class="book-card__title">蛤蟆先生去看心理師</h3><p class="book-card__meta">作者：Robert de Board</p><p class="book-card__meta">出版：三采文化</p></div>
+        </div>
+    </div>
+</section>
+
+<section class="section-container" style="background: #fff; padding: 40px 20px; border: 1px solid #000; box-shadow: 10px 10px 0 #ddd;">
+    <div class="section-header" style="border-bottom-color: #000;">
+        <h2 class="section-title">POPULAR <span style="font-size:14px; color:var(--gray); font-weight:400; font-family:'Noto Sans TC'">熱門借閱</span></h2>
+        <span class="section-more">查看排行榜</span>
+    </div>
+    <div class="book-grid">
+        <div class="book-card">
+            <div class="book-card__img-wrapper"><img src="https://placehold.co/300x400/333/fff?text=Hot" alt=""></div>
+            <div class="book-card__info"><h3 class="book-card__title">三體：全集</h3><p class="book-card__meta">作者：劉慈欣</p><p class="book-card__meta">出版：貓頭鷹</p></div>
+        </div>
+        <div class="book-card"><div class="book-card__img-wrapper"><img src="https://placehold.co/300x400/444/fff?text=Hot" alt=""></div><div class="book-card__info"><h3 class="book-card__title">哈利波特：神秘的魔法石</h3><p class="book-card__meta">作者：J.K. Rowling</p><p class="book-card__meta">出版：皇冠</p></div></div>
+        <div class="book-card"><div class="book-card__img-wrapper"><img src="https://placehold.co/300x400/555/fff?text=Hot" alt=""></div><div class="book-card__info"><h3 class="book-card__title">解憂雜貨店</h3><p class="book-card__meta">作者：東野圭吾</p><p class="book-card__meta">出版：皇冠</p></div></div>
+        <div class="book-card"><div class="book-card__img-wrapper"><img src="https://placehold.co/300x400/666/fff?text=Hot" alt=""></div><div class="book-card__info"><h3 class="book-card__title">人類大歷史</h3><p class="book-card__meta">作者：Yuval Noah Harari</p><p class="book-card__meta">出版：天下文化</p></div></div>
+        <div class="book-card"><div class="book-card__img-wrapper"><img src="https://placehold.co/300x400/777/fff?text=Hot" alt=""></div><div class="book-card__info"><h3 class="book-card__title">快思慢想</h3><p class="book-card__meta">作者：Daniel Kahneman</p><p class="book-card__meta">出版：天下文化</p></div></div>
+    </div>
+</section>
+
+<section class="section-container">
+    <div class="section-header">
+        <h2 class="section-title">TRENDING TAGS</h2>
+    </div>
+    <div class="tags-wrapper">
+        <div class="tag-pill"># 諾貝爾文學獎</div>
+        <div class="tag-pill"># 影視改編</div>
+        <div class="tag-pill"># 心理成長</div>
+        <div class="tag-pill"># AI人工智慧</div>
+        <div class="tag-pill"># 投資理財</div>
+        <div class="tag-pill"># 2025暢銷榜</div>
+        <div class="tag-pill"># 村上春樹</div>
+        <div class="tag-pill"># 社會議題</div>
+    </div>
+</section>
+
+<footer>
+    <p>&copy; 2025 Library System Prototype. Design for Vue.js 3</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>書籍詳情 - 鋼之鍊金術師</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- 繼承與全域變數 --- */
+        :root {
+            --primary: #1a1a1a;
+            --accent: #d32f2f;
+            --bg: #f9f9f9;
+            --border-color: #000;
+            --gray: #666;
+            --light-gray: #e5e5e5;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--primary); padding-bottom: 80px;}
+        a { text-decoration: none; color: inherit; transition: 0.2s; }
+        ul { list-style: none; }
+
+        /* --- Header (複用) --- */
+        .header {
+            display: flex; justify-content: space-between; align-items: center; padding: 0 40px; height: 80px; background: #fff; border-bottom: 2px solid var(--border-color); position: sticky; top: 0; z-index: 100;
+        }
+        .header__logo { font-family: 'Noto Serif TC', serif; font-size: 24px; font-weight: 700; letter-spacing: 2px; }
+        .header__search { flex: 1; max-width: 500px; margin: 0 20px; }
+        .header__search input { width: 100%; padding: 10px 15px; border: 1px solid var(--primary); border-radius: 50px; background: #f0f0f0; }
+        .header__actions { display: flex; align-items: center; gap: 20px; font-weight: 500; }
+
+        /* --- Layout Container --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* --- Breadcrumb / Back Button --- */
+        .nav-bar { margin: 30px 0; display: flex; align-items: center; }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .back-btn:hover { color: var(--gray); transform: translateX(-5px); }
+
+        /* --- SECTION 1: Book Info (Split Layout) --- */
+        .book-hero {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 50px;
+            margin-bottom: 60px;
+            background: #fff;
+            padding: 40px;
+            border: 1px solid var(--border-color);
+            box-shadow: 10px 10px 0 rgba(0,0,0,0.05); /* 輕微的立體感 */
+        }
+
+        /* Left: Image */
+        .book-cover {
+            width: 100%;
+            aspect-ratio: 2/3;
+            background: #eee;
+            position: relative;
+            border: 1px solid #ddd;
+        }
+        .book-cover img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Right: Details */
+        .book-details { position: relative; display: flex; flex-direction: column; }
+
+        /* Title Area & Rating */
+        .book-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+        }
+        .book-title-group { flex: 1; margin-right: 20px; }
+        .book-title {
+            font-family: 'Noto Serif TC', serif;
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 10px;
+        }
+        .book-author { font-size: 18px; color: var(--gray); font-weight: 500; }
+
+        /* Rating Badge */
+        .rating-box {
+            background: var(--primary);
+            color: #fff;
+            padding: 10px 15px;
+            text-align: center;
+            min-width: 80px;
+        }
+        .rating-score { font-size: 24px; font-weight: 700; display: block; }
+        .rating-stars { font-size: 10px; color: #FFD700; margin-top: 5px; }
+
+        /* Meta Grid */
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px 30px;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .meta-item { display: flex; }
+        .meta-label { font-weight: 700; width: 80px; color: var(--gray); }
+        .meta-value { font-weight: 500; }
+
+        /* Tags */
+        .tags-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 30px; }
+        .tag {
+            font-size: 12px;
+            padding: 6px 12px;
+            border: 1px solid var(--primary);
+            background: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 2px 2px 0 var(--primary); /* Pop Art style */
+        }
+        .tag:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--primary); }
+
+        /* Description */
+        .book-desc {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #444;
+            background: #f4f4f4;
+            padding: 20px;
+            border-left: 4px solid var(--primary);
+            margin-top: auto; /* Push to bottom of container if needed */
+        }
+
+        /* --- SECTION 2: Holdings (Table) --- */
+        .section-block { margin-bottom: 60px; }
+        .section-head {
+            font-size: 24px;
+            font-family: 'Noto Serif TC', serif;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .section-head::before {
+            content: ''; display: inline-block; width: 8px; height: 24px; background: var(--accent); margin-right: 15px;
+        }
+
+        /* Custom Table Style */
+        .holdings-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border: 1px solid var(--primary);
+        }
+        .holdings-table th {
+            background: var(--primary);
+            color: #fff;
+            padding: 15px;
+            text-align: left;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+        .holdings-table td {
+            padding: 20px 15px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+        .holdings-table tr:last-child td { border-bottom: none; }
+
+        /* Status Badges */
+        .status { font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+        .status.available { color: #2e7d32; }
+        .status.loaned { color: #c62828; }
+        .due-date { font-weight: 400; font-size: 13px; color: var(--gray); margin-left: 5px; }
+
+        /* Action Button */
+        .btn-reserve {
+            background: transparent;
+            border: 1px solid var(--primary);
+            padding: 8px 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-reserve:hover { background: var(--primary); color: #fff; }
+        .btn-reserve:disabled { border-color: #ccc; color: #ccc; cursor: not-allowed; }
+
+        /* --- SECTION 3: Reviews --- */
+        .review-list { display: flex; flex-direction: column; gap: 20px; }
+        .review-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+        }
+        .review-avatar {
+            width: 50px; height: 50px; background: #eee; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 20px; color: var(--gray);
+        }
+        .review-content { flex: 1; }
+        .review-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .reviewer-name { font-weight: 700; font-size: 16px; }
+        .review-stars { color: #FFD700; letter-spacing: 2px; }
+        .review-text { font-size: 15px; line-height: 1.6; color: #333; margin-bottom: 15px; }
+
+        .review-footer { display: flex; justify-content: flex-end; }
+        .like-btn {
+            cursor: pointer;
+            color: var(--gray);
+            font-size: 14px;
+            display: flex; align-items: center; gap: 6px;
+            transition: 0.2s;
+        }
+        .like-btn:hover { color: var(--accent); }
+
+        /* RWD adjustments */
+        @media (max-width: 768px) {
+            .book-hero { grid-template-columns: 1fr; }
+            .meta-grid { grid-template-columns: 1fr; }
+            .holdings-table th, .holdings-table td { padding: 10px; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <a href="index.html" class="header__logo">LIBRARY.SYS</a>
+    <div class="header__search">
+        <input type="text" placeholder="搜尋書名...">
+    </div>
+    <div class="header__actions">
+        <div><i class="fa-regular fa-bell"></i></div>
+        <div><i class="fa-regular fa-user"></i> 您好，陳小明</div>
+    </div>
+</header>
+
+<div class="container">
+
+    <nav class="nav-bar">
+        <a href="javascript:history.back()" class="back-btn">
+            <i class="fa-solid fa-arrow-left-long"></i> 返回上一頁
+        </a>
+    </nav>
+
+    <section class="book-hero">
+        <div class="book-cover">
+            <img src="https://placehold.co/400x600/eee/333?text=Cover" alt="Book Cover">
+        </div>
+
+        <div class="book-details">
+            <div class="book-header-row">
+                <div class="book-title-group">
+                    <h1 class="book-title">鋼之鍊金術師 (完全版) Vol.1</h1>
+                    <div class="book-author">作者：荒川弘</div>
+                </div>
+                <div class="rating-box">
+                    <span class="rating-score">4.8</span> <div class="rating-stars">
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star-half-stroke"></i>
+                </div>
+                </div>
+            </div>
+
+            <div class="meta-grid">
+                <div class="meta-item"><span class="meta-label">主類別</span> <span class="meta-value">漫畫圖文</span></div>
+                <div class="meta-item"><span class="meta-label">次類別</span> <span class="meta-value">少年漫畫</span></div>
+                <div class="meta-item"><span class="meta-label">出版商</span> <span class="meta-value">東立出版社</span></div>
+                <div class="meta-item"><span class="meta-label">出版年</span> <span class="meta-value">2024</span></div>
+                <div class="meta-item"><span class="meta-label">ISBN</span> <span class="meta-value">9789861234567</span></div>
+            </div>
+
+            <div class="tags-row">
+                <span class="tag"># 奇幻冒險</span>
+                <span class="tag"># 等價交換</span>
+                <span class="tag"># 神作</span>
+                <span class="tag"># 哲學</span>
+            </div>
+
+            <div class="book-desc">
+                <p>愛德華與阿爾馮斯兩兄弟，為了讓死去的母親復活而使用鍊金術最大禁忌「人體鍊金」。然而鍊成失敗，愛德華失去了左腳，阿爾馮斯則失去了全身。為了取回失去的一切，兩人踏上了尋找「賢者之石」的旅程...</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-block">
+        <h2 class="section-head">書籍狀況 / HOLDINGS</h2>
+        <table class="holdings-table">
+            <thead>
+            <tr>
+                <th width="15%">編號</th>
+                <th width="20%">館藏地</th>
+                <th width="40%">狀態</th>
+                <th width="25%">操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>SP001A</td>
+                <td>中文書庫 (B1)</td>
+                <td>
+                    <span class="status available"><i class="fa-solid fa-circle-check"></i> 在館</span>
+                </td>
+                <td>
+                </td>
+            </tr>
+            <tr>
+                <td>SP001B</td>
+                <td>中文書庫 (B1)</td>
+                <td>
+                    <span class="status loaned"><i class="fa-solid fa-circle-xmark"></i> 外借中</span>
+                    <span class="due-date">(2025-12-31 到期)</span>
+                </td>
+                <td>
+                    <button class="btn-reserve">預約</button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="section-block">
+        <h2 class="section-head">讀者評論 / REVIEWS</h2>
+        <div class="review-list">
+
+            <div class="review-card">
+                <div class="review-avatar">S</div> <div class="review-content">
+                <div class="review-header">
+                    <span class="reviewer-name">saber123</span>
+                    <div class="review-stars">
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i>
+                    </div>
+                </div>
+                <p class="review-text">好看!非常立志! 雖然中間有一點虐，但結局非常完美。</p>
+                <div class="review-footer">
+                    <div class="like-btn"><i class="fa-regular fa-thumbs-up"></i> 4</div>
+                </div>
+            </div>
+            </div>
+
+            <div class="review-card">
+                <div class="review-avatar" style="background:#333; color:#fff;">L</div>
+                <div class="review-content">
+                    <div class="review-header">
+                        <span class="reviewer-name">lancer123</span>
+                        <div class="review-stars">
+                            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                        </div>
+                    </div>
+                    <p class="review-text">牛媽牛啊！這是我看過結構最完整的漫畫，沒有之一。</p>
+                    <div class="review-footer">
+                        <div class="like-btn"><i class="fa-regular fa-thumbs-up"></i> 10</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+</div>
+
+</body>
+</html>
