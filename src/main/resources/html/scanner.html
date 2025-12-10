@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>條碼掃描測試（靜態 HTML）</title>
+
+    <style>
+        body { font-family: -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "Helvetica Neue", Arial; margin: 20px; color:#222; }
+        .container { max-width:900px; margin:0 auto; }
+        h1 { font-size:20px; margin-bottom:8px; }
+        video { width:100%; max-height:480px; background:#000; border-radius:8px; }
+        canvas { display:none; } /* 用於抓影格 */
+        .controls { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
+        button { padding:8px 12px; border-radius:6px; border:1px solid #ccc; background:#fafafa; cursor:pointer; }
+        .result { margin-top:12px; padding:12px; border-radius:8px; background:#f6f9ff; border:1px solid #e2ecff; }
+        .muted { color:#666; font-size:13px; }
+        .supported { color: #0a7; font-weight:600; }
+        .unsupported { color: #c33; font-weight:600; }
+        .badge { padding:3px 6px; border-radius:8px; font-size:12px; margin-left:8px; background:#eee; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>條碼掃描測試（靜態 HTML）</h1>
+    <p class="muted">可使用電腦相機或手機相機測試。若瀏覽器支援 <code>BarcodeDetector</code> 則使用原生，否則使用 <code>jsQR</code> 做 fallback。</p>
+
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+
+    <div class="controls">
+        <button id="startBtn">開始相機</button>
+        <button id="stopBtn" disabled>停止相機</button>
+        <button id="clearResultBtn">清除結果</button>
+        <div id="supportInfo" style="margin-left:auto" class="muted"></div>
+    </div>
+
+    <div class="result" id="resultArea">
+        <div><strong>掃描結果</strong> <span id="lastSeen" class="muted"></span></div>
+        <pre id="resultText" style="white-space:pre-wrap; word-break:break-all; margin-top:8px;">（尚未偵測到條碼）</pre>
+    </div>
+
+    <hr />
+    <div class="muted">
+        備註：測試時請允許相機權限。若在桌機測試而沒有鏡頭，請接外接攝影機或改用手機瀏覽器。
+    </div>
+</div>
+
+<!-- jsQR fallback（若需要） -->
+<script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
+
+<script>
+    // DOM 元件
+    var video = document.getElementById('video');
+    var canvas = document.getElementById('canvas');
+    var startBtn = document.getElementById('startBtn');
+    var stopBtn = document.getElementById('stopBtn');
+    var clearBtn = document.getElementById('clearResultBtn');
+    var resultText = document.getElementById('resultText');
+    var lastSeen = document.getElementById('lastSeen');
+    var supportInfo = document.getElementById('supportInfo');
+
+    // 全域變數
+    var stream = null;
+    var scanning = false;
+    var detector = null; // 用於 BarcodeDetector
+    var rafId = null;    // requestAnimationFrame id
+
+    // 檢查是否支援 BarcodeDetector API
+    var hasBarcodeDetector = ('BarcodeDetector' in window);
+    supportInfo.innerHTML = hasBarcodeDetector ? '<span class="supported">支援 BarcodeDetector（原生）</span>' : '<span class="unsupported">不支援 BarcodeDetector，使用 jsQR fallback</span>';
+
+    // 啟動相機並開始掃描
+    startBtn.addEventListener('click', function() {
+        startCameraAndScan();
+    });
+
+    stopBtn.addEventListener('click', function() {
+        stopCamera();
+    });
+
+    clearBtn.addEventListener('click', function() {
+        resultText.textContent = '（尚未偵測到條碼）';
+        lastSeen.textContent = '';
+    });
+
+    // 啟動相機函式
+    function startCameraAndScan() {
+        if (scanning) return;
+        // 取得相機串流（prefer environment facing camera on mobile）
+        var constraints = { video: { facingMode: 'environment' } };
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then(function(s) {
+                stream = s;
+                video.srcObject = stream;
+                video.addEventListener('loadedmetadata', function() {
+                    video.play();
+                    // 初始化 canvas 大小與 context
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 480;
+                    // 初始化 BarcodeDetector（若可用）
+                    if (hasBarcodeDetector) {
+                        try {
+                            // 可以指定想要偵測的格式（不指定則偵測所有支援格式）
+                            detector = new BarcodeDetector({formats: ['qr_code', 'ean_13', 'code_128', 'code_39', 'ean_8', 'upc_e', 'upc_a']});
+                        } catch (e) {
+                            console.warn('建立 BarcodeDetector 失敗，將 fallback：', e);
+                            detector = null;
+                        }
+                    }
+                    scanning = true;
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    tick(); // 開始掃描迴圈
+                }, { once: true });
+            })
+            .catch(function(err) {
+                alert('無法取得相機：' + err.message);
+                console.error(err);
+            });
+    }
+
+    // 停止相機
+    function stopCamera() {
+        scanning = false;
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        if (stream) {
+            stream.getTracks().forEach(function(track) { track.stop(); });
+            stream = null;
+        }
+        video.srcObject = null;
+    }
+
+    // 掃描主迴圈
+    function tick() {
+        if (!scanning) return;
+        // 若有原生 API，優先使用
+        if (detector) {
+            // 使用 BarcodeDetector.detect（回傳 Promise）
+            detector.detect(video).then(function(barcodes) {
+                if (barcodes && barcodes.length > 0) {
+                    // 取第一個（也可改成全部列出）
+                    var b = barcodes[0];
+                    showResult(b.rawValue, b.format);
+                }
+            }).catch(function(err) {
+                console.warn('BarcodeDetector 偵測失敗：', err);
+                // 若失敗，嘗試用 fallback（走後方的畫布截取）
+                scanWithJsQR();
+            }).finally(function() {
+                rafId = requestAnimationFrame(tick);
+            });
+        } else {
+            // fallback 使用 canvas + jsQR
+            scanWithJsQR();
+            rafId = requestAnimationFrame(tick);
+        }
+    }
+
+    // 使用 canvas 抓一幀然後用 jsQR 解析
+    function scanWithJsQR() {
+        if (!video.videoWidth) return;
+        var ctx = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        try {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        } catch (e) {
+            // 有時候在某些瀏覽器 drawImage 會拋錯（例如暫時的 stream 問題），直接忽略
+            return;
+        }
+        var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        // jsQR expects Uint8ClampedArray inside ImageData
+        var code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code) {
+            showResult(code.data, 'QR (jsQR)');
+        }
+    }
+
+    // 顯示結果（以及可在這裡同時送到後端）
+    var lastValue = null;
+    function showResult(value, format) {
+        // 如果跟上次一樣就不重複顯示（避免太多重複）
+        if (value === lastValue) return;
+        lastValue = value;
+        var ts = new Date().toLocaleString();
+        lastSeen.textContent = '最後偵測時間：' + ts;
+        resultText.textContent = '格式：' + (format || 'unknown') + '\\n內容：' + value;
+        // 若需要，可以在這裡把結果送到後端 API：
+        // sendResultToServer(value);
+    }
+
+    // 範例：如何使用 axios 把條碼字串傳到後端（示範 JSON 傳輸）
+    // 若你要啟用下面範例，先在頁面引入 axios CDN，或改成 fetch 使用。
+    function sendResultToServer(barcode) {
+        // 範例使用 fetch
+        fetch('/api/library/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            // 前端傳給後端的資料型別：JSON，條碼內容以字串表示
+            body: JSON.stringify({ barcode: barcode, timestamp: new Date().toISOString() })
+        })
+            .then(function(resp) {
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                return resp.json();
+            })
+            .then(function(json) {
+                console.log('後端回傳：', json);
+                // 你可以把回傳的會員/書籍資訊顯示在畫面上
+            })
+            .catch(function(err) {
+                console.error('送到後端失敗：', err);
+            });
+    }
+
+    // 在離開頁面時確保關閉相機
+    window.addEventListener('beforeunload', function() {
+        stopCamera();
+    });
+</script>
+</body>
+</html>
