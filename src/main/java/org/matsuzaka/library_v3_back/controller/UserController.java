@@ -104,16 +104,29 @@ public class UserController {
         return ResponseEntity.ok(new ChangePasswordResponse(true, "密碼修改成功NEW。"));
     }
 
+    /**
+     * 獲取當前登入使用者的所有通知。
+     * TODO: 似乎和 NotificationController 重複，待整理。
+     * @param currentUser 當前登入的使用者，由 Spring Security 安全提供。
+     * @return 使用者的通知列表。
+     */
     @GetMapping("/me/notifications")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<NotificationResponseDto>> getMyNotifications(@AuthenticationPrincipal UserDetailSecu currentUser) {
         return ResponseEntity.ok(notificationService.getUserNotifications(currentUser.getUser().getId()));
     }
 
+    /**
+     * 標記當前使用者的單筆通知為已讀。
+     * TODO: 似乎和 NotificationController 重複，待整理。
+     * @param id
+     * @param currentUser
+     * @return
+     */
     @PutMapping("/me/notifications/{id}/read")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> markNotificationRead(@PathVariable Long id) {
-        notificationService.markAsRead(id);
+    public ResponseEntity<?> markNotificationRead(@PathVariable Long id, @AuthenticationPrincipal UserDetailSecu currentUser) {
+        notificationService.markAsRead(id, currentUser.getUser().getId());
         return ResponseEntity.ok().build();
     }
 

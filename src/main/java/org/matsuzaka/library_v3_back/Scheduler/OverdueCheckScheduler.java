@@ -100,8 +100,8 @@ public class OverdueCheckScheduler {
             r.setStatus(ReservationStatus.EXPIRED);
             reservationRepository.save(r);
             
-            notificationService.sendNotification(r.getUser(), NotificationType.RESERVE_EXPIRING, "預約已過期", 
-                    "您預約的《" + r.getBookCopy().getBook().getTitle() + "》已過期。", 
+            notificationService.sendNotification(r.getUser(), NotificationType.RESERVE_EXPIRING, "【預約過期】",
+                    "您預約的《" + r.getBookCopy().getBook().getTitle() + "》未於期限內取書，已取消。",
                     r.getId(), null, ReferenceType.RESERVATION);
             
             // 遞補給下一位預約者

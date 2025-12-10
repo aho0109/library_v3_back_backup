@@ -308,13 +308,14 @@ CREATE TABLE IF NOT EXISTS notification
     is_read        TINYINT(1)                                                                                          NOT NULL DEFAULT 0 COMMENT '是否已讀 (0: 未讀, 1: 已讀)',
     related_id     BIGINT                                                                                              NULL COMMENT '相關ID (e.g., reservation.id)',
     reference_id   BIGINT                                                                                              NULL COMMENT '關聯記錄ID',
-    reference_type ENUM ('RESERVATION', 'LOAN', 'PENALTY')                                                             NULL COMMENT '關聯類型',
+    reference_type ENUM ('RESERVATION', 'LOAN', 'PENALTY', 'SYSTEM')                                                   NULL COMMENT '關聯類型',
     FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE ON UPDATE CASCADE,
     INDEX idx_user_read_created (user_id, is_read, created_at DESC)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='使用者通知表';
 -- 說明：應用邏輯產生通知 (e.g., 預約成功插入 RESERVE_SUCCESS)；Email 基於此表發送 (篩選未讀/特定類型)。
+
 
 
 -- 以下考慮中
