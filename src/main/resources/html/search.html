@@ -3,29 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>搜尋結果 - Prototype</title>
+    <title>搜尋結果 - 互動篩選版</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* 繼承首頁的變數與基礎樣式 (實際開發時應共用 CSS) */
-        :root { --primary: #1a1a1a; --accent: #d32f2f; --bg: #f9f9f9; --border-color: #000; --gray: #888; }
+        /* =========================================
+           1. 全域設定 & 變數 (維持原樣)
+           ========================================= */
+        :root {
+            --primary: #1a1a1a;
+            --accent: #d32f2f;
+            --bg: #f9f9f9;
+            --border-color: #000;
+            --gray: #888;
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--primary); }
         a { text-decoration: none; color: inherit; }
         ul { list-style: none; }
 
-        /* 複製 Header 樣式 (省略以節省篇幅，實際請 copy 上面的) */
+        /* Header (維持原樣) */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 0 40px; height: 80px; background: #fff; border-bottom: 2px solid var(--border-color); position: sticky; top: 0; z-index: 100; }
         .header__logo { font-family: 'Noto Serif TC', serif; font-size: 24px; font-weight: 700; letter-spacing: 2px; }
         .header__search { flex: 1; max-width: 500px; margin: 0 20px; }
         .header__search input { width: 100%; padding: 10px 15px; border: 1px solid var(--primary); border-radius: 50px; background: #f0f0f0; }
         .header__actions { display: flex; align-items: center; gap: 20px; }
+        .user-profile { font-weight: 500; cursor: pointer; }
 
-        /* --- Search Layout --- */
+        /* Layout */
         .layout-container {
             display: grid;
-            grid-template-columns: 280px 1fr; /* 左邊欄 280px，右邊自適應 */
+            grid-template-columns: 280px 1fr; /* 左欄固定，右欄自適應 */
             gap: 40px;
             max-width: 1600px;
             margin: 40px auto;
@@ -33,16 +43,20 @@
             min-height: calc(100vh - 80px);
         }
 
-        /* --- Sidebar Filters --- */
+        /* =========================================
+           2. NEW Sidebar Styles (針對你的需求修改)
+           ========================================= */
         .sidebar {
             background: #fff;
             border: 1px solid var(--border-color);
-            padding: 20px;
+            padding: 25px;
             height: fit-content;
-            position: sticky; /* 讓篩選器在滾動時跟隨 */
+            position: sticky;
             top: 100px;
         }
-        .filter-group { margin-bottom: 30px; }
+
+        .filter-group { margin-bottom: 35px; }
+
         .filter-title {
             font-size: 16px;
             font-weight: 700;
@@ -51,132 +65,121 @@
             margin-bottom: 15px;
             display: flex;
             justify-content: space-between;
-        }
-        .filter-list { max-height: 200px; overflow-y: auto; }
-        .filter-item {
-            display: flex;
             align-items: center;
-            margin-bottom: 10px;
-            font-size: 14px;
-            cursor: pointer;
         }
-        .filter-item input { margin-right: 10px; accent-color: var(--primary); width: 16px; height: 16px; }
-        .filter-item span { flex: 1; }
-        .filter-count { font-size: 12px; color: var(--gray); background: #eee; padding: 2px 6px; border-radius: 10px; }
 
-        /* --- Main Content Area --- */
-        .results-area { }
+        /* 清除按鈕 (預設隱藏) */
+        .reset-btn {
+            font-size: 12px;
+            color: var(--accent);
+            text-decoration: underline;
+            cursor: pointer;
+            display: none;
+        }
 
-        /* Toolbar */
-        .toolbar {
+        /* --- 列表型選項 (主類、子類、作者、出版商) --- */
+        .filter-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 10px 15px;
+            border: 1px solid #eee; /* 平常是淺灰框 */
             background: #fff;
-            padding: 15px 25px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 20px;
-            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            font-size: 14px;
+        }
+
+        .filter-item:hover {
+            border-color: var(--primary);
+            transform: translateX(5px);
+        }
+
+        /* 選中狀態：黑底白字 */
+        .filter-item.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            transform: translateX(0); /* 選中時不位移 */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .filter-item.active .filter-count { color: #ccc; background: transparent; }
+
+        /* 隱藏狀態 (當同組有人被選中時) */
+        .filter-item.hidden { display: none; }
+
+        .filter-count {
+            font-size: 12px;
+            color: var(--gray);
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        /* --- 標籤雲選項 (Tags) --- */
+        .tags-wrapper { display: flex; flex-wrap: wrap; gap: 8px; }
+
+        .tag-pill {
+            padding: 6px 15px;
+            font-size: 13px;
+            border: 1px solid var(--primary);
+            border-radius: 50px; /* 橢圓 */
+            background: #fff;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 500;
+        }
+
+        .tag-pill:hover { background: #f0f0f0; }
+
+        /* 標籤選中狀態 */
+        .tag-pill.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+        }
+
+        /* =========================================
+           3. 右側內容 (完全維持原樣)
+           ========================================= */
+        .toolbar {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #fff; padding: 15px 25px; border: 1px solid var(--border-color);
+            margin-bottom: 20px; border-radius: 4px;
         }
         .toolbar__left { font-weight: 700; font-size: 14px; }
         .toolbar__right { display: flex; gap: 20px; align-items: center; }
-
-        .sort-select {
-            padding: 5px 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        /* Toggle Switch for Series */
-        .toggle-switch {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 40px;
-            height: 20px;
-        }
+        .sort-select { padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .toggle-switch { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 20px;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 16px;
-            width: 16px;
-            left: 2px;
-            bottom: 2px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        /* --- Search Result Grid --- */
-        .result-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* RWD 自動填滿 */
-            gap: 20px;
-        }
-
-        /* Result Card (Slightly different from Home) */
-        .result-card {
-            background: #fff;
-            border: 1px solid #eee;
-            transition: 0.2s;
-            display: flex;
-            flex-direction: column;
-        }
+        .result-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .result-card { background: #fff; border: 1px solid #eee; transition: 0.2s; display: flex; flex-direction: column; cursor: pointer; }
         .result-card:hover { border-color: var(--primary); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-
-        .result-card__img {
-            width: 100%;
-            aspect-ratio: 2/3;
-            background: #ddd;
-            position: relative;
-        }
+        .result-card__img { width: 100%; aspect-ratio: 2/3; background: #ddd; position: relative; }
         .result-card__img img { width: 100%; height: 100%; object-fit: cover; }
-
-        .status-badge {
-            position: absolute;
-            top: 10px; right: 10px;
-            padding: 4px 8px;
-            font-size: 12px;
-            font-weight: 700;
-            background: rgba(255,255,255,0.9);
-            border: 1px solid var(--primary);
-        }
+        .status-badge { position: absolute; top: 10px; right: 10px; padding: 4px 8px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.9); border: 1px solid var(--primary); }
         .status-badge.borrowable { color: green; border-color: green; }
         .status-badge.loaned { color: red; border-color: red; }
-
         .result-card__content { padding: 15px; display: flex; flex-direction: column; flex: 1; }
         .result-card__series { font-size: 12px; color: var(--accent); margin-bottom: 5px; font-weight: 600; }
         .result-card__title { font-size: 15px; font-weight: 700; margin-bottom: auto; line-height: 1.4; }
         .result-card__info { margin-top: 10px; font-size: 12px; color: #555; }
-        .result-card__info div { margin-bottom: 2px; }
-
-        /* Pagination */
         .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 40px; }
-        .page-btn {
-            width: 40px; height: 40px;
-            display: flex; align-items: center; justify-content: center;
-            border: 1px solid #ddd;
-            background: #fff;
-            cursor: pointer;
-        }
+        .page-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd; background: #fff; cursor: pointer; }
         .page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
     </style>
 </head>
 <body>
@@ -192,37 +195,89 @@
 </header>
 
 <div class="layout-container">
+
     <aside class="sidebar">
-        <div class="filter-group">
-            <div class="filter-title">主類別</div>
+
+        <div class="filter-group" id="group-main">
+            <div class="filter-title">
+                主類別
+                <span class="reset-btn" onclick="resetGroup('group-main')">清除</span>
+            </div>
             <div class="filter-list">
-                <label class="filter-item"><input type="checkbox" checked> <span>文學小說</span> <span class="filter-count">120</span></label>
-                <label class="filter-item"><input type="checkbox"> <span>商業理財</span> <span class="filter-count">45</span></label>
+                <div class="filter-item" onclick="toggleItem(this, 'group-main')">
+                    <span>文學小說</span> <span class="filter-count">120</span>
+                </div>
+                <div class="filter-item" onclick="toggleItem(this, 'group-main')">
+                    <span>商業理財</span> <span class="filter-count">45</span>
+                </div>
+                <div class="filter-item" onclick="toggleItem(this, 'group-main')">
+                    <span>藝術設計</span> <span class="filter-count">30</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-group" id="group-sub">
+            <div class="filter-title">
+                子類別
+                <span class="reset-btn" onclick="resetGroup('group-sub')">清除</span>
+            </div>
+            <div class="filter-list">
+                <div class="filter-item" onclick="toggleItem(this, 'group-sub')">
+                    <span>現代文學</span> <span class="filter-count">80</span>
+                </div>
+                <div class="filter-item" onclick="toggleItem(this, 'group-sub')">
+                    <span>推理懸疑</span> <span class="filter-count">30</span>
+                </div>
+                <div class="filter-item" onclick="toggleItem(this, 'group-sub')">
+                    <span>科幻奇幻</span> <span class="filter-count">10</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-group" id="group-auth">
+            <div class="filter-title">
+                作者
+                <span class="reset-btn" onclick="resetGroup('group-auth')">清除</span>
+            </div>
+            <div class="filter-list">
+                <div class="filter-item" onclick="toggleItem(this, 'group-auth')">
+                    <span>村上春樹</span>
+                </div>
+                <div class="filter-item" onclick="toggleItem(this, 'group-auth')">
+                    <span>東野圭吾</span>
+                </div>
+                <div class="filter-item" onclick="toggleItem(this, 'group-auth')">
+                    <span>J.K. Rowling</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-group" id="group-pub">
+            <div class="filter-title">
+                出版商
+                <span class="reset-btn" onclick="resetGroup('group-pub')">清除</span>
+            </div>
+            <div class="filter-list">
+                <div class="filter-item" onclick="toggleItem(this, 'group-pub')">
+                    <span>時報出版</span>
+                </div>
+                <div class="filter-item" onclick="toggleItem(this, 'group-pub')">
+                    <span>皇冠文化</span>
+                </div>
+                <div class="filter-item" onclick="toggleItem(this, 'group-pub')">
+                    <span>天下文化</span>
+                </div>
             </div>
         </div>
 
         <div class="filter-group">
-            <div class="filter-title">子類別</div>
-            <div class="filter-list">
-                <label class="filter-item"><input type="checkbox" checked> <span>現代文學</span> <span class="filter-count">80</span></label>
-                <label class="filter-item"><input type="checkbox"> <span>推理懸疑</span> <span class="filter-count">30</span></label>
-                <label class="filter-item"><input type="checkbox"> <span>歷史小說</span> <span class="filter-count">10</span></label>
-            </div>
-        </div>
-
-        <div class="filter-group">
-            <div class="filter-title">作者</div>
-            <div class="filter-list">
-                <label class="filter-item"><input type="checkbox"> <span>村上春樹</span></label>
-                <label class="filter-item"><input type="checkbox"> <span>東野圭吾</span></label>
-            </div>
-        </div>
-
-        <div class="filter-group">
-            <div class="filter-title">標籤 (Tags)</div>
-            <div class="tags-wrapper" style="gap:5px;">
-                <span class="filter-count" style="font-size:12px; border:1px solid #ccc; background:#fff; cursor:pointer;">諾貝爾獎</span>
-                <span class="filter-count" style="font-size:12px; border:1px solid #ccc; background:#fff; cursor:pointer;">改編電影</span>
+            <div class="filter-title">標籤</div>
+            <div class="tags-wrapper">
+                <div class="tag-pill" onclick="this.classList.toggle('active')">諾貝爾獎</div>
+                <div class="tag-pill" onclick="this.classList.toggle('active')">改編電影</div>
+                <div class="tag-pill" onclick="this.classList.toggle('active')">心理成長</div>
+                <div class="tag-pill" onclick="this.classList.toggle('active')">Netflix</div>
+                <div class="tag-pill" onclick="this.classList.toggle('active')">2025暢銷</div>
             </div>
         </div>
     </aside>
@@ -236,11 +291,11 @@
             <div class="toolbar__right">
                 <label class="toggle-switch">
                     <div class="switch">
-                        <input type="checkbox"> <span class="slider"></span>
+                        <input type="checkbox">
+                        <span class="slider"></span>
                     </div>
                     僅顯示系列作
                 </label>
-
                 <select class="sort-select">
                     <option>相關度排序</option>
                     <option>出版日期 (新->舊)</option>
@@ -301,6 +356,53 @@
 
     </main>
 </div>
+
+<script>
+    // 適用於：主類別、子類別、作者、出版商
+    function toggleItem(element, groupId) {
+        const group = document.getElementById(groupId);
+        const items = group.querySelectorAll('.filter-item');
+        const resetBtn = group.querySelector('.reset-btn');
+
+        // 判斷當前是否已經被選中
+        const isAlreadyActive = element.classList.contains('active');
+
+        // 1. 重置所有項目狀態 (全部顯示、移除選中)
+        items.forEach(item => {
+            item.classList.remove('active');
+            item.classList.remove('hidden');
+            item.style.display = 'flex'; // 恢復 flex 排版
+        });
+        resetBtn.style.display = 'none';
+
+        // 2. 如果原本沒被選中，則進入「選中並隱藏其他」的狀態
+        if (!isAlreadyActive) {
+            element.classList.add('active');
+            resetBtn.style.display = 'inline-block'; // 顯示清除鈕
+
+            // 隱藏其他未選中的
+            items.forEach(item => {
+                if (!item.classList.contains('active')) {
+                    item.style.display = 'none';
+                }
+            });
+        }
+        // 如果原本已經是 active，上面的第1步已經把它重置為未選中且全顯示了，所以不用做額外動作
+    }
+
+    // 清除按鈕專用邏輯
+    function resetGroup(groupId) {
+        const group = document.getElementById(groupId);
+        const items = group.querySelectorAll('.filter-item');
+        const resetBtn = group.querySelector('.reset-btn');
+
+        items.forEach(item => {
+            item.classList.remove('active');
+            item.style.display = 'flex';
+        });
+        resetBtn.style.display = 'none';
+    }
+</script>
 
 </body>
 </html>
