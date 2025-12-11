@@ -22,7 +22,7 @@ public interface BookCopyMapper {
         if (statusEnum == null) return "未知狀態";
         String statusCode = statusEnum.name(); // 獲取 ENUM 的名稱 (例如 "A", "L", "R")
         switch (statusCode) {
-            case "A": return "BCM可借閱";
+            case "A": return "BCM在館可借閱";
             case "L": return "BCM已借出";
             case "P": return "BCM處理中";
             case "R": return "BCM已預約";
