@@ -69,7 +69,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/authors/**").permitAll()
                         .requestMatchers("/api/loans/**").permitAll()
                         .requestMatchers("/api/favorites/**").permitAll()
-                        .requestMatchers("/api/notifications/**").authenticated()
+                        .requestMatchers("/api/notifications/**").permitAll()
+                        .requestMatchers("/api/reservations/**").permitAll()
 
                         .requestMatchers("/api/admin/**").permitAll() // 暫時允許管理端點
 

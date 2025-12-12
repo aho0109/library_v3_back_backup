@@ -55,7 +55,7 @@ public class LoanController {
     }
 
     /* 續借 */
-    @PostMapping("/{loanId}/renew")
+    @PutMapping("/{loanId}/renew")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> renewBook(@PathVariable Long loanId, @AuthenticationPrincipal UserDetailSecu currentUser) {
         try {
