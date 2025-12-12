@@ -99,6 +99,10 @@ public class Book {
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Review> reviews;
 
+    // 一本書籍有多個收藏記錄
+    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Favorite> favorites;
+
     // Helper methods
     public void addAuthor(Author author) {
         this.authors.add(author);

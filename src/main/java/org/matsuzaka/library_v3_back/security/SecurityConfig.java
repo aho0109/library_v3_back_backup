@@ -68,22 +68,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/tags/**").permitAll()
                         .requestMatchers("/api/authors/**").permitAll()
                         .requestMatchers("/api/loans/**").permitAll()
+                        .requestMatchers("/api/favorites/**").permitAll()
+                        .requestMatchers("/api/notifications/**").authenticated()
 
                         .requestMatchers("/api/admin/**").permitAll() // 暫時允許管理端點
 
-
-                        // 我有用 PageController 處理轉換，但不知為何還是要兩種都給許可才能拜訪？
-                        .requestMatchers("/", "/index", "/bookQuery","/oneBook", "/html/register", "/html/myPage", "/html/admin/adminCreateBook", "/html/admin/adminPanel").permitAll() // 允許靜態 HTML 頁面和根路徑
-                        .requestMatchers("/", "/index.html", "/bookQuery.html","/oneBook.html", "/html/register.html", "/html/myPage.html", "/html/admin/adminCreateBook.html", "/html/admin/adminPanel.html").permitAll() // 允許靜態 HTML 頁面和根路徑
-
-                        //.requestMatchers("/html/admin/**").permitAll() // 暫時允許管理者頁面
-
-                        .requestMatchers("/html/other/外觀0817/**").permitAll() // 暫時允許其他 HTML 頁面，不知為何無用
-
-                        //.requestMatchers("/html/**").permitAll() // 暫時允許其他 HTML 頁面
-
-
-                        .requestMatchers("/css/**", "/js/**", "/images/**").permitAll() // 允許靜態資源
 
                         // 2. 新增的特定認證端點
                         // 允許借閱 API 只有在認證後才能訪問 (配合 @PreAuthorize("isAuthenticated()") 進一步深層確認)
