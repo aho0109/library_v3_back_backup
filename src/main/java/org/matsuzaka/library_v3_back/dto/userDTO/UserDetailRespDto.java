@@ -23,4 +23,5 @@ public class UserDetailRespDto {
     private String status; // PENDING, ACTIVE, SUSPENDED
     private String role; // ROLE_USER, ROLE_CITIZEN, ROLE_ADMIN
     private LocalDateTime suspendedUntil;
+    private LocalDateTime createdAt;
 }

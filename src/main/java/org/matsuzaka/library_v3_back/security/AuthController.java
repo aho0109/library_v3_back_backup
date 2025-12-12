@@ -10,16 +10,14 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 // 步驟 9: 建立認證控制器 (AuthController.java)
 // 這個控制器將提供登入 API 端點，用於處理使用者登入並返回 JWT。
 // 認證相關的 API
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(origins = "*") /* TODO: 其他地方沒加也可以，為何這裡要加？*/
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
