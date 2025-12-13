@@ -74,6 +74,57 @@ public class ReviewServiceImpl implements ReviewService {
         return mapToDto(review, false);
     }
 
+    /**
+     * 編輯書籍評論
+     * @param userId
+     * @param reviewId
+     * @param request
+     * @return
+     */
+    @Override
+    public ReviewResponseDto updateReview(Long userId, Long reviewId, ReviewRequestDto request) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new EntityNotFoundException("找不到評論"));
+
+        // 確認是評論者本人
+        if (!Objects.equals(review.getUser().getId(), userId)) {
+            throw new IllegalStateException("您只能編輯自己的評論");
+        }
+
+        review.setRating(request.getRating());
+        review.setReviewText(request.getReviewText());
+        review = reviewRepository.save(review);
+
+        // 更新書籍平均評分
+        updateBookRating(review.getBook());
+
+        // 檢查當前使用者是否按過讚
+        boolean liked = reviewLikeRepository.existsByUserIdAndReviewId(userId, reviewId);
+        return mapToDto(review, liked);
+    }
+
+    /**
+     * 刪除書籍評論
+     * @param userId
+     * @param reviewId
+     */
+    @Override
+    public void deleteReview(Long userId, Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new EntityNotFoundException("找不到評論"));
+
+        // 確認是評論者本人
+        if (!Objects.equals(review.getUser().getId(), userId)) {
+            throw new IllegalStateException("您只能刪除自己的評論");
+        }
+
+        Book book = review.getBook();
+        reviewRepository.delete(review);
+
+        // 更新書籍平均評分
+        updateBookRating(book);
+    }
+
     private void updateBookRating(Book book) {
         // 載入該書籍所有評論（可透過 JPQL 優化）
         List<Review> reviews = reviewRepository.findByBookId(book.getId());
@@ -149,6 +200,47 @@ public class ReviewServiceImpl implements ReviewService {
         Review review = like.getReview();
         review.setLikesCount(Math.max(0, review.getLikesCount() - 1));
         reviewRepository.save(review);
+    }
+
+    /**
+     * Toggle 按讚（按過就取消，沒按過就新增）
+     * @param userId
+     * @param reviewId
+     * @return 回傳當前狀態（true=已按讚，false=已取消）
+     */
+    @Override
+    public boolean toggleLikeReview(Long userId, Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new EntityNotFoundException("找不到評論"));
+
+        // 按自己的讚無效
+        if (Objects.equals(review.getUser().getId(), userId)) {
+            throw new IllegalStateException("您不能按自己的讚");
+        }
+
+        // 檢查是否已按過讚
+        Optional<ReviewLike> existingLike = reviewLikeRepository.findByUserIdAndReviewId(userId, reviewId);
+
+        if (existingLike.isPresent()) {
+            // 已按讚 -> 取消讚
+            reviewLikeRepository.delete(existingLike.get());
+            review.setLikesCount(Math.max(0, review.getLikesCount() - 1));
+            reviewRepository.save(review);
+            return false; // 已取消讚
+        } else {
+            // 未按讚 -> 新增讚
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new EntityNotFoundException("找不到使用者"));
+
+            ReviewLike like = new ReviewLike();
+            like.setUser(user);
+            like.setReview(review);
+            reviewLikeRepository.save(like);
+
+            review.setLikesCount(review.getLikesCount() + 1);
+            reviewRepository.save(review);
+            return true; // 已按讚
+        }
     }
 
     private ReviewResponseDto mapToDto(Review review, boolean likedByCurrentUser) {

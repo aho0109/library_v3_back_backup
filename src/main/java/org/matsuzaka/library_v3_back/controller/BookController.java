@@ -3,6 +3,7 @@ package org.matsuzaka.library_v3_back.controller;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookListItemDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookSearchResponseDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.queryOneDTO.BookRespDtoOneDetails;
+import org.matsuzaka.library_v3_back.dto.reviewDTO.LikeStatusDto;
 import org.matsuzaka.library_v3_back.dto.reviewDTO.ReviewRequestDto;
 import org.matsuzaka.library_v3_back.dto.reviewDTO.ReviewResponseDto;
 import org.matsuzaka.library_v3_back.security.UserDetailSecu;
@@ -142,6 +143,39 @@ public class BookController {
     }
 
     /**
+     * 編輯書籍評論
+     * @param bookId
+     * @param reviewId
+     * @param currentUser
+     * @param request
+     * @return
+     */
+    @PutMapping("/{bookId}/reviews/{reviewId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ReviewResponseDto> updateReview(@PathVariable Long bookId,
+                                                          @PathVariable Long reviewId,
+                                                          @AuthenticationPrincipal UserDetailSecu currentUser,
+                                                          @RequestBody ReviewRequestDto request) {
+        return ResponseEntity.ok(reviewService.updateReview(currentUser.getUser().getId(), reviewId, request));
+    }
+
+    /**
+     * 刪除書籍評論
+     * @param bookId
+     * @param reviewId
+     * @param currentUser
+     * @return
+     */
+    @DeleteMapping("/{bookId}/reviews/{reviewId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> deleteReview(@PathVariable Long bookId,
+                                          @PathVariable Long reviewId,
+                                          @AuthenticationPrincipal UserDetailSecu currentUser) {
+        reviewService.deleteReview(currentUser.getUser().getId(), reviewId);
+        return ResponseEntity.ok("評論刪除成功");
+    }
+
+    /**
      * 取得書籍評論列表
      * @param bookId
      * @param currentUser
@@ -157,7 +191,7 @@ public class BookController {
     }
 
     /**
-     * 書籍評論按讚
+     * 書籍評論按讚/取消讚（Toggle）
      * @param bookId
      * @param reviewId
      * @param currentUser
@@ -165,11 +199,11 @@ public class BookController {
      */
     @PostMapping("/{bookId}/reviews/{reviewId}/like")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> likeReview(@PathVariable Long bookId,
-                                        @PathVariable Long reviewId,
-                                        @AuthenticationPrincipal UserDetailSecu currentUser) {
-        reviewService.likeReview(currentUser.getUser().getId(), reviewId);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<LikeStatusDto> toggleLikeReview(@PathVariable Long bookId,
+                                                          @PathVariable Long reviewId,
+                                                          @AuthenticationPrincipal UserDetailSecu currentUser) {
+        boolean isLiked = reviewService.toggleLikeReview(currentUser.getUser().getId(), reviewId);
+        return ResponseEntity.ok(new LikeStatusDto(isLiked));
     }
 
     @DeleteMapping("/{bookId}/reviews/{reviewId}/like")
