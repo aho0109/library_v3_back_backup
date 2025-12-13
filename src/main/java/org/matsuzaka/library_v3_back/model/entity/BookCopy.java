@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import org.matsuzaka.library_v3_back.model.enums.BookCopyStatus;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Entity
@@ -34,6 +35,9 @@ public class BookCopy {
 
     @Column(name = "location")
     private String location = "新書上架區"; // Default location
+
+    @Column(name = "stocked_date", nullable = false)
+    private LocalDate stockedDate;
 
     // 一個實體副本可以有多個借閱記錄
     @OneToMany(mappedBy = "bookCopy", fetch = FetchType.LAZY)

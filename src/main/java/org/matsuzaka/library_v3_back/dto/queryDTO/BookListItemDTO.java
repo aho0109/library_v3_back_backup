@@ -5,6 +5,7 @@ import org.matsuzaka.library_v3_back.model.entity.Author;
 import org.matsuzaka.library_v3_back.model.entity.Book;
 import org.matsuzaka.library_v3_back.model.entity.Tag;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -61,7 +62,7 @@ public class BookListItemDTO {
     private String subCategoryTitle;  // 子分類名稱（管理員查看需要）
 
     // 新增欄位 (依據 說明.md 需求)
-    private java.time.LocalDate addedDate; // 上架日期
+    private LocalDate addedDate; // 上架日期
     private Integer totalLoanCount; // 累計借閱次數
 
     /**

@@ -41,6 +41,8 @@ INSERT INTO `publisher` (`pub_name`) VALUES
                                          ('碁峰'),
                                          ('墨刻'),
                                          ('台灣角川');
+INSERT INTO `publisher` (`pub_name`) VALUES
+                                         ('博碩文化');
 
 SET @東立 = (SELECT id FROM `publisher` WHERE pub_name = '東立');
 SET @尖端 = (SELECT id FROM `publisher` WHERE pub_name = '尖端');
@@ -55,6 +57,7 @@ SET @VOGUE出版社 = (SELECT id FROM `publisher` WHERE pub_name = 'VOGUE出版�
 SET @城邦出版集團 = (SELECT id FROM `publisher` WHERE pub_name = '城邦出版集團');
 SET @碁峰 = (SELECT id FROM `publisher` WHERE pub_name = '碁峰');
 SET @墨刻 = (SELECT id FROM `publisher` WHERE pub_name = '墨刻');
+SET @博碩文化 = (SELECT id FROM `publisher` WHERE pub_name = '博碩文化');
 
 
 -- 4. 插入 category 資料 (第一層)
@@ -117,6 +120,8 @@ INSERT INTO `author` (`name`) VALUES
                                   ('PChome 雜誌編輯群'), -- 16
                                   ('林信良'), -- 17
                                   ('墨刻編輯部'); -- 21
+INSERT INTO `author` (`name`) VALUES
+                                  ('劉翰璋');
 
 SET @荒川弘 = (SELECT id FROM `author` WHERE name = '荒川弘');
 SET @空知英秋 = (SELECT id FROM `author` WHERE name = '空知英秋');
@@ -136,6 +141,7 @@ SET @vogue編輯部 = (SELECT id FROM `author` WHERE name = 'vogue 編輯部');
 SET @PChome雜誌編輯群 = (SELECT id FROM `author` WHERE name = 'PChome 雜誌編輯群');
 SET @林信良 = (SELECT id FROM `author` WHERE name = '林信良');
 SET @墨刻編輯部 = (SELECT id FROM `author` WHERE name = '墨刻編輯部');
+SET @劉翰璋 = (SELECT id FROM `author` WHERE name = '劉翰璋');
 
 
 -- 7. 插入 tag 資料
@@ -253,6 +259,11 @@ VALUES
     ('出發！日本自助旅行', null, @生活旅遊, 2023, @墨刻,  'https://taiwan-image.bookwalker.com.tw/product/182909/zoom_big_182909.jpg', '9789862899588', 1),
     ('京都・大阪・神戶攻略完全制霸2025', null, @生活旅遊, 2024, @墨刻,  'https://taiwan-image.bookwalker.com.tw/product/231036/231036_1.jpg', '9786263980754', 1);
 
+INSERT INTO `book` (`title`,`series_id`, `category_sub_id`, `publish_year`, `publisher_id`, `image_url`, `ISBN`, `representative`)
+VALUES
+    ('為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力', null, @程式設計, 2025, @博碩文化,  'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/b2b/newItem/2025/10/28/8113_111833268_693_mainCoverImage1.jpg', '9786264143011', 1);
+
+
 -- 更新上述2個資料的representative欄位
 -- UPDATE `book` SET representative = 0 WHERE title IN ('池袋西口公園 1', '電子之星：池袋西口公園 4');
 
@@ -299,6 +310,7 @@ SET @`JavaScript 技術手冊` = (SELECT id FROM `book` WHERE title = 'JavaScrip
 SET @`Java SE 17 技術手冊` = (SELECT id FROM `book` WHERE title = 'Java SE 17 技術手冊');
 SET @`出發！日本自助旅行` = (SELECT id FROM `book` WHERE title = '出發！日本自助旅行');
 SET @`京都・大阪・神戶攻略完全制霸2025` = (SELECT id FROM `book` WHERE title = '京都・大阪・神戶攻略完全制霸2025');
+SET @`為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力` = (SELECT id FROM `book` WHERE title = '為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力');
 
 
 -- 9. 插入 book_author 資料 (中間表)
@@ -348,6 +360,8 @@ INSERT INTO `book_author` (`book_id`, `author_id`) VALUES
                                                        (@`Java SE 17 技術手冊`, @林信良),
                                                        (@出發！日本自助旅行, @墨刻編輯部),
                                                        (@京都・大阪・神戶攻略完全制霸2025, @墨刻編輯部);
+INSERT INTO `book_author` (`book_id`, `author_id`) VALUES
+                                                         (@`為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力`, @劉翰璋);
 
 
 -- 10. 插入 book_tag 資料 (中間表)
@@ -477,6 +491,15 @@ INSERT INTO `book_copy` (`book_id`, `unique_code`, `status`) VALUES
                                                                  (@`Java SE 17 技術手冊`, 'JV017C', 'A'),
                                                                  (@出發！日本自助旅行, 'JP001A', 'A'),
                                                                  (@京都・大阪・神戶攻略完全制霸2025, 'JP002A', 'A');
+INSERT INTO `book_copy` (`book_id`, `unique_code`, `status`) VALUES
+                                                                 (@`為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力`, 'VE001A', 'A'),
+                                                                 (@`為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力`, 'VE001B', 'A'),
+                                                                 (@`為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力`, 'VE001C', 'A'),
+                                                                 (@`為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力`, 'VE001D', 'A');
+
+
+
+
 SELECT * FROM `book_copy` WHERE status = 'L';
 
 -- 顯示每本ㄖbook_copy 每一筆資料，join book 以顯示書名

@@ -19,7 +19,7 @@ public class BookRespDtoOneDetails {
     private Integer publishYear;
     private String isbn; 
     private String imageUrl;
-    private String addedDate; // 上架日期
+    private String addedDate; // book上架日期
 
     private Set<String> authors; // 作者名稱列表，用於顯示多個作者
     private Set<String> tags; // 標籤名稱列表，用於顯示多個標籤

@@ -146,6 +146,7 @@ CREATE TABLE IF NOT EXISTS book
 -- 9. book_copy 表
 -- status 註解更新
 -- 新增：location
+-- 新增：進書日期
 CREATE TABLE IF NOT EXISTS book_copy
 (
     id          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '實體書ID (副本ID)',
@@ -153,11 +154,17 @@ CREATE TABLE IF NOT EXISTS book_copy
     unique_code VARCHAR(100)              NOT NULL UNIQUE COMMENT '每本實體書的唯一編碼',
     status      ENUM ('A', 'L', 'P', 'R', 'U') NOT NULL DEFAULT 'A' COMMENT '狀態 (A:Available 在館, L:Loaned 已借出, R:RESERVED 被預約, P:PROCESSING 處理中, U:UNAVAILABLE 下架)',
     location    VARCHAR(100)                       DEFAULT '新書上架區' COMMENT '書籍位置',
+    stocked_date  DATE                            NOT NULL DEFAULT CURRENT_DATE COMMENT '進書日期',
     FOREIGN KEY (book_id) REFERENCES book (id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_book_status (book_id, status)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='書籍實體副本資訊表';
+-- 更改 book_copy 欄位，新增：進書日期
+    ALTER TABLE book_copy
+    ADD COLUMN stocked_date DATE NOT NULL DEFAULT CURRENT_DATE COMMENT '進書日期' AFTER location;
+
+
 
 
 -- 10. loan 表 (無變更，但逾期點數計算基於 due_date vs return_date)
