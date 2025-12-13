@@ -23,4 +23,18 @@ public interface BookCopyService {
      * @param copyId 副本ID
      */
     void deleteBookCopy(Long copyId);
+
+    /**
+     * 查詢副本借閱記錄
+     * @param copyId 副本ID
+     * @return 借閱記錄列表
+     */
+    List<?> getBookCopyLoanHistory(Long copyId);
+
+    /**
+     * 查詢副本預約記錄
+     * @param copyId 副本ID
+     * @return 預約記錄列表
+     */
+    List<?> getBookCopyReservationHistory(Long copyId);
 }

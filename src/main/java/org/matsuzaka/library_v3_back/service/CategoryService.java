@@ -12,4 +12,9 @@ public interface CategoryService {
 
     CategoryMainDTO getById(Long categoryId);
 
+    // 管理員功能
+    CategoryMainDTO createCategory(CategoryMainDTO dto);
+    CategoryMainDTO updateCategory(Long id, CategoryMainDTO dto);
+    void deleteCategory(Long id);
+
 }

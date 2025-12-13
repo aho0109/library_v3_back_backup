@@ -11,6 +11,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -96,8 +97,45 @@ public class AdminBookController {
      * 建立一本新書，包含所有複雜的關聯和業務邏輯
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<BookRespDtoOneDetails> createBook(@RequestBody CreateBookDTO createBookDTO) {
         BookRespDtoOneDetails createdBookDto = bookService.createBook(createBookDTO);
         return new ResponseEntity<>(createdBookDto, HttpStatus.CREATED);
+    }
+
+    /**
+     * 更新書籍資訊
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<BookRespDtoOneDetails> updateBook(
+            @PathVariable Long id,
+            @RequestBody CreateBookDTO updateBookDTO) {
+        BookRespDtoOneDetails updatedBook = bookService.updateBook(id, updateBookDTO);
+        return ResponseEntity.ok(updatedBook);
+    }
+
+    /**
+     * 刪除書籍
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<String> deleteBook(@PathVariable Long id) {
+        try {
+            bookService.deleteBook(id);
+            return ResponseEntity.ok("書籍刪除成功");
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * 根據 ID 查詢書籍詳細資訊
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<BookRespDtoOneDetails> getBookById(@PathVariable Long id) {
+        BookRespDtoOneDetails book = bookService.getBookById(id);
+        return ResponseEntity.ok(book);
     }
 }

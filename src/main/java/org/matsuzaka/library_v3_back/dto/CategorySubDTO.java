@@ -12,5 +12,9 @@ public class CategorySubDTO {
     private Long id;
 
     private String categorySubTitle;
+    
+    private Long categoryId; // 所屬主分類ID
 
+    public CategorySubDTO(Long id, String categorySubTitle) {
+    }
 }

@@ -62,4 +62,24 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // CAST(SUBSTRING(card_id, 4) AS UNSIGNED) 將 'LIB001' 轉為 1
     @Query(value = "SELECT MAX(CAST(SUBSTRING(u.card_id, 4) AS UNSIGNED)) FROM user u WHERE u.card_id LIKE 'LIB%'", nativeQuery = true)
     Long findMaxCardIdNumber();
+
+    // 管理員會員搜尋
+    @Query("""
+            SELECT u.id, ud.name, u.cardId, u.account, ud.email, ud.phone, ud.address,
+                u.penaltyPoints, u.status, u.role, u.suspendedUntil, ud.createdAt
+            FROM User u
+            JOIN u.userDetail ud
+            WHERE (:cardId IS NULL OR u.cardId LIKE %:cardId%)
+            AND (:account IS NULL OR u.account LIKE %:account%)
+            AND (:name IS NULL OR ud.name LIKE %:name%)
+            AND (:email IS NULL OR ud.email LIKE %:email%)
+            AND (:phone IS NULL OR ud.phone LIKE %:phone%)
+            """)
+    List<UserDetailRespDto> searchUsers(
+            @Param("cardId") String cardId,
+            @Param("account") String account,
+            @Param("name") String name,
+            @Param("email") String email,
+            @Param("phone") String phone
+    );
 }

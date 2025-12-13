@@ -123,5 +123,26 @@ public interface BookCopyRepository extends JpaRepository<BookCopy, Long> {
 
     // 2. 更新 loan 表中的 return_date
     // 已經在 LoanServiceImpl 中實現了，這裡不需要重複實現
-}
 
+    /**
+     * 查詢副本的借閱記錄（由舊到新）
+     */
+    @Query("""
+            SELECT l.id, l.loanDate, l.dueDate, l.returnDate, l.user.cardId, l.user.userDetail.name, l.status
+            FROM Loan l
+            WHERE l.bookCopy.id = :copyId
+            ORDER BY l.loanDate ASC
+            """)
+    List<Object[]> findLoanHistoryByCopyId(@Param("copyId") Long copyId);
+
+    /**
+     * 查詢副本的預約記錄（由舊到新）
+     */
+    @Query("""
+            SELECT r.id, r.reserveDate, r.notifyDate,r.expirationDate, r.pickupDate, r.user.cardId, r.user.userDetail.name, r.queuePosition, r.status
+            FROM Reservation r
+            WHERE r.bookCopy.id = :copyId
+            ORDER BY r.reserveDate ASC
+            """)
+    List<Object[]> findReservationHistoryByCopyId(@Param("copyId") Long copyId);
+}

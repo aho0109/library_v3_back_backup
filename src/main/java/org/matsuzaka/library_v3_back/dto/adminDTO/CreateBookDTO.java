@@ -18,7 +18,7 @@ public class CreateBookDTO {
     private BigDecimal price; // 價格，必填
     private String imageUrl;
     private String isbn;
-    //private Boolean representative; // 是否為代表作，service 處理，前端不需要傳入
+    private Boolean representative; // 是否為代表作，service 處理，前端不需要傳入
 
     private Long categorySubId; // 子分類 ID，必填，只需要傳入最精確的子分類 ID
 

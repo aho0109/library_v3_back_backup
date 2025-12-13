@@ -7,6 +7,7 @@ import org.matsuzaka.library_v3_back.dto.adminDTO.ManyToManyInputDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.*;
 import org.matsuzaka.library_v3_back.dto.queryDTO.queryOneDTO.BookRespDtoOneDetails;
 import org.matsuzaka.library_v3_back.model.entity.*;
+import org.matsuzaka.library_v3_back.model.enums.BookCopyStatus;
 import org.matsuzaka.library_v3_back.model.mapper.BookMapper;
 import org.matsuzaka.library_v3_back.model.repositoryDao.*;
 import org.matsuzaka.library_v3_back.service.BookService;
@@ -303,6 +304,99 @@ public class BookServiceImpl implements BookService {
             }
         }
         return tags;
+    }
+
+    /**
+     * 更新書籍資訊
+     */
+    @Override
+    @Transactional
+    public BookRespDtoOneDetails updateBook(Long id, CreateBookDTO dto) {
+        // 查詢現有書籍
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("書籍不存在，ID: " + id));
+
+        // 1. 更新基本屬性
+        book.setTitle(dto.getTitle());
+        book.setIsbn(dto.getIsbn());
+        book.setPublishYear(dto.getPublishYear());
+        book.setImageUrl(dto.getImageUrl());
+
+        // 2. 更新分類
+        CategorySub categorySub = categorySubRepository.findById(dto.getCategorySubId())
+                .orElseThrow(() -> new EntityNotFoundException("子分類不存在，ID: " + dto.getCategorySubId()));
+        book.setCategorySub(categorySub);
+
+        // 3. 更新出版社
+        Publisher publisher = publisherRepository.findById(dto.getPublisherId())
+                .orElseThrow(() -> new EntityNotFoundException("出版社不存在，ID: " + dto.getPublisherId()));
+        book.setPublisher(publisher);
+
+        // 4. 更新系列與代表作
+        if (dto.getSeriesId() != null) {
+            Series series = seriesRepository.findById(dto.getSeriesId())
+                    .orElseThrow(() -> new EntityNotFoundException("系列不存在，ID: " + dto.getSeriesId()));
+            book.setSeries(series);
+
+            // 如果要設為代表作，將此系列其他代表作標記為 false
+            if (dto.getRepresentative() != null && dto.getRepresentative()) {
+                bookRepository.findBySeriesAndRepresentative(series, true)
+                        .ifPresent(oldRep -> {
+                            if (!oldRep.getId().equals(id)) {
+                                oldRep.setRepresentative(false);
+                            }
+                        });
+                book.setRepresentative(true);
+            }
+        } else {
+            book.setSeries(null);
+            book.setRepresentative(true);
+        }
+
+        // 5. 更新作者和標籤（清除舊的，設定新的）
+        book.getAuthors().clear();
+        Set<Author> authors = processAuthors(dto.getAuthors());
+        book.setAuthors(authors);
+
+        book.getTags().clear();
+        Set<Tag> tags = processTags(dto.getTags());
+        book.setTags(tags);
+
+        // 6. 儲存更新
+        Book updatedBook = bookRepository.save(book);
+
+        return bookMapper.toBookRespDtoOneDetails(updatedBook);
+    }
+
+    /**
+     * 刪除書籍
+     */
+    @Override
+    @Transactional
+    public void deleteBook(Long id) {
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("書籍不存在，ID: " + id));
+        
+        // 檢查是否有借閱中或預約中的副本
+        long activeLoansCount = book.getBookCopies().stream()
+                .filter(copy -> copy.getStatus() == BookCopyStatus.L || copy.getStatus() == BookCopyStatus.R)
+                .count();
+        
+        if (activeLoansCount > 0) {
+            throw new IllegalStateException("此書籍仍有副本在借閱或預約中，無法刪除");
+        }
+        
+        bookRepository.delete(book);
+    }
+
+    /**
+     * 根據 ID 查詢書籍詳細資訊（管理員用）
+     */
+    @Override
+    public BookRespDtoOneDetails getBookById(Long id) {
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("書籍不存在，ID: " + id));
+        return bookMapper.toBookRespDtoOneDetails(book);
     }
 
 

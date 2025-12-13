@@ -19,6 +19,7 @@ public class BookCopyDTO {
     private String statusDisplay;       // 狀態顯示文字
     private String currentBorrowerAccount; // 目前借閱者帳號
     private Long bookId;                // 所屬書籍ID
+    private LocalDate stockedDate;      // 進貨日期
 
     // 新增借閱詳細資訊
     private LocalDateTime loanDate;     // 借閱日期
@@ -36,6 +37,7 @@ public class BookCopyDTO {
         dto.setUniqueCode(bookCopy.getUniqueCode());
         dto.setStatus(bookCopy.getStatus().name());
         dto.setBookId(bookCopy.getBook().getId());
+        dto.setStockedDate(bookCopy.getStockedDate());
 
         // 設定狀態顯示文字
         switch (bookCopy.getStatus()) {

@@ -40,4 +40,42 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryMainDTO getById(Long categoryId) {
         return null;
     }
+
+    @Override
+    public CategoryMainDTO createCategory(CategoryMainDTO dto) {
+        Category category = new Category();
+        category.setCategoryTitle(dto.getCategoryTitle());
+        Category saved = categoryRepository.save(category);
+        
+        CategoryMainDTO result = new CategoryMainDTO();
+        result.setId(saved.getId());
+        result.setCategoryTitle(saved.getCategoryTitle());
+        return result;
+    }
+
+    @Override
+    public CategoryMainDTO updateCategory(Long id, CategoryMainDTO dto) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("主分類不存在"));
+        category.setCategoryTitle(dto.getCategoryTitle());
+        Category updated = categoryRepository.save(category);
+        
+        CategoryMainDTO result = new CategoryMainDTO();
+        result.setId(updated.getId());
+        result.setCategoryTitle(updated.getCategoryTitle());
+        return result;
+    }
+
+    @Override
+    public void deleteCategory(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("主分類不存在"));
+        
+        // 檢查是否有子分類
+        if (!category.getCategorySubs().isEmpty()) {
+            throw new RuntimeException("無法刪除有子分類的主分類");
+        }
+        
+        categoryRepository.delete(category);
+    }
 }

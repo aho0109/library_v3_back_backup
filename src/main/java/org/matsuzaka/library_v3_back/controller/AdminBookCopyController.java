@@ -52,4 +52,30 @@ public class AdminBookCopyController {
         bookCopyService.deleteBookCopy(copyId);
         return ResponseEntity.ok("副本刪除成功");
     }
+
+    /**
+     * 查詢副本借閱記錄
+     */
+    @GetMapping("/book-copies/{copyId}/loan-history")
+    public ResponseEntity<?> getBookCopyLoanHistory(@PathVariable Long copyId) {
+        try {
+            List<?> history = bookCopyService.getBookCopyLoanHistory(copyId);
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * 查詢副本預約記錄
+     */
+    @GetMapping("/book-copies/{copyId}/reservation-history")
+    public ResponseEntity<?> getBookCopyReservationHistory(@PathVariable Long copyId) {
+        try {
+            List<?> history = bookCopyService.getBookCopyReservationHistory(copyId);
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

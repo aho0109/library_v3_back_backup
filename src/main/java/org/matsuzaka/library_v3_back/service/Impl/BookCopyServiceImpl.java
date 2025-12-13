@@ -130,5 +130,31 @@ public class BookCopyServiceImpl implements BookCopyService {
         bookCopyRepository.delete(copy);
     }
 
+    /**
+     * 查詢副本借閱記錄
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<?> getBookCopyLoanHistory(Long copyId) {
+        BookCopy copy = bookCopyRepository.findById(copyId)
+                .orElseThrow(() -> new RuntimeException("副本不存在"));
+        
+        // 返回該副本的所有借閱記錄（由舊到新）
+        return bookCopyRepository.findLoanHistoryByCopyId(copyId);
+    }
+
+    /**
+     * 查詢副本預約記錄
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<?> getBookCopyReservationHistory(Long copyId) {
+        BookCopy copy = bookCopyRepository.findById(copyId)
+                .orElseThrow(() -> new RuntimeException("副本不存在"));
+        
+        // 返回該副本的所有預約記錄（由舊到新）
+        return bookCopyRepository.findReservationHistoryByCopyId(copyId);
+    }
+
 
 }

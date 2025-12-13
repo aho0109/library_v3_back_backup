@@ -43,6 +43,19 @@ public interface BookService {
      */
     BookRespDtoOneDetails createBook(CreateBookDTO dto);
 
+    /**
+     * 更新書籍資訊
+     */
+    BookRespDtoOneDetails updateBook(Long id, CreateBookDTO dto);
 
+    /**
+     * 刪除書籍
+     */
+    void deleteBook(Long id);
+
+    /**
+     * 根據 ID 查詢書籍詳細資訊（管理員用）
+     */
+    BookRespDtoOneDetails getBookById(Long id);
 
     }

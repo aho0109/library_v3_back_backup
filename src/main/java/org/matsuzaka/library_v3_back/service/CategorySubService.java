@@ -10,5 +10,9 @@ public interface CategorySubService {
     // 列出所有 CategorySub
     List<CategorySubDTO> getAllCategorySubs();
 
+    // 管理員功能
+    CategorySubDTO createCategorySub(CategorySubDTO dto);
+    CategorySubDTO updateCategorySub(Long id, CategorySubDTO dto);
+    void deleteCategorySub(Long id);
 
     }

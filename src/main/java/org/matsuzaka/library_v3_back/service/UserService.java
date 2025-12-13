@@ -22,4 +22,10 @@ public interface UserService {
     boolean verifyOldPassword(Long userId, String oldPassword); // 新增：驗證舊密碼
     void changePassword(Long userId, String oldPassword, String newPassword); // 新增：修改密碼
 
+    // 管理員會員管理
+    List<UserDetailRespDto> searchUsers(String cardId, String account, String name, String email, String phone);
+    void activateUser(Long userId);
+    void suspendUser(Long userId);
+    void restoreUser(Long userId);
+
 }

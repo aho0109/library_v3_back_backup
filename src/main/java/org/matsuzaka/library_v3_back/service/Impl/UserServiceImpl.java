@@ -236,5 +236,67 @@ public class UserServiceImpl implements UserService {
         return false; // 未被鎖定
     }
 
+    /**
+     * 會員搜尋（管理員用）
+     */
+    @Override
+    public List<UserDetailRespDto> searchUsers(String cardId, String account, String name, String email, String phone) {
+        // 如果所有參數都為空，返回所有使用者
+        if (cardId == null && account == null && name == null && email == null && phone == null) {
+            return userRepository.findAll().stream()
+                    .map(userMapper::toUserDetailRespDto)
+                    .toList();
+        }
+
+        // 使用 JPA Specification 進行動態查詢
+        return userRepository.searchUsers(cardId, account, name, email, phone);
+    }
+
+    /**
+     * 開通帳號
+     */
+    @Override
+    @Transactional
+    public void activateUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("找不到使用者，ID: " + userId));
+        
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            throw new IllegalStateException("帳號已經是啟用狀態");
+        }
+        
+        user.setStatus(UserStatus.ACTIVE);
+        userRepository.save(user);
+    }
+
+    /**
+     * 停權帳號
+     */
+    @Override
+    @Transactional
+    public void suspendUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("找不到使用者，ID: " + userId));
+        
+        user.setStatus(UserStatus.SUSPENDED);
+        user.setSuspendedUntil(LocalDateTime.now().plusDays(30)); // 停權30天
+        userRepository.save(user);
+    }
+
+    /**
+     * 復權帳號
+     */
+    @Override
+    @Transactional
+    public void restoreUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("找不到使用者，ID: " + userId));
+        
+        user.setStatus(UserStatus.ACTIVE);
+        user.setSuspendedUntil(null);
+        user.setPenaltyPoints(0); // 復權時清零罰分
+        userRepository.save(user);
+    }
+
 
 }
