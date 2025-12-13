@@ -1,5 +1,6 @@
 package org.matsuzaka.library_v3_back.service;
 
+import org.matsuzaka.library_v3_back.dto.adminDTO.CreateBookCopyDTO;
 import org.matsuzaka.library_v3_back.dto.adminDTO.CreateBookDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookSearchParamsDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookSearchResponseDTO;
@@ -58,4 +59,8 @@ public interface BookService {
      */
     BookRespDtoOneDetails getBookById(Long id);
 
-    }
+    /**
+     * 為指定書籍新增副本
+     */
+    void addBookCopy(Long bookId, CreateBookCopyDTO copyDTO);
+}

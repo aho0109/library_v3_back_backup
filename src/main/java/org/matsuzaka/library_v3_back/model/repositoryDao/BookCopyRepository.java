@@ -71,6 +71,10 @@ public interface BookCopyRepository extends JpaRepository<BookCopy, Long> {
     // 檢查唯一編碼是否存在
     boolean existsByUniqueCode(String uniqueCode);
 
+    // 查詢最大書籍碼編號（用於自動生成）
+    @Query(value = "SELECT MAX(CAST(SUBSTRING(unique_code, 3) AS UNSIGNED)) FROM book_copy WHERE unique_code LIKE 'BC%'", nativeQuery = true)
+    Long findMaxUniqueCodeNumber();
+
 
     //使用 Optional 的情況：
     //當查詢預期只返回一個結果時（或零個結果）

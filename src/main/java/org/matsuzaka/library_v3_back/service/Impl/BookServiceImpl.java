@@ -2,6 +2,7 @@ package org.matsuzaka.library_v3_back.service.Impl;
 
 
 import jakarta.persistence.EntityNotFoundException;
+import org.matsuzaka.library_v3_back.dto.adminDTO.CreateBookCopyDTO;
 import org.matsuzaka.library_v3_back.dto.adminDTO.CreateBookDTO;
 import org.matsuzaka.library_v3_back.dto.adminDTO.ManyToManyInputDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.*;
@@ -10,6 +11,8 @@ import org.matsuzaka.library_v3_back.model.entity.*;
 import org.matsuzaka.library_v3_back.model.enums.BookCopyStatus;
 import org.matsuzaka.library_v3_back.model.mapper.BookMapper;
 import org.matsuzaka.library_v3_back.model.repositoryDao.*;
+
+import java.time.LocalDate;
 import org.matsuzaka.library_v3_back.service.BookService;
 import org.matsuzaka.library_v3_back.service.Impl.bookQueryUtil.BookQueryStrategy;
 import org.slf4j.Logger;
@@ -46,7 +49,7 @@ public class BookServiceImpl implements BookService {
 
     private final BookQueryStrategy queryStrategy; // 書籍查詢策略，處理所有查詢邏輯
 
-    public BookServiceImpl(BookQueryStrategy queryStrategy, BookRepository bookRepository, CategorySubRepository categorySubRepository, PublisherRepository publisherRepository, SeriesRepository seriesRepository, AuthorRepository authorRepository, TagRepository tagRepository, BookMapper bookMapper) {
+    public BookServiceImpl(BookQueryStrategy queryStrategy, BookRepository bookRepository, CategorySubRepository categorySubRepository, PublisherRepository publisherRepository, SeriesRepository seriesRepository, AuthorRepository authorRepository, TagRepository tagRepository, BookCopyRepository bookCopyRepository, BookMapper bookMapper) {
         // 注入必要的存儲庫與工具
         // 書籍資料庫操作
         // JPA EntityManager，用於原生查詢
@@ -58,6 +61,7 @@ public class BookServiceImpl implements BookService {
         this.seriesRepository = seriesRepository;
         this.authorRepository = authorRepository;
         this.tagRepository = tagRepository;
+        this.bookCopyRepository = bookCopyRepository;
         this.bookMapper = bookMapper;
     }
 
@@ -195,6 +199,7 @@ public class BookServiceImpl implements BookService {
     private final SeriesRepository seriesRepository;
     private final AuthorRepository authorRepository;
     private final TagRepository tagRepository;
+    private final BookCopyRepository bookCopyRepository;
     private final BookMapper bookMapper; // 用於將實體轉換為 DTO 的映射器
 
     /**
@@ -397,6 +402,49 @@ public class BookServiceImpl implements BookService {
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("書籍不存在，ID: " + id));
         return bookMapper.toBookRespDtoOneDetails(book);
+    }
+
+    /**
+     * 為指定書籍新增副本
+     */
+    @Override
+    @Transactional
+    public void addBookCopy(Long bookId, CreateBookCopyDTO copyDTO) {
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new EntityNotFoundException("書籍不存在，ID: " + bookId));
+        
+        BookCopy copy = new BookCopy();
+        
+        // 如果沒有提供 uniqueCode，自動生成
+        if (copyDTO.getUniqueCode() == null || copyDTO.getUniqueCode().trim().isEmpty()) {
+            copy.setUniqueCode(generateUniqueCode());
+        } else {
+            // 檢查 uniqueCode 是否已存在
+            if (bookCopyRepository.existsByUniqueCode(copyDTO.getUniqueCode())) {
+                throw new IllegalArgumentException("書籍碼已存在: " + copyDTO.getUniqueCode());
+            }
+            copy.setUniqueCode(copyDTO.getUniqueCode());
+        }
+        
+        copy.setStockedDate(copyDTO.getStockedDate() != null ? 
+            copyDTO.getStockedDate() : LocalDate.now());
+        
+        copy.setStatus(copyDTO.getStatus() != null ? 
+            copyDTO.getStatus() : BookCopyStatus.A);
+        
+        copy.setBook(book);
+        
+        bookCopyRepository.save(copy);
+    }
+    
+    /**
+     * 自動生成唯一的書籍碼
+     */
+    private String generateUniqueCode() {
+        String prefix = "BC";
+        Long maxNumber = bookCopyRepository.findMaxUniqueCodeNumber();
+        long nextNumber = (maxNumber == null) ? 1 : maxNumber + 1;
+        return String.format("%s%06d", prefix, nextNumber);
     }
 
 

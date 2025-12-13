@@ -66,7 +66,7 @@ public class Book {
     private Integer ratingCount = 0;
 
     @Column(name = "added_date", nullable = false)
-    private LocalDate addedDate;
+    private LocalDate addedDate = LocalDate.now();
 
     @Column(name = "total_loan_count", nullable = false)
     private Integer totalLoanCount = 0;

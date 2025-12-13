@@ -1,6 +1,7 @@
 package org.matsuzaka.library_v3_back.controller;
 
 
+import org.matsuzaka.library_v3_back.dto.adminDTO.CreateBookCopyDTO;
 import org.matsuzaka.library_v3_back.dto.adminDTO.CreateBookDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookSearchParamsDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookSearchResponseDTO;
@@ -137,5 +138,17 @@ public class AdminBookController {
     public ResponseEntity<BookRespDtoOneDetails> getBookById(@PathVariable Long id) {
         BookRespDtoOneDetails book = bookService.getBookById(id);
         return ResponseEntity.ok(book);
+    }
+
+    /**
+     * 為指定書籍新增副本
+     */
+    @PostMapping("/{bookId}/copies")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<String> addBookCopy(
+            @PathVariable Long bookId,
+            @RequestBody CreateBookCopyDTO copyDTO) {
+        bookService.addBookCopy(bookId, copyDTO);
+        return new ResponseEntity<>("副本新增成功", HttpStatus.CREATED);
     }
 }
