@@ -32,6 +32,8 @@ public interface BookMapper { // 要將 Book 實體映射到 BookRespDtoOneDetai
     //@Mapping(source = "tags.title", target = "tags") // 將 Tag 實體的 title 映射到 DTO 的 tags
     @Mapping(target = "tags", expression = "java(mapTagsToString(book.getTags()))")
     @Mapping(source = "series.title", target = "seriesTitle") // 將 Series 實體的 title 映射到 DTO 的 seriesTitle
+    @Mapping(source = "series.id", target = "seriesId") // 新增：映射 seriesId
+    @Mapping(source = "representative", target = "representative") // 新增：映射 representative
     @Mapping(source = "categorySub.category.categoryTitle", target = "mainCategoryTitle") // 將 Category 實體的 categoryTitle 映射到 DTO 的 mainCategoryTitle，因為多一層巢狀，一定要寫這行
     @Mapping(source = "categorySub.categorySubTitle", target = "subCategoryTitle") // 將 CategorySub 實體的 categorySubTitle 映射到 DTO 的 subCategoryTitle
     @Mapping(source = "publisher.pubName", target = "publisher")     // 將 Publisher 實體的 pubName 映射到 DTO 的 publisher

@@ -215,7 +215,7 @@ public class LoanServiceImpl implements LoanService {
     @Override
     public RenewResponseDto renewBook(Long loanId, Long userId) {
         Loan loan = loanRepository.findById(loanId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到借閱記錄"));
+                .orElseThrow(() -> new EntityNotFoundException("找不到借閱記錄：" + loanId));
         
         if (!loan.getUser().getId().equals(userId)) {
             throw new IllegalArgumentException("無權限執行此操作");

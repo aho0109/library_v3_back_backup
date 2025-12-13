@@ -15,6 +15,8 @@ public class BookRespDtoOneDetails {
     private Integer id;
     private String title;
     private String seriesTitle; // 系列作標題，如果不是系列作則為 null
+    private Long seriesId; // 系列 ID（新增用於編輯）
+    private Boolean representative; // 是否為代表作（新增用於編輯）
     private String publisher; // 出版商名稱
     private Integer publishYear;
     private String isbn; 

@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.Date;
 
 @Data
 @NoArgsConstructor
@@ -20,7 +19,7 @@ public class LoanItemRespDto {
     // 移植時 Integer 忘了改成 Long，前端顯示詭異的 403 錯誤，後來加了 ExceptionHandler 才能正確反應錯誤類型 0819
 
     private Long loanId; // 借閱記錄ID
-    private Long id; // 書籍ID
+    private Long bookId; // 書籍ID
     private String title; // 書名
     private String imageUrl; // 建議也包含圖片URL，方便顯示
 
