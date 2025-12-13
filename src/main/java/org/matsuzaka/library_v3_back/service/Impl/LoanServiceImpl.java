@@ -164,7 +164,7 @@ public class LoanServiceImpl implements LoanService {
         Optional<Loan> loanOpt = loanRepository.findByBookCopyIdAndStatus(copy.getId(), LoanStatus.ON_LOAN);
 
         if (loanOpt.isEmpty()) {
-             return new ReturnResponseDto(false, "此書無借出記錄", uniqueCode);
+             return new ReturnResponseDto(false, "此書無借出記錄", uniqueCode, null, null, null, null, null, null, null, null, null, null);
         }
 
         Loan loan = loanOpt.get();
@@ -204,7 +204,27 @@ public class LoanServiceImpl implements LoanService {
         // 處理預約佇列（副本狀態更新邏輯在內部）
         reservationService.handleReturn(copy.getId());
 
-        return new ReturnResponseDto(true, "歸還成功", uniqueCode);
+        // 計算歸還後的借閱數量
+        long currentLoanCount = loanRepository.countByUserIdAndStatus(user.getId(), LoanStatus.ON_LOAN);
+        int maxLoanCount = user.getRole() == Role.ROLE_CITIZEN ? 10 : 5;
+
+        // 構建完整的響應
+        ReturnResponseDto response = new ReturnResponseDto();
+        response.setSuccess(true);
+        response.setMessage("歸還成功");
+        response.setReturnedBookUniqueCode(uniqueCode);
+        response.setBorrowerCardId(user.getCardId());
+        response.setBorrowerName(user.getUserDetail() != null ? user.getUserDetail().getName() : "未知");
+        response.setBorrowerRole(user.getRole().name());
+        response.setBorrowerStatus(user.getStatus().name());
+        response.setBorrowerPenaltyPoints(user.getPenaltyPoints());
+        response.setCurrentLoanCount((int) currentLoanCount);
+        response.setMaxLoanCount(maxLoanCount);
+        response.setBookTitle(copy.getBook().getTitle());
+        response.setLoanDate(loan.getLoanDate());
+        response.setDueDate(loan.getDueDate());
+
+        return response;
     }
 
     /**
