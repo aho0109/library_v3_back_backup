@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LikeStatusDto {
-    private boolean isLiked;
+    private boolean liked;  // 改為 liked，避免 Lombok 處理 isLiked 時出現問題
 }
 

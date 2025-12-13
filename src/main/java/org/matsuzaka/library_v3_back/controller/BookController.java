@@ -200,10 +200,10 @@ public class BookController {
     @PostMapping("/{bookId}/reviews/{reviewId}/like")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<LikeStatusDto> toggleLikeReview(@PathVariable Long bookId,
-                                                          @PathVariable Long reviewId,
-                                                          @AuthenticationPrincipal UserDetailSecu currentUser) {
-        boolean isLiked = reviewService.toggleLikeReview(currentUser.getUser().getId(), reviewId);
-        return ResponseEntity.ok(new LikeStatusDto(isLiked));
+                                                           @PathVariable Long reviewId,
+                                                           @AuthenticationPrincipal UserDetailSecu currentUser) {
+        boolean liked = reviewService.toggleLikeReview(currentUser.getUser().getId(), reviewId);
+        return ResponseEntity.ok(new LikeStatusDto(liked));
     }
 
     @DeleteMapping("/{bookId}/reviews/{reviewId}/like")
