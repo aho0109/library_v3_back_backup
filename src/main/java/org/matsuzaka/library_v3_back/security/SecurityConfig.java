@@ -73,6 +73,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/reservations/**").permitAll()
 
                         .requestMatchers("/api/admin/**").permitAll() // 暫時允許管理端點
+                        .requestMatchers("/admin/**").permitAll() // 暫時允許管理端點
 
 
                         // 2. 新增的特定認證端點

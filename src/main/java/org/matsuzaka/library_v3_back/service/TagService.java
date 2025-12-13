@@ -19,4 +19,10 @@ public interface TagService {
      * @return 所有標籤列表
      */
     List<TagDTO> getAll();
+
+    // 管理員功能
+    List<TagDTO> searchByKeyword(String keyword);
+    TagDTO create(TagDTO dto);
+    TagDTO update(Long id, TagDTO dto);
+    void delete(Long id);
 }

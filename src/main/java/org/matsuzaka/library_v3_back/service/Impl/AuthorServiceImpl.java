@@ -1,10 +1,13 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.AuthorDTO;
+import org.matsuzaka.library_v3_back.model.entity.Author;
 import org.matsuzaka.library_v3_back.model.repositoryDao.AuthorRepository;
 import org.matsuzaka.library_v3_back.service.AuthorService;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
 
 @Service
@@ -25,6 +28,53 @@ public class AuthorServiceImpl implements AuthorService {
                 .stream()
                 .map(author -> new AuthorDTO(author.getId(), author.getName()))
                 .toList();
+    }
+
+    @Override
+    public List<AuthorDTO> searchByKeyword(String keyword) {
+        return authorRepository.findByNameContaining(keyword)
+                .stream()
+                .map(author -> new AuthorDTO(author.getId(), author.getName()))
+                .toList();
+    }
+
+    @Override
+    public AuthorDTO create(AuthorDTO dto) {
+        // 檢查是否已存在
+        if (authorRepository.findByName(dto.getName()).isPresent()) {
+            throw new IllegalArgumentException("作者已存在");
+        }
+        
+        Author author = new Author();
+        author.setName(dto.getName());
+        author.setBooks(new HashSet<>());
+        Author saved = authorRepository.save(author);
+        
+        return new AuthorDTO(saved.getId(), saved.getName());
+    }
+
+    @Override
+    public AuthorDTO update(Long id, AuthorDTO dto) {
+        Author author = authorRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("作者不存在"));
+        
+        author.setName(dto.getName());
+        Author updated = authorRepository.save(author);
+        
+        return new AuthorDTO(updated.getId(), updated.getName());
+    }
+
+    @Override
+    public void delete(Long id) {
+        Author author = authorRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("作者不存在"));
+        
+        // 檢查是否有書籍使用此作者
+        if (!author.getBooks().isEmpty()) {
+            throw new IllegalStateException("無法刪除有書籍的作者");
+        }
+        
+        authorRepository.delete(author);
     }
 
 }

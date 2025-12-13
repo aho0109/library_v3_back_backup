@@ -1,5 +1,6 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.TagDTO;
 import org.matsuzaka.library_v3_back.dto.TagTop10DTO;
 import org.matsuzaka.library_v3_back.model.entity.Tag;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
 
 
@@ -47,5 +49,52 @@ public class TagServiceImpl implements TagService {
                 .stream()
                 .map(tag -> new TagDTO(tag.getId(), tag.getTitle()))
                 .toList();
+    }
+
+    @Override
+    public List<TagDTO> searchByKeyword(String keyword) {
+        return tagRepository.findByTitleContaining(keyword)
+                .stream()
+                .map(tag -> new TagDTO(tag.getId(), tag.getTitle()))
+                .toList();
+    }
+
+    @Override
+    public TagDTO create(TagDTO dto) {
+        // 檢查是否已存在
+        if (tagRepository.findByTitle(dto.getTitle()).isPresent()) {
+            throw new IllegalArgumentException("標籤已存在");
+        }
+        
+        Tag tag = new Tag();
+        tag.setTitle(dto.getTitle());
+        tag.setBooks(new HashSet<>());
+        Tag saved = tagRepository.save(tag);
+        
+        return new TagDTO(saved.getId(), saved.getTitle());
+    }
+
+    @Override
+    public TagDTO update(Long id, TagDTO dto) {
+        Tag tag = tagRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("標籤不存在"));
+        
+        tag.setTitle(dto.getTitle());
+        Tag updated = tagRepository.save(tag);
+        
+        return new TagDTO(updated.getId(), updated.getTitle());
+    }
+
+    @Override
+    public void delete(Long id) {
+        Tag tag = tagRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("標籤不存在"));
+        
+        // 檢查是否有書籍使用此標籤
+        if (!tag.getBooks().isEmpty()) {
+            throw new IllegalStateException("無法刪除有書籍的標籤");
+        }
+        
+        tagRepository.delete(tag);
     }
 }

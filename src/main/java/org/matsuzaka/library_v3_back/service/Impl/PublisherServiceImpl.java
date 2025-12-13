@@ -1,10 +1,13 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.PublisherDTO;
+import org.matsuzaka.library_v3_back.model.entity.Publisher;
 import org.matsuzaka.library_v3_back.model.repositoryDao.PublisherRepository;
 import org.matsuzaka.library_v3_back.service.PublisherService;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
 
 
@@ -23,6 +26,52 @@ public class PublisherServiceImpl implements PublisherService {
                 .stream()
                 .map(publisher -> new PublisherDTO(publisher.getId(), publisher.getPubName()))
                 .toList();
+    }
+
+    @Override
+    public List<PublisherDTO> searchByKeyword(String keyword) {
+        return publisherRepository.findByPubNameContaining(keyword)
+                .stream()
+                .map(publisher -> new PublisherDTO(publisher.getId(), publisher.getPubName()))
+                .toList();
+    }
+
+    @Override
+    public PublisherDTO create(PublisherDTO dto) {
+        // 檢查是否已存在
+        if (publisherRepository.findByPubName(dto.getPubName()).isPresent()) {
+            throw new IllegalArgumentException("出版商已存在");
+        }
+        
+        Publisher publisher = new Publisher();
+        publisher.setPubName(dto.getPubName());
+        Publisher saved = publisherRepository.save(publisher);
+        
+        return new PublisherDTO(saved.getId(), saved.getPubName());
+    }
+
+    @Override
+    public PublisherDTO update(Long id, PublisherDTO dto) {
+        Publisher publisher = publisherRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("出版商不存在"));
+        
+        publisher.setPubName(dto.getPubName());
+        Publisher updated = publisherRepository.save(publisher);
+        
+        return new PublisherDTO(updated.getId(), updated.getPubName());
+    }
+
+    @Override
+    public void delete(Long id) {
+        Publisher publisher = publisherRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("出版商不存在"));
+        
+        // 檢查是否有書籍使用此出版商
+        if (!publisher.getBooks().isEmpty()) {
+            throw new IllegalStateException("無法刪除有書籍的出版商");
+        }
+        
+        publisherRepository.delete(publisher);
     }
 
 }

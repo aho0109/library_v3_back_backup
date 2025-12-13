@@ -13,4 +13,10 @@ public interface SeriesService {
      */
     List<SeriesDTO> getAll();
 
+    // 管理員功能
+    List<SeriesDTO> searchByKeyword(String keyword);
+    SeriesDTO create(SeriesDTO dto);
+    SeriesDTO update(Long id, SeriesDTO dto);
+    void delete(Long id);
+
 }

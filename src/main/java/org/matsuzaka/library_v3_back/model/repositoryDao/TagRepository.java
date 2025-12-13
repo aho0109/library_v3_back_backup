@@ -14,6 +14,7 @@ import java.util.Optional;
 public interface TagRepository extends JpaRepository<Tag, Long> {
     Optional<Tag> findByTitle(String title);
     List<Tag> findByTitleIn(List<String> titles);
+    List<Tag> findByTitleContaining(String title);
 
     // 跨表查詢，特定category下，從 loan 取得熱門 tag 前10名，顯示tag_id, tag_title, book_count
     // 由于我们只需要Tag实体并计算相关数量，而不需要加载所有关联实体的完整数据，所以普通JOIN就足够了。
