@@ -17,7 +17,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByCardId(String cardId);
 
     // 根據帳號查詢
-    //Optional<User> findByAccount(String account);
+    Optional<User> findByAccount(String account);
 
     // 檢查卡號是否存在
     boolean existsByCardId(String cardId);
@@ -33,40 +33,39 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findAll();
 
     // 個人帳號頁面
-    /*
-    // 定義一個 EntityGraph，用於載入使用者詳細資訊時，同時載入其 UserDetail
-    @EntityGraph(value = "user-with-details", type = EntityGraph.EntityGraphType.LOAD)
-    Optional<User> findById(Long id); // 覆寫 JpaRepository 的 findById
+    /* 修正：將這個方法從原生 SQL 查詢改為了 JPQL 查詢，並加入了 SELECT new ... 語法。
+    當 JPQL/SQL 查詢 SELECT a, b, c FROM ... 時，如果沒有明確指定如何將這些欄位組合成一個物件，
+    JPA 會回傳一個 Object[] (或 List<Object[]>)。
+    當 Spring Data 試圖將這個 Object[] 的第一個元素 (一個 Long) 強制轉換為 UserDetailRespDto 時，就會發生這個錯誤。
+    解決方案：在 UserRepository.java 的 findUserDetailById 和 searchUsers 兩個方法的 @Query 中，
+    明確使用 SELECT new org.matsuzaka.library_v3_back.dto.userDTO.UserDetailRespDto(...) 語法，
+    告訴 JPA 如何使用我之前定義的 12 參數建構子來創建 DTO 物件。
     */
-
-    // 或者，如果你想直接查詢 DTO (不推薦用於這種巢狀結構，但作為範例)
-    @Query(value = """
-            SELECT u.id, ud.name, u.card_id, u.account, ud.email, ud.phone, ud.address, 
-                   u.penalty_points, u.status, u.role, u.suspended_until, ud.created_at
-            FROM user u
-            JOIN user_detail ud ON u.id = ud.user_id
-            WHERE u.id = :userId;\s""", nativeQuery = true)
+    @Query("""
+            SELECT new org.matsuzaka.library_v3_back.dto.userDTO.UserDetailRespDto(
+                u.id, ud.name, u.cardId, u.account, ud.email, ud.phone, ud.address, 
+                u.penaltyPoints, u.status, u.role, u.suspendedUntil, ud.createdAt
+            )
+            FROM User u
+            JOIN u.userDetail ud
+            WHERE u.id = :userId
+            """)
     UserDetailRespDto findUserDetailById(@Param("userId") Long userId);
-    // AI 原本是寫返回類型 Optional<UserDetailRespDto>，但這樣會導致查詢失敗，可能因我這寫法 DTO 不是實體類別，所以不能直接返回 Optional？
-
-
-    // Security user
-    // 新增此方法：根據帳號查詢使用者
-    Optional<User> findByAccount(String account);
-
 
     @EntityGraph(value = "user-with-details", type = EntityGraph.EntityGraphType.LOAD)
     Optional<User> findById(Long id);
 
     // 查詢最大的 card_id 數字部分
-    // CAST(SUBSTRING(card_id, 4) AS UNSIGNED) 將 'LIB001' 轉為 1
     @Query(value = "SELECT MAX(CAST(SUBSTRING(u.card_id, 4) AS UNSIGNED)) FROM user u WHERE u.card_id LIKE 'LIB%'", nativeQuery = true)
     Long findMaxCardIdNumber();
 
     // 管理員會員搜尋
+    /* 修正：加入了 SELECT new ... 語法。*/
     @Query("""
-            SELECT u.id, ud.name, u.cardId, u.account, ud.email, ud.phone, ud.address,
+            SELECT new org.matsuzaka.library_v3_back.dto.userDTO.UserDetailRespDto(
+                u.id, ud.name, u.cardId, u.account, ud.email, ud.phone, ud.address,
                 u.penaltyPoints, u.status, u.role, u.suspendedUntil, ud.createdAt
+            )
             FROM User u
             JOIN u.userDetail ud
             WHERE (:cardId IS NULL OR u.cardId LIKE %:cardId%)

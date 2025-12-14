@@ -3,6 +3,8 @@ package org.matsuzaka.library_v3_back.dto.userDTO;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.matsuzaka.library_v3_back.model.enums.Role;
+import org.matsuzaka.library_v3_back.model.enums.UserStatus;
 
 import java.time.LocalDateTime;
 
@@ -29,7 +31,8 @@ public class UserDetailRespDto {
     private String jwtToken;
 
     // Constructor for JPA/JPQL projection
-    public UserDetailRespDto(Long id, String name, String cardId, String account, String email, String phone, String address, Integer penaltyPoints, String status, String role, LocalDateTime suspendedUntil, LocalDateTime createdAt) {
+    // 更新：從 String 換成 UserStatus Role
+    public UserDetailRespDto(Long id, String name, String cardId, String account, String email, String phone, String address, Integer penaltyPoints, UserStatus status, Role role, LocalDateTime suspendedUntil, LocalDateTime createdAt) {
         this.id = id;
         this.name = name;
         this.cardId = cardId;
@@ -38,8 +41,8 @@ public class UserDetailRespDto {
         this.phone = phone;
         this.address = address;
         this.penaltyPoints = penaltyPoints;
-        this.status = status;
-        this.role = role;
+        this.status = (status != null) ? status.name() : null; // Convert Enum to String
+        this.role = (role != null) ? role.name() : null;       // Convert Enum to String
         this.suspendedUntil = suspendedUntil;
         this.createdAt = createdAt;
     }
