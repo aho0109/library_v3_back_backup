@@ -144,7 +144,7 @@ public class AdminUserController {
      */
     @GetMapping("/{userId}/reservations")
     public ResponseEntity<List<ReservationResponseDto>> getUserReservations(@PathVariable Long userId) {
-        List<ReservationResponseDto> reservations = reservationService.getUserReservations(userId);
+        List<ReservationResponseDto> reservations = reservationService.getUserReservationsAdmin(userId);
         return ResponseEntity.ok(reservations);
     }
 

@@ -30,5 +30,7 @@ public class LoanItemRespDto {
 
     private String authors; // 作者名稱列表，用於顯示多個作者
 
+    private String status; // 借閱狀態
+
 
 }

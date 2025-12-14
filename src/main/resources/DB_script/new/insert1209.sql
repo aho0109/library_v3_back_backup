@@ -261,7 +261,7 @@ VALUES
 
 INSERT INTO `book` (`title`,`series_id`, `category_sub_id`, `publish_year`, `publisher_id`, `image_url`, `ISBN`, `representative`)
 VALUES
-    ('為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力', null, @程式設計, 2025, @博碩文化,  'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/b2b/newItem/2025/10/28/8113_111833268_693_mainCoverImage1.jpg', '9786264143011', 1);
+    ('為你寫的Vue Components', null, @程式設計, 2025, @博碩文化,  'https://s2.eslite.com/unsafe/fit-in/x900/s.eslite.com/b2b/newItem/2025/10/28/8113_111833268_693_mainCoverImage1.jpg', '9786264143011', 1);
 
 
 -- 更新上述2個資料的representative欄位
@@ -310,7 +310,7 @@ SET @`JavaScript 技術手冊` = (SELECT id FROM `book` WHERE title = 'JavaScrip
 SET @`Java SE 17 技術手冊` = (SELECT id FROM `book` WHERE title = 'Java SE 17 技術手冊');
 SET @`出發！日本自助旅行` = (SELECT id FROM `book` WHERE title = '出發！日本自助旅行');
 SET @`京都・大阪・神戶攻略完全制霸2025` = (SELECT id FROM `book` WHERE title = '京都・大阪・神戶攻略完全制霸2025');
-SET @`為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力` = (SELECT id FROM `book` WHERE title = '為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力');
+SET @`為你寫的Vue Components` = (SELECT id FROM `book` WHERE title = '為你寫的Vue Components');
 
 
 -- 9. 插入 book_author 資料 (中間表)
@@ -361,7 +361,7 @@ INSERT INTO `book_author` (`book_id`, `author_id`) VALUES
                                                        (@出發！日本自助旅行, @墨刻編輯部),
                                                        (@京都・大阪・神戶攻略完全制霸2025, @墨刻編輯部);
 INSERT INTO `book_author` (`book_id`, `author_id`) VALUES
-                                                         (@`為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力`, @劉翰璋);
+                                                         (@`為你寫的Vue Components`, @劉翰璋);
 
 
 -- 10. 插入 book_tag 資料 (中間表)
@@ -492,10 +492,10 @@ INSERT INTO `book_copy` (`book_id`, `unique_code`, `status`) VALUES
                                                                  (@出發！日本自助旅行, 'JP001A', 'A'),
                                                                  (@京都・大阪・神戶攻略完全制霸2025, 'JP002A', 'A');
 INSERT INTO `book_copy` (`book_id`, `unique_code`, `status`) VALUES
-                                                                 (@`為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力`, 'VE001A', 'A'),
-                                                                 (@`為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力`, 'VE001B', 'A'),
-                                                                 (@`為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力`, 'VE001C', 'A'),
-                                                                 (@`為你寫的Vue Components: 從原子到系統, 一步步用設計思維打造面面俱到的元件實戰力`, 'VE001D', 'A');
+                                                                 (@`為你寫的Vue Components`, 'VE001A', 'A'),
+                                                                 (@`為你寫的Vue Components`, 'VE001B', 'A'),
+                                                                 (@`為你寫的Vue Components`, 'VE001C', 'A'),
+                                                                 (@`為你寫的Vue Components`, 'VE001D', 'A');
 
 
 

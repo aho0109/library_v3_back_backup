@@ -141,10 +141,26 @@ public class ReservationServiceImpl implements ReservationService {
         }
     }
 
+    /**
+     * 獲取使用者預約列表
+     * @param userId 使用者ID
+     * @return
+     */
     @Override
     public List<ReservationResponseDto> getUserReservations(Long userId) {
-        return reservationRepository.findByUserIdAndStatusIn(userId, 
-                List.of(ReservationStatus.PENDING, ReservationStatus.AVAILABLE))
+        return reservationRepository.findByUserIdAndStatusIn(userId,
+                        List.of(ReservationStatus.PENDING, ReservationStatus.AVAILABLE))
+                .stream().map(this::mapToDto).collect(Collectors.toList());
+    }
+
+    /**
+     * 獲取使用者預約列表（管理員用）
+     * @param userId
+     * @return
+     */
+    @Override
+    public List<ReservationResponseDto> getUserReservationsAdmin(Long userId) {
+        return reservationRepository.findByUserId(userId)
                 .stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
@@ -191,13 +207,17 @@ public class ReservationServiceImpl implements ReservationService {
         ReservationResponseDto dto = new ReservationResponseDto();
         dto.setId(r.getId());
         dto.setBookId(r.getBookCopy().getBook().getId());
-        dto.setBookTitle(r.getBookCopy().getBook().getTitle());
+        dto.setTitle(r.getBookCopy().getBook().getTitle());
         dto.setImageUrl(r.getBookCopy().getBook().getImageUrl());
         dto.setBookCopyId(r.getBookCopy().getId());
         dto.setStatus(r.getStatus().name());
         dto.setQueuePosition(r.getQueuePosition());
         dto.setReserveDate(r.getReserveDate());
         dto.setExpirationDate(r.getExpirationDate());
+        dto.setUniqueCode(r.getBookCopy().getUniqueCode());
+        dto.setAuthors(r.getBookCopy().getBook().getAuthors().stream().map(a -> a.getName()).collect(Collectors.toSet()));
+        dto.setNotifyDate(LocalDate.from(r.getNotifyDate()));
+        dto.setPickupDate(LocalDate.from(r.getPickupDate()));
         return dto;
     }
 }

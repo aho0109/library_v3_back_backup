@@ -47,44 +47,46 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
 
 
     // 個人借閱中 (我的書櫃)，新增 loanId
+    // 修正定義，應該是尚未歸還的
     @Query(value = """
-                        SELECT l.id, b.id, b.title, b.image_url, bc.unique_code, DATE(l.loan_date), l.due_date, DATE(l.return_date), GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR ', ') AS author_name
+                        SELECT l.id, b.id, b.title, b.image_url, bc.unique_code, DATE(l.loan_date), l.due_date, DATE(l.return_date), GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR ', ') AS author_name, l.status
                         FROM loan l
                         JOIN book_copy bc ON l.book_copy_id = bc.id
                         JOIN book b ON bc.book_id = b.id
                         JOIN book_author ba ON b.id = ba.book_id
                         JOIN author a ON ba.author_id = a.id
                         WHERE l.user_id = :userId 
-                            AND l.status = 'ON_LOAN'
+                            AND l.return_date IS NULL 
                         GROUP BY l.id, b.id, b.title, b.image_url, bc.unique_code, l.loan_date, l.due_date, l.return_date
                         ORDER BY l.loan_date DESC ;""", nativeQuery = true)
     Set<LoanItemRespDto> findCurrentByUserId(@Param("userId") Long userId);
 
 
     // 個人借閱歷史，新增 loanId
+    // 修正定義，應該是要已經歸還的 RETURNED
     @Query(value = """
-                        SELECT l.id, b.id, b.title, b.image_url, bc.unique_code, DATE(l.loan_date), l.due_date, DATE(l.return_date), GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR ', ') AS author_name
+                        SELECT l.id, b.id, b.title, b.image_url, bc.unique_code, DATE(l.loan_date), l.due_date, DATE(l.return_date), GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR ', ') AS author_name, l.status
                         FROM loan l
                         JOIN book_copy bc ON l.book_copy_id = bc.id
                         JOIN book b ON bc.book_id = b.id
                         JOIN book_author ba ON b.id = ba.book_id
                         JOIN author a ON ba.author_id = a.id
                         WHERE l.user_id = :userId 
-                            AND l.return_date IS NOT NULL 
+                            AND l.status = 'RETURNED'
                         GROUP BY l.id, b.id, b.title, b.image_url, bc.unique_code, l.loan_date, l.due_date, l.return_date
                         ORDER BY l.return_date DESC;""", nativeQuery = true)
     List<LoanItemRespDto> findHistoryByUserId(@Param("userId") Long userId);
 
     // 個人逾期未歸還 (使用 due_date 判斷)，新增 loanId
     @Query(value = """
-                        SELECT l.id, b.id, b.title, b.image_url, bc.unique_code, DATE(l.loan_date), l.due_date, DATE(l.return_date), GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR ', ') AS author_name
+                        SELECT l.id, b.id, b.title, b.image_url, bc.unique_code, DATE(l.loan_date), l.due_date, DATE(l.return_date), GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR ', ') AS author_name, l.status
                         FROM loan l
                         JOIN book_copy bc ON l.book_copy_id = bc.id
                         JOIN book b ON bc.book_id = b.id
                         JOIN book_author ba ON b.id = ba.book_id
                         JOIN author a ON ba.author_id = a.id
                         WHERE l.user_id = :userId 
-                            AND l.status = 'ON_LOAN'
+                            AND l.status = 'OVERDUE'
                             AND l.due_date < CURRENT_DATE()
                         GROUP BY l.id, b.id, b.title, b.image_url, bc.unique_code, l.loan_date, l.due_date, l.return_date
                         ORDER BY l.due_date Desc;""", nativeQuery = true) 

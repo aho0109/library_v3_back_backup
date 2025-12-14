@@ -29,7 +29,9 @@ public interface ReservationService {
      * @return 預約列表
      */
     List<ReservationResponseDto> getUserReservations(Long userId);
-    
+
+    List<ReservationResponseDto> getUserReservationsAdmin(Long userId);
+
     // 內部方法供 LoanService 使用
     boolean hasReservationsForCopy(Long bookCopyId);
     void handleReturn(Long bookCopyId);

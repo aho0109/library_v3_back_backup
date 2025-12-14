@@ -80,7 +80,7 @@ public class LoanServiceImpl implements LoanService {
         if (user.getStatus() == UserStatus.SUSPENDED) {
             // 檢查停權是否已過期
             if (user.getSuspendedUntil() != null && user.getSuspendedUntil().isAfter(LocalDateTime.now())) {
-                return new BorrowRespDto(false, "使用者帳號已停權至 " + user.getSuspendedUntil(), null, null);
+                return new BorrowRespDto(false, "使用者帳號已停權至 " + user.getSuspendedUntil(), null, null, null);
             } else {
                 // 解除停權
                 user.setStatus(UserStatus.ACTIVE);
@@ -90,14 +90,14 @@ public class LoanServiceImpl implements LoanService {
         }
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-             return new BorrowRespDto(false, "使用者帳號未啟用", null, null);
+             return new BorrowRespDto(false, "使用者帳號未啟用", null, null, null);
         }
 
         // 檢查借閱額度：一般民眾 5 本，市民 10 本
         int limit = user.getRole() == Role.ROLE_CITIZEN ? 10 : 5;
         long currentLoans = loanRepository.countByUserIdAndStatus(userId, LoanStatus.ON_LOAN);
         if (currentLoans >= limit) {
-            return new BorrowRespDto(false, "借閱數量已達上限", null, null);
+            return new BorrowRespDto(false, "借閱數量已達上限", null, null, null);
         }
 
         BookCopy copy = bookCopyRepository.findByUniqueCode(uniqueCode)
@@ -105,7 +105,7 @@ public class LoanServiceImpl implements LoanService {
 
         // 檢查副本狀態
         if (copy.getStatus() == BookCopyStatus.L) {
-            return new BorrowRespDto(false, "此書已被借出", null, null);
+            return new BorrowRespDto(false, "此書已被借出", null, null, copy.getBook().getTitle());
         }
 
         Reservation matchedReservation = null;
@@ -115,13 +115,13 @@ public class LoanServiceImpl implements LoanService {
             List<Reservation> reservations = reservationRepository.findByUserIdAndBookCopyIdAndStatusIn(
                     userId, copy.getId(), List.of(ReservationStatus.AVAILABLE));
             if (reservations.isEmpty()) {
-                return new BorrowRespDto(false, "此書已被其他使用者預約", null, null);
+                return new BorrowRespDto(false, "此書已被其他使用者預約", null, null, copy.getBook().getTitle());
             }
             matchedReservation = reservations.get(0);
         } else if (copy.getStatus() == BookCopyStatus.A) {
              // 可借閱狀態，允許現場借閱
         } else {
-             return new BorrowRespDto(false, "此書目前無法借閱 (狀態: " + copy.getStatus() + ")", null, null);
+             return new BorrowRespDto(false, "此書目前無法借閱 (狀態: " + copy.getStatus() + ")", null, null, copy.getBook().getTitle());
         }
 
         // 建立借閱記錄
@@ -151,7 +151,7 @@ public class LoanServiceImpl implements LoanService {
             reservationRepository.save(matchedReservation);
         }
 
-        return new BorrowRespDto(true, "借閱成功", uniqueCode, savedLoan.getId());
+        return new BorrowRespDto(true, "借閱成功", uniqueCode, savedLoan.getId(),copy.getBook().getTitle());
     }
 
     @Override

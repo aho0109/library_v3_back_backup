@@ -13,4 +13,5 @@ public class BorrowRespDto {
     private String message; // 返回訊息 (例如：成功借閱，或失敗原因)
     private String borrowedBookUniqueCode; // 如果成功，返回借閱的副本唯一碼
     private Long loanId; // 如果成功，返回借閱記錄ID
+    private String title; // 如果成功，返回書名
 }

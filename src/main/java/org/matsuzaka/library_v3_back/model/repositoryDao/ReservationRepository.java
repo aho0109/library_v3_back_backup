@@ -20,7 +20,10 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     // Find user's reservations by status
     List<Reservation> findByUserIdAndStatusIn(Long userId, List<ReservationStatus> statuses);
-    
+
+    // Find user's reservations 管理員用
+    List<Reservation> findByUserId(Long userId);
+
     // Find reservations for a book copy sorted by queue position (for PENDING)
     List<Reservation> findByBookCopyIdAndStatusOrderByQueuePositionAsc(Long bookCopyId, ReservationStatus status);
     
