@@ -4,6 +4,7 @@ package org.matsuzaka.library_v3_back.service.Impl;
 import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.userDTO.UserDetailRespDto;
 import org.matsuzaka.library_v3_back.dto.userDTO.UserRegistrationRequest;
+import org.matsuzaka.library_v3_back.dto.userDTO.UserUpdateRequest;
 import org.matsuzaka.library_v3_back.model.entity.User;
 import org.matsuzaka.library_v3_back.model.entity.UserDetail;
 import org.matsuzaka.library_v3_back.model.enums.Role;
@@ -19,24 +20,30 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class UserServiceImpl implements UserService {
-
-    //@Autowired
-    //private UserRepository userRepository;
 
     private final UserRepository userRepository;
     private final UserDetailRepository userDetailRepository; // 注入 UserDetailRepository
     private final UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder; // 注入密碼編碼器
 
+    public UserServiceImpl(UserRepository userRepository, UserDetailRepository userDetailRepository, UserMapper userMapper, BCryptPasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.userDetailRepository = userDetailRepository;
+        this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
+    }
+
     /*
-    * 可以，Spring Security 支援使用 Pbkdf2PasswordEncoder 來指定 SHA-256 作為雜湊演算法。你可以這樣替換：
-    * private final Pbkdf2PasswordEncoder passwordEncoder; // 注入 SHA-256 密碼編碼器
-    * this.passwordEncoder = new Pbkdf2PasswordEncoder("", 185000, 256, Pbkdf2PasswordEncoder.SecretKeyFactoryAlgorithm.PBKDF2WithHmacSHA256);
-    * */
+     * 可以，Spring Security 支援使用 Pbkdf2PasswordEncoder 來指定 SHA-256 作為雜湊演算法。你可以這樣替換：
+     * private final Pbkdf2PasswordEncoder passwordEncoder; // 注入 SHA-256 密碼編碼器
+     * this.passwordEncoder = new Pbkdf2PasswordEncoder("", 185000, 256, Pbkdf2PasswordEncoder.SecretKeyFactoryAlgorithm.PBKDF2WithHmacSHA256);
+     * */
 
     @Override
     //findAllService
@@ -50,17 +57,6 @@ public class UserServiceImpl implements UserService {
         return userRepository.findUserDetailById(userId);
     }
 
-
-    public UserServiceImpl(UserRepository userRepository, UserDetailRepository userDetailRepository, UserMapper userMapper, BCryptPasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.userDetailRepository = userDetailRepository;
-        this.userMapper = userMapper;
-        this.passwordEncoder = passwordEncoder;
-    }
-
-    /**
-     * 註冊
-     */
     @Override
     public UserDetailRespDto getUserProfile(Long userId) {
         User user = userRepository.findById(userId)
@@ -69,7 +65,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional // 確保事務完整性
+    @Transactional
     public void registerUser(UserRegistrationRequest request) {
         // 1. 檢查帳號和電子郵件是否已存在
         if (userRepository.findByAccount(request.getAccount()).isPresent()) {
@@ -120,6 +116,45 @@ public class UserServiceImpl implements UserService {
         // 最終結果會是 LIB001、LIB002 這種格式的卡號。
     }
 
+    @Override
+    @Transactional
+    public User updateUserProfile(Long userId, UserUpdateRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("找不到使用者，ID: " + userId));
+
+        UserDetail userDetail = user.getUserDetail();
+        if (userDetail == null) {
+            throw new EntityNotFoundException("找不到使用者詳細資料，ID: " + userId);
+        }
+
+        if (request.getAccount() != null && !request.getAccount().equals(user.getAccount())) {
+            Optional<User> existingUserByAccount = userRepository.findByAccount(request.getAccount());
+            if (existingUserByAccount.isPresent() && !Objects.equals(existingUserByAccount.get().getId(), userId)) {
+                throw new IllegalArgumentException("此帳號已被其他使用者註冊。");
+            }
+            user.setAccount(request.getAccount());
+        }
+
+        if (request.getEmail() != null && !request.getEmail().equals(userDetail.getEmail())) {
+            UserDetail existingUserByEmail = userDetailRepository.findByEmail(request.getEmail());
+            if (existingUserByEmail != null && !Objects.equals(existingUserByEmail.getUser().getId(), userId)) {
+                throw new IllegalArgumentException("此電子郵件已被其他使用者註冊。");
+            }
+            userDetail.setEmail(request.getEmail());
+        }
+
+        if (request.getName() != null) {
+            userDetail.setName(request.getName());
+        }
+        if (request.getPhone() != null) {
+            userDetail.setPhone(request.getPhone());
+        }
+        if (request.getAddress() != null) {
+            userDetail.setAddress(request.getAddress());
+        }
+
+        return userRepository.save(user);
+    }
 
     /**
      * 更新密碼
@@ -297,6 +332,4 @@ public class UserServiceImpl implements UserService {
         user.setPenaltyPoints(0); // 復權時清零罰分
         userRepository.save(user);
     }
-
-
 }

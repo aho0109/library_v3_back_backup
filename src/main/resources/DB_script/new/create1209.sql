@@ -436,6 +436,11 @@ SELECT * FROM announcement_read;
 SELECT * FROM email_template;
 SELECT * FROM email_log;
 
+-- 將 id = 2 的使用者 account 更新為 new_account（請替換為實際帳號）
+UPDATE `user` SET account = 'citizen777' WHERE id = 2;
+-- 檢查更新結果
+SELECT id, account FROM `user` WHERE id = 2;
+
 SELECT l.id, b.id, b.title, b.image_url, bc.unique_code, l.loan_date, l.due_date, l.return_date, GROUP_CONCAT(DISTINCT a.name ORDER BY a.name SEPARATOR ', ') AS author_name
 FROM loan l
          JOIN book_copy bc ON l.book_copy_id = bc.id

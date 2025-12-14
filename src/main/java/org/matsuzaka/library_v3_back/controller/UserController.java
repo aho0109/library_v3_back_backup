@@ -2,9 +2,12 @@ package org.matsuzaka.library_v3_back.controller;
 
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
 import org.matsuzaka.library_v3_back.dto.notificationDTO.NotificationResponseDto;
 import org.matsuzaka.library_v3_back.dto.userDTO.*;
 import org.matsuzaka.library_v3_back.model.entity.User;
+import org.matsuzaka.library_v3_back.model.mapper.UserMapper;
+import org.matsuzaka.library_v3_back.security.JwtUtil;
 import org.matsuzaka.library_v3_back.security.UserDetailSecu;
 import org.matsuzaka.library_v3_back.service.NotificationService;
 import org.matsuzaka.library_v3_back.service.UserService;
@@ -23,10 +26,14 @@ public class UserController {
 
     private final UserService userService;
     private final NotificationService notificationService;
+    private final JwtUtil jwtUtil;
+    private final UserMapper userMapper;
 
-    public UserController(UserService userService, NotificationService notificationService) {
+    public UserController(UserService userService, NotificationService notificationService, JwtUtil jwtUtil, UserMapper userMapper) {
         this.userService = userService;
         this.notificationService = notificationService;
+        this.jwtUtil = jwtUtil;
+        this.userMapper = userMapper;
     }
 
     @GetMapping("/test/findAllUsers")
@@ -73,6 +80,30 @@ public class UserController {
         Long userId = currentUser.getUser().getId();
         UserDetailRespDto userProfile = userService.getUserDetailById(userId);
         return ResponseEntity.ok(userProfile);
+    }
+
+    @PutMapping("/me/profile")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserDetailRespDto> updateUserProfile(@AuthenticationPrincipal UserDetailSecu currentUser, @Valid @RequestBody UserUpdateRequest request) {
+        Long userId = currentUser.getUser().getId();
+        
+        // 1. 更新使用者資料，並取得更新後的 User 實體
+        User updatedUserEntity = userService.updateUserProfile(userId, request);
+        
+        // 2. 根據更新後的 User 實體，建立一個新的 UserDetailSecu 物件
+        UserDetailSecu newUserDetails = new UserDetailSecu(updatedUserEntity);
+        
+        // 3. 產生新的 JWT
+        String newToken = jwtUtil.generateToken(newUserDetails);
+        
+        // 4. 將 User 實體轉換為 DTO
+        UserDetailRespDto responseDto = userMapper.toUserDetailRespDto(updatedUserEntity);
+        
+        // 5. 在 DTO 中設定新的 JWT
+        responseDto.setJwtToken(newToken);
+        
+        // 6. 回傳包含新 JWT 的 DTO
+        return ResponseEntity.ok(responseDto);
     }
 
     /**
