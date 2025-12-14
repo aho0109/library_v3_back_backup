@@ -56,8 +56,8 @@ public class ReservationServiceImpl implements ReservationService {
         BookCopy bookCopy = bookCopyRepository.findById(bookCopyId)
                 .orElseThrow(() -> new EntityNotFoundException("找不到此書籍副本"));
 
-        // 4. 檢查副本狀態：只有 L（已借出）的副本才能預約
-        if (bookCopy.getStatus() != BookCopyStatus.L) {
+        // 4. 檢查副本狀態：只有 L（已借出），R（已預約等候取書) 的副本才能預約
+        if (bookCopy.getStatus() == BookCopyStatus.A || bookCopy.getStatus() == BookCopyStatus.P || bookCopy.getStatus() == BookCopyStatus.U) {
             throw new IllegalStateException("此書籍副本目前無法預約（狀態：" + bookCopy.getStatus() + "）。只有已借出的書籍可以預約。");
         }
 
@@ -216,8 +216,11 @@ public class ReservationServiceImpl implements ReservationService {
         dto.setExpirationDate(r.getExpirationDate());
         dto.setUniqueCode(r.getBookCopy().getUniqueCode());
         dto.setAuthors(r.getBookCopy().getBook().getAuthors().stream().map(a -> a.getName()).collect(Collectors.toSet()));
-        dto.setNotifyDate(LocalDate.from(r.getNotifyDate()));
-        dto.setPickupDate(LocalDate.from(r.getPickupDate()));
+        //dto.setNotifyDate(LocalDate.from(r.getNotifyDate()));
+        //dto.setPickupDate(LocalDate.from(r.getPickupDate()));
+        //  r.getNotifyDate() 或 r.getPickupDate() 可能為 null，LocalDate.from(...) 在傳入 null 時會丟出例外。請改成 null-safe 的轉換（使用 toLocalDate() 並在為 null 時回傳 null）。
+        dto.setNotifyDate(r.getNotifyDate() != null ? r.getNotifyDate().toLocalDate() : null);
+        dto.setPickupDate(r.getPickupDate() != null ? r.getPickupDate().toLocalDate() : null);
         return dto;
     }
 }
