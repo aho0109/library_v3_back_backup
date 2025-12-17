@@ -61,6 +61,11 @@ public class ReservationServiceImpl implements ReservationService {
             throw new IllegalStateException("此書籍副本目前無法預約（狀態：" + bookCopy.getStatus() + "）。只有已借出的書籍可以預約。");
         }
 
+        // 4.5 檢查使用者本人是否就是目前借閱者
+        if (bookCopy.getLoans() != null && bookCopy.getLoans().getFirst().getUser().getId().equals(userId)) {
+            throw new IllegalStateException("你已借閱此書籍，無法預約");
+        }
+
         // 5. 檢查是否已預約此副本
         boolean alreadyReserved = userReservations.stream()
                 .anyMatch(r -> r.getBookCopy().getId().equals(bookCopyId));
