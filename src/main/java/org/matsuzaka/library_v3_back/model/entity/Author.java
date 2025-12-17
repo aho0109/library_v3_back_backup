@@ -1,5 +1,6 @@
 package org.matsuzaka.library_v3_back.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -26,6 +27,8 @@ public class Author {
     // mappedBy 屬性必須放在被擁有方 (Inverse Side / Non-Owning Side)
     // 因為圖書館操作流程來說，以書為主導（通常是先有書，再指定作者），所以主導權在 Book 實體上。
     @ManyToMany(mappedBy = "authors", fetch = FetchType.LAZY)
+    @JsonIgnore // 偷懶不寫 DTO，先頂一下
+    /* TODO: 寫 DTO */
     private Set<Book> books = new HashSet<>(); // 使用 Set 避免重複
 }
 
