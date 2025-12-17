@@ -93,7 +93,11 @@ public class ReservationServiceImpl implements ReservationService {
                 null, reservation.getId(), ReferenceType.RESERVATION);
     }
 
-
+    /**
+     * 取消預約
+     * @param userId 使用者ID
+     * @param reservationId 預約記錄ID
+     */
     @Override
     public void cancelReservation(Long userId, Long reservationId) {
         Reservation reservation = reservationRepository.findById(reservationId)
