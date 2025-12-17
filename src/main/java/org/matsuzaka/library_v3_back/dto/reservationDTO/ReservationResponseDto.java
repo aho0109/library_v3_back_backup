@@ -3,12 +3,11 @@ package org.matsuzaka.library_v3_back.dto.reservationDTO;
 import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Set;
 
 @Data
 public class ReservationResponseDto {
-    private Long id;
+    private Long reservationId;
     private Long bookId;
     private String title;
     private String imageUrl;

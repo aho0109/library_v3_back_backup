@@ -209,7 +209,7 @@ public class ReservationServiceImpl implements ReservationService {
     
     private ReservationResponseDto mapToDto(Reservation r) {
         ReservationResponseDto dto = new ReservationResponseDto();
-        dto.setId(r.getId());
+        dto.setReservationId(r.getId());
         dto.setBookId(r.getBookCopy().getBook().getId());
         dto.setTitle(r.getBookCopy().getBook().getTitle());
         dto.setImageUrl(r.getBookCopy().getBook().getImageUrl());
