@@ -213,7 +213,7 @@ CREATE TABLE IF NOT EXISTS reservation
     expiration_date DATE                                                               NOT NULL COMMENT '取書截止日期 (通知日期 +6天)',
     pickup_date     TIMESTAMP                                                          NULL COMMENT '實際取書日期 (轉為借閱時填入)',
     status          ENUM ('PENDING', 'AVAILABLE', 'PICKED_UP', 'EXPIRED', 'CANCELLED') NOT NULL DEFAULT 'PENDING' COMMENT '預約狀態 (PENDING:等待中, AVAILABLE:可取書, PICKED_UP:已取書, EXPIRED:逾期未取, CANCELLED:已取消)',
-    UNIQUE KEY uk_active_reservation (user_id, book_copy_id, status), -- 防止同一使用者對同一書重複活躍預約
+    UNIQUE KEY uk_active_reservation_date (user_id, book_copy_id, status, reserve_date), -- 防止同一使用者對同一書重複活躍預約
     FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE RESTRICT ON UPDATE CASCADE,
     FOREIGN KEY (book_copy_id) REFERENCES book_copy (id) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX idx_user_status (user_id, status),
@@ -222,6 +222,7 @@ CREATE TABLE IF NOT EXISTS reservation
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='書籍預約記錄表';
 -- 變更說明：新增 type (區分預約，應用檢查 book_copy.status 是否在館決定可否快速)；唯一鍵保留但調整為活躍狀態 (非過期/取消)。
+-- 我原本寫 uk_active_reservation ，但這不夠嚴謹，會造成如果使用者在不同時間預約同一本書會出錯（被 SQL 拒絕），所以要再加上時間區別
 
 
 -- 13. tag 表 (無變更)
