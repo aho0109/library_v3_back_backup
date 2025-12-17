@@ -1,5 +1,6 @@
 package org.matsuzaka.library_v3_back.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,5 +26,7 @@ public class Tag {
     // 標籤與書籍是多對多關係
     @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
     //@JsonIgnoreProperties("tags") // 告訴 Jackson 忽略 Book 裡的 tags 欄位
+    @JsonIgnore
+    /* TODO: 寫 DTO */
     private Set<Book> books = new HashSet<>();
 }

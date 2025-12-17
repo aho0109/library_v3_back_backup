@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.matsuzaka.library_v3_back.dto.loanDTO.BookCopyRespDto;
 import org.matsuzaka.library_v3_back.model.entity.Author;
+import org.matsuzaka.library_v3_back.model.entity.Tag;
 
 import java.math.BigDecimal;
 import java.util.Set;
@@ -25,7 +26,7 @@ public class BookRespDtoOneDetails {
     private String addedDate; // book上架日期
 
     private Set<Author> authors; // 作者名稱列表，用於顯示多個作者
-    private Set<String> tags; // 標籤名稱列表，用於顯示多個標籤
+    private Set<Tag> tags; // 標籤名稱列表，用於顯示多個標籤
 
     private Long mainCategoryId;
     private String mainCategoryTitle; // 主分類名稱
