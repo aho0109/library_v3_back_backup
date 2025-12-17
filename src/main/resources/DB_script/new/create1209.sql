@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS book_copy
     id          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '實體書ID (副本ID)',
     book_id     BIGINT                    NOT NULL COMMENT '所屬書籍ID',
     unique_code VARCHAR(100)              NOT NULL UNIQUE COMMENT '每本實體書的唯一編碼',
-    status      ENUM ('A', 'L', 'P', 'R', 'U') NOT NULL DEFAULT 'A' COMMENT '狀態 (A:Available 在館, L:Loaned 已借出, R:RESERVED 被預約, P:PROCESSING 處理中, U:UNAVAILABLE 下架)',
+    status      ENUM ('A', 'L', 'P', 'R', 'U') NOT NULL DEFAULT 'A' COMMENT '狀態 (A:Available 在館, L:Loaned 已借出, P:PROCESSING 處理中, R:RESERVED 被預約, U:UNAVAILABLE 下架)',
     location    VARCHAR(100)                       DEFAULT '新書上架區' COMMENT '書籍位置',
     stocked_date  DATE                            NOT NULL DEFAULT CURRENT_DATE COMMENT '進書日期',
     FOREIGN KEY (book_id) REFERENCES book (id) ON DELETE RESTRICT ON UPDATE CASCADE,

@@ -48,10 +48,10 @@ public class BookCopyDTO {
                 dto.setStatusDisplay("已借出");
                 break;
             case P:
-                dto.setStatusDisplay("已預約");
+                dto.setStatusDisplay("處理中");
                 break;
             case R:
-                dto.setStatusDisplay("處理中");
+                dto.setStatusDisplay("被預約");
                 break;
             case U:
                 dto.setStatusDisplay("已下架");

@@ -74,7 +74,7 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
            "LEFT JOIN Loan l ON l.bookCopy = bc " +
            "WHERE (:categoryId IS NULL OR c.id = :categoryId) " +
            "GROUP BY b.id " +
-           "ORDER BY COUNT(l.id) DESC")
+           "ORDER BY b.totalLoanCount DESC")
     @EntityGraph(attributePaths = {"authors", "publisher"})
     List<Book> findTop5Loan(@Param("categoryId") Long categoryId,  Pageable pageable);
 
@@ -90,7 +90,7 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
             "JOIN FETCH b.categorySub cs " +
             "JOIN FETCH cs.category c " +
             "WHERE (:categoryId IS NULL OR c.id = :categoryId) " +
-            "ORDER BY b.publishYear DESC")
+            "ORDER BY b.addedDate DESC")
     @EntityGraph(attributePaths = {"authors", "publisher"})
     List<Book> findTop5New(@Param("categoryId") Long categoryId, Pageable pageable);
 

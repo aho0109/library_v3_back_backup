@@ -353,6 +353,13 @@ public class BookServiceImpl implements BookService {
                         });
                 book.setRepresentative(true);
             }
+
+            // 取消代表作
+            if (dto.getRepresentative() == null){
+                book.setRepresentative(false);
+            }
+
+
         } else {
             book.setSeries(null);
             book.setRepresentative(true);
