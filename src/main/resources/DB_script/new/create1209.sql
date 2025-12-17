@@ -222,7 +222,7 @@ CREATE TABLE IF NOT EXISTS reservation
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='書籍預約記錄表';
 -- 變更說明：新增 type (區分預約，應用檢查 book_copy.status 是否在館決定可否快速)；唯一鍵保留但調整為活躍狀態 (非過期/取消)。
--- 我原本寫 uk_active_reservation ，但這不夠嚴謹，會造成如果使用者在不同時間預約同一本書會出錯（被 SQL 拒絕），所以要再加上時間區別
+-- 我原本寫 uk_active_reservation ，但這不夠嚴謹，會造成如果使用者在不同時間預約同一本書會出錯（被 SQL 拒絕），所以要再加上時間區別，才能重複預約
 
 
 -- 13. tag 表 (無變更)
