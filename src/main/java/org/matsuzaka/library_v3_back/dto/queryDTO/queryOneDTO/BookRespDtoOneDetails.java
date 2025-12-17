@@ -26,7 +26,10 @@ public class BookRespDtoOneDetails {
     private Set<String> authors; // 作者名稱列表，用於顯示多個作者
     private Set<String> tags; // 標籤名稱列表，用於顯示多個標籤
 
+    private Long mainCategoryId;
     private String mainCategoryTitle; // 主分類名稱
+
+    private Long subCategoryId;
     private String subCategoryTitle;  // 子分類名稱
 
     private BigDecimal availableCopies; // 可借閱數量
