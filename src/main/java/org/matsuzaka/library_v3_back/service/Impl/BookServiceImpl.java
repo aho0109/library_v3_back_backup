@@ -343,8 +343,10 @@ public class BookServiceImpl implements BookService {
                     .orElseThrow(() -> new EntityNotFoundException("系列不存在，ID: " + dto.getSeriesId()));
             book.setSeries(series);
 
-            // 如果要設為代表作，將此系列其他代表作標記為 false
-            if (dto.getRepresentative() != null && dto.getRepresentative()) {
+            // 處理代表作邏輯
+            if (Boolean.TRUE.equals(dto.getRepresentative())) {
+                // 如果要設為代表作 (true)
+                // 先將此系列其他代表作標記為 false
                 bookRepository.findBySeriesAndRepresentative(series, true)
                         .ifPresent(oldRep -> {
                             if (!oldRep.getId().equals(id)) {
@@ -352,16 +354,15 @@ public class BookServiceImpl implements BookService {
                             }
                         });
                 book.setRepresentative(true);
-            }
-
-            // 取消代表作
-            if (dto.getRepresentative() == null){
+            } else {
+                // 如果要取消代表作 (false 或 null)
                 book.setRepresentative(false);
             }
 
-
         } else {
+            // 如果沒有系列 ID，則此書為單行本
             book.setSeries(null);
+            // 單行本預設自己就是代表作
             book.setRepresentative(true);
         }
 
