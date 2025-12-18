@@ -31,5 +31,8 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
     List<Tag> findTop10(@Param("categoryId") Long categoryId, Pageable pageable);
 
     // findAll 方法已經由 JpaRepository 提供，service 層可以直接使用
+    @Override
+    @Query("SELECT t FROM Tag t ORDER BY t.id DESC ")
+    List<Tag> findAll();
 
 }
