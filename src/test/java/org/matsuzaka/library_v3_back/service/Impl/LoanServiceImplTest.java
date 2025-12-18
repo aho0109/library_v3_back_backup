@@ -151,6 +151,24 @@ class LoanServiceImplTest {
     }
 
     @Test
+    void borrowBook_Success_SuspendedButNoDate() {
+        // 停權但沒有設定期限 -> 視為異常狀態，自動復權
+        mockUser.setStatus(UserStatus.SUSPENDED);
+        mockUser.setSuspendedUntil(null);
+
+        when(userRepository.findByCardId("CARD-001")).thenReturn(Optional.of(mockUser));
+        when(loanRepository.countByUserIdAndStatus(1L, LoanStatus.ON_LOAN)).thenReturn(0L);
+        when(bookCopyRepository.findByUniqueCode("CODE-123")).thenReturn(Optional.of(mockCopy));
+        when(loanRepository.save(any(Loan.class))).thenReturn(mockLoan);
+
+        BorrowRespDto response = loanService.borrowBook("CODE-123", "CARD-001");
+
+        assertTrue(response.isSuccess());
+        assertEquals(UserStatus.ACTIVE, mockUser.getStatus());
+        verify(userRepository).save(mockUser);
+    }
+
+    @Test
     void borrowBook_Fail_LimitReached() {
         mockUser.setRole(Role.ROLE_USER); // Limit 5
         when(userRepository.findByCardId("CARD-001")).thenReturn(Optional.of(mockUser));
@@ -224,6 +242,21 @@ class LoanServiceImplTest {
         verify(reservationRepository).save(mockReservation);
     }
 
+    @Test
+    void borrowBook_Fail_CopyStatusLost() {
+        // 測試書籍狀態為 LOST (非 A, L, R)
+        mockCopy.setStatus(BookCopyStatus.U);
+        
+        when(userRepository.findByCardId("CARD-001")).thenReturn(Optional.of(mockUser));
+        when(loanRepository.countByUserIdAndStatus(1L, LoanStatus.ON_LOAN)).thenReturn(0L);
+        when(bookCopyRepository.findByUniqueCode("CODE-123")).thenReturn(Optional.of(mockCopy));
+
+        BorrowRespDto response = loanService.borrowBook("CODE-123", "CARD-001");
+
+        assertFalse(response.isSuccess());
+        assertTrue(response.getMessage().contains("此書目前無法借閱"));
+    }
+
     // --- 還書測試 (returnBook) ---
 
     @Test
@@ -270,6 +303,42 @@ class LoanServiceImplTest {
         assertEquals(0, mockUser.getPenaltyPoints()); // 罰點歸零
         assertEquals(UserStatus.SUSPENDED, mockUser.getStatus()); // 狀態變為停權
         assertNotNull(mockUser.getSuspendedUntil()); // 設定停權期限
+    }
+
+    @Test
+    void returnBook_Success_ExtendSuspension() {
+        // 使用者已被停權，且有停權期限
+        mockUser.setStatus(UserStatus.SUSPENDED);
+        LocalDateTime existingSuspension = LocalDateTime.now().plusDays(5);
+        mockUser.setSuspendedUntil(existingSuspension);
+        
+        // 再次逾期 10 天
+        mockLoan.setDueDate(LocalDate.now().minusDays(10));
+        
+        when(bookCopyRepository.findByUniqueCode("CODE-123")).thenReturn(Optional.of(mockCopy));
+        when(loanRepository.findByBookCopyIdAndStatus(100L, LoanStatus.ON_LOAN)).thenReturn(Optional.of(mockLoan));
+
+        loanService.returnBook("CODE-123");
+
+        assertEquals(0, mockUser.getPenaltyPoints());
+        assertEquals(UserStatus.SUSPENDED, mockUser.getStatus());
+        // 驗證停權時間是從「原定期限」往後加 30 天，而不是從「現在」
+        assertEquals(existingSuspension.plusDays(30), mockUser.getSuspendedUntil());
+    }
+
+    @Test
+    void returnBook_Success_UserDetailNull() {
+        // 模擬使用者沒有詳細資料
+        mockUser.setUserDetail(null);
+        
+        when(bookCopyRepository.findByUniqueCode("CODE-123")).thenReturn(Optional.of(mockCopy));
+        when(loanRepository.findByBookCopyIdAndStatus(100L, LoanStatus.ON_LOAN)).thenReturn(Optional.of(mockLoan));
+        when(loanRepository.countByUserIdAndStatus(1L, LoanStatus.ON_LOAN)).thenReturn(0L);
+
+        ReturnResponseDto response = loanService.returnBook("CODE-123");
+
+        assertTrue(response.isSuccess());
+        assertEquals("未知", response.getBorrowerName()); // 驗證回傳 "未知"
     }
 
     @Test
@@ -340,5 +409,71 @@ class LoanServiceImplTest {
         assertThrows(IllegalStateException.class, () -> 
             loanService.renewBook(500L, 1L)
         );
+    }
+
+    // --- 以下為補強測試案例 ---
+
+    @Test
+    void testGetMethods() {
+        // 測試 getCurrentByUserId
+        loanService.getCurrentByUserId(1L);
+        verify(loanRepository, times(1)).findCurrentByUserId(1L);
+
+        // 測試 getHistoryByUserId
+        loanService.getHistoryByUserId(1L);
+        verify(loanRepository, times(1)).findHistoryByUserId(1L);
+
+        // 測試 getOverdueByUserId
+        loanService.getOverdueByUserId(1L);
+        verify(loanRepository, times(1)).findOverdueByUserId(1L);
+    }
+
+    @Test
+    void borrowBook_Fail_UserIsPending() {
+        mockUser.setStatus(UserStatus.PENDING);
+        when(userRepository.findByCardId("CARD-001")).thenReturn(Optional.of(mockUser));
+
+        BorrowRespDto response = loanService.borrowBook("CODE-123", "CARD-001");
+
+        assertFalse(response.isSuccess());
+        assertEquals("使用者帳號未啟用", response.getMessage());
+    }
+
+    @Test
+    void borrowBook_Fail_LimitReached_ForCitizen() {
+        mockUser.setRole(Role.ROLE_CITIZEN); // 市民額度為 10
+        when(userRepository.findByCardId("CARD-001")).thenReturn(Optional.of(mockUser));
+        when(loanRepository.countByUserIdAndStatus(1L, LoanStatus.ON_LOAN)).thenReturn(10L);
+
+        BorrowRespDto response = loanService.borrowBook("CODE-123", "CARD-001");
+
+        assertFalse(response.isSuccess());
+        assertEquals("借閱數量已達上限", response.getMessage());
+    }
+
+    @Test
+    void returnBook_Success_ForCitizen() {
+        // 這個測試主要是為了覆蓋還書時，計算 maxLoanCount 的 CITIZEN 分支
+        mockUser.setRole(Role.ROLE_CITIZEN);
+        when(bookCopyRepository.findByUniqueCode("CODE-123")).thenReturn(Optional.of(mockCopy));
+        when(loanRepository.findByBookCopyIdAndStatus(100L, LoanStatus.ON_LOAN)).thenReturn(Optional.of(mockLoan));
+        when(loanRepository.countByUserIdAndStatus(1L, LoanStatus.ON_LOAN)).thenReturn(9L);
+
+        ReturnResponseDto response = loanService.returnBook("CODE-123");
+
+        assertTrue(response.isSuccess());
+        assertEquals(10, response.getMaxLoanCount()); // 驗證市民額度
+    }
+
+    @Test
+    void renewBook_Fail_StatusNotOnLoan() {
+        mockLoan.setStatus(LoanStatus.RETURNED); // 設定為已歸還
+        when(loanRepository.findById(500L)).thenReturn(Optional.of(mockLoan));
+
+        IllegalStateException exception = assertThrows(
+            IllegalStateException.class,
+            () -> loanService.renewBook(500L, 1L)
+        );
+        assertEquals("非借閱中狀態，無法續借", exception.getMessage());
     }
 }
