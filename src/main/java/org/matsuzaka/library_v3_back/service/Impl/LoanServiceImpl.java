@@ -1,10 +1,12 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.loanDTO.BorrowRespDto;
 import org.matsuzaka.library_v3_back.dto.loanDTO.LoanItemRespDto;
 import org.matsuzaka.library_v3_back.dto.loanDTO.RenewResponseDto;
 import org.matsuzaka.library_v3_back.dto.loanDTO.ReturnResponseDto;
+import org.matsuzaka.library_v3_back.exception.BusinessException;
+import org.matsuzaka.library_v3_back.exception.ErrorCode;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.*;
 import org.matsuzaka.library_v3_back.model.enums.*;
 import org.matsuzaka.library_v3_back.model.repositoryDao.*;
@@ -73,14 +75,17 @@ public class LoanServiceImpl implements LoanService {
      */
     @Override
     public BorrowRespDto borrowBook(String uniqueCode, String cardId) {
+        // 1. 驗證使用者存在
         User user = userRepository.findByCardId(cardId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到使用者"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "卡號: " + cardId));
         Long userId = user.getId();
 
+        // 2. 檢查停權狀態
         if (user.getStatus() == UserStatus.SUSPENDED) {
             // 檢查停權是否已過期
             if (user.getSuspendedUntil() != null && user.getSuspendedUntil().isAfter(LocalDateTime.now())) {
-                return new BorrowRespDto(false, "使用者帳號已停權至 " + user.getSuspendedUntil(), null, null, null);
+                throw new BusinessException(ErrorCode.USER_SUSPENDED,
+                    "停權至: " + user.getSuspendedUntil());
             } else {
                 // 解除停權
                 user.setStatus(UserStatus.ACTIVE);
@@ -89,23 +94,26 @@ public class LoanServiceImpl implements LoanService {
             }
         }
 
+        // 3. 檢查帳號啟用狀態
         if (user.getStatus() != UserStatus.ACTIVE) {
-             return new BorrowRespDto(false, "使用者帳號未啟用", null, null, null);
+            throw new BusinessException(ErrorCode.USER_NOT_ACTIVATED);
         }
 
-        // 檢查借閱額度：一般民眾 5 本，市民 10 本
+        // 4. 檢查借閱額度（民眾 5，市民和管理員 10）
         int limit = user.getRole() == Role.ROLE_CITIZEN ? 10 : 5;
         long currentLoans = loanRepository.countByUserIdAndStatus(userId, LoanStatus.ON_LOAN);
         if (currentLoans >= limit) {
-            return new BorrowRespDto(false, "借閱數量已達上限", null, null, null);
+            throw new BusinessException(ErrorCode.BORROW_LIMIT_EXCEEDED);
         }
 
+        // 5. 驗證書籍副本存在
         BookCopy copy = bookCopyRepository.findByUniqueCode(uniqueCode)
-                .orElseThrow(() -> new EntityNotFoundException("找不到書籍副本"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_COPY_NOT_FOUND,
+                    "副本編號: " + uniqueCode));
 
-        // 檢查副本狀態
+        // 6. 檢查副本狀態
         if (copy.getStatus() == BookCopyStatus.L) {
-            return new BorrowRespDto(false, "此書已被借出", null, null, copy.getBook().getTitle());
+            throw new BusinessException(ErrorCode.BOOK_ALREADY_BORROWED);
         }
 
         Reservation matchedReservation = null;
@@ -115,16 +123,18 @@ public class LoanServiceImpl implements LoanService {
             List<Reservation> reservations = reservationRepository.findByUserIdAndBookCopyIdAndStatusIn(
                     userId, copy.getId(), List.of(ReservationStatus.AVAILABLE));
             if (reservations.isEmpty()) {
-                return new BorrowRespDto(false, "此書已被其他使用者預約", null, null, copy.getBook().getTitle());
+                throw new BusinessException(ErrorCode.BOOK_RESERVED_BY_OTHERS);
             }
             matchedReservation = reservations.get(0);
         } else if (copy.getStatus() == BookCopyStatus.A) {
-             // 可借閱狀態，允許現場借閱
+            // 可借閱狀態，允許現場借閱
+            // 這裏啥都不執行，等同結束（完成）這段 if 判斷，接下去跑借閱流程
         } else {
-             return new BorrowRespDto(false, "此書目前無法借閱 (狀態: " + copy.getStatus() + ")", null, null, copy.getBook().getTitle());
+            throw new BusinessException(ErrorCode.BOOK_COPY_UNAVAILABLE,
+                "狀態: " + copy.getStatus());
         }
 
-        // 建立借閱記錄
+        // 7. 建立借閱記錄
         Loan loan = new Loan();
         loan.setUser(user);
         loan.setBookCopy(copy);
@@ -135,42 +145,43 @@ public class LoanServiceImpl implements LoanService {
 
         Loan savedLoan = loanRepository.save(loan);
 
-        // 更新副本狀態為已借出
+        // 8. 更新副本狀態為已借出
         copy.setStatus(BookCopyStatus.L);
         bookCopyRepository.save(copy);
 
-        // 增加書籍的累計借閱次數
+        // 9. 增加書籍的累計借閱次數
         Book book = copy.getBook();
         book.setTotalLoanCount(book.getTotalLoanCount() + 1);
         bookRepository.save(book);
 
-        // 更新預約記錄（如果存在）
+        // 10. 更新預約記錄（如果存在）
         if (matchedReservation != null) {
             matchedReservation.setStatus(ReservationStatus.PICKED_UP);
             matchedReservation.setPickupDate(LocalDateTime.now());
             reservationRepository.save(matchedReservation);
         }
 
-        return new BorrowRespDto(true, "借閱成功", uniqueCode, savedLoan.getId(),copy.getBook().getTitle());
+        // 11. 成功時只返回成功的結果
+        return new BorrowRespDto(true, "借閱成功", uniqueCode, savedLoan.getId(), copy.getBook().getTitle());
     }
 
     @Override
     public ReturnResponseDto returnBook(String uniqueCode) {
-        // 根據唯一碼找到副本
+        // 1. 驗證書籍副本存在
         BookCopy copy = bookCopyRepository.findByUniqueCode(uniqueCode)
-                .orElseThrow(() -> new EntityNotFoundException("找不到書籍副本"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_COPY_NOT_FOUND, "副本編號: " + uniqueCode));
 
-        // 找到此副本的活躍借閱記錄
+        // 2. 查找此副本的活躍借閱記錄
         Optional<Loan> loanOpt = loanRepository.findByBookCopyIdAndStatus(copy.getId(), LoanStatus.ON_LOAN);
 
         if (loanOpt.isEmpty()) {
-             return new ReturnResponseDto(false, "此書無借出記錄", uniqueCode, null, null, null, null, null, null, null, null, null, null);
+            throw new BusinessException(ErrorCode.BOOK_NOT_BORROWED);
         }
 
         Loan loan = loanOpt.get();
         User user = loan.getUser();
 
-        // 檢查是否逾期
+        // 3. 檢查是否逾期並處理罰分
         long overdueDays = ChronoUnit.DAYS.between(loan.getDueDate(), LocalDate.now());
         if (overdueDays > 0) {
             int points = (int) overdueDays; // 一天一點
@@ -196,19 +207,19 @@ public class LoanServiceImpl implements LoanService {
             userRepository.save(user);
         }
 
-        // 結束借閱記錄
+        // 4. 結束借閱記錄
         loan.setReturnDate(LocalDateTime.now());
         loan.setStatus(LoanStatus.RETURNED);
         loanRepository.save(loan);
 
-        // 處理預約佇列（副本狀態更新邏輯在內部）
+        // 5. 處理預約佇列（副本狀態更新邏輯在內部）
         reservationService.handleReturn(copy.getId());
 
-        // 計算歸還後的借閱數量
+        // 6. 計算歸還後的借閱數量
         long currentLoanCount = loanRepository.countByUserIdAndStatus(user.getId(), LoanStatus.ON_LOAN);
         int maxLoanCount = user.getRole() == Role.ROLE_CITIZEN ? 10 : 5;
 
-        // 構建完整的響應
+        // 7. 構建完整的響應（成功）
         ReturnResponseDto response = new ReturnResponseDto();
         response.setSuccess(true);
         response.setMessage("歸還成功");
@@ -235,30 +246,30 @@ public class LoanServiceImpl implements LoanService {
     @Override
     public RenewResponseDto renewBook(Long loanId, Long userId) {
         Loan loan = loanRepository.findById(loanId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到借閱記錄：" + loanId));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.LOAN_NOT_FOUND, "借閱記錄ID: " + loanId));
+
         if (!loan.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("無權限執行此操作");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_LOAN_OPERATION);
         }
         
         if (loan.getStatus() != LoanStatus.ON_LOAN) {
-            throw new IllegalStateException("非借閱中狀態，無法續借");
+            throw new BusinessException(ErrorCode.NOT_ON_LOAN_STATUS);
         }
         
         if (loan.getRenewCount() >= 2) {
-            throw new IllegalStateException("續借次數已達上限");
+            throw new BusinessException(ErrorCode.RENEW_LIMIT_EXCEEDED);
         }
         
         // 檢查是否有人預約
         if (reservationService.hasReservationsForCopy(loan.getBookCopy().getId())) {
-             throw new IllegalStateException("此書已被預約，無法續借");
+             throw new BusinessException(ErrorCode.BOOK_RESERVED_CANNOT_RENEW);
         }
         
         // 檢查續借視窗是否開啟（到期日前3天才可續借）
         // 例如：12/31 到期 -> 12/28 開放續借
         LocalDate renewStart = loan.getDueDate().minusDays(3);
         if (LocalDate.now().isBefore(renewStart)) {
-             throw new IllegalStateException("續借功能僅在到期日前 3 天開放");
+             throw new BusinessException(ErrorCode.RENEW_WINDOW_NOT_OPEN, "續借功能僅在到期日前 3 天開放");
         }
         
         // 續借：到期日延後 10 天

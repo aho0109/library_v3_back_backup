@@ -1,5 +1,6 @@
 package org.matsuzaka.library_v3_back.controller;
 
+import org.matsuzaka.library_v3_back.dto.common.ApiResponse;
 import org.matsuzaka.library_v3_back.dto.loanDTO.*;
 import org.matsuzaka.library_v3_back.security.UserDetailSecu;
 import org.matsuzaka.library_v3_back.service.LoanService;
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/api/loans") // 統一的 loans API 路徑
+@RequestMapping("/api/loans")
 @CrossOrigin(origins = "*")
 public class LoanController {
 
@@ -29,13 +30,9 @@ public class LoanController {
      */
     @PostMapping("/borrow")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')") 
-    public ResponseEntity<BorrowRespDto> borrowBook(@RequestBody BorrowRequestDto requestDto) {
-        BorrowRespDto response = loanService.borrowBook(requestDto.getUniqueCode(), requestDto.getCardId());
-        if (response.isSuccess()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
-        }
+    public ResponseEntity<ApiResponse<BorrowRespDto>> borrowBook(@RequestBody BorrowRequestDto requestDto) {
+        BorrowRespDto result = loanService.borrowBook(requestDto.getUniqueCode(), requestDto.getCardId());
+        return ResponseEntity.ok(ApiResponse.success(result.getMessage(), result));
     }
 
     /**
@@ -45,25 +42,19 @@ public class LoanController {
      */
     @PostMapping("/return")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<ReturnResponseDto> returnBook(@RequestBody ReturnRequestDto requestDto) {
-        ReturnResponseDto response = loanService.returnBook(requestDto.getUniqueCode());
-        if (response.isSuccess()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
-        }
+    public ResponseEntity<ApiResponse<ReturnResponseDto>> returnBook(@RequestBody ReturnRequestDto requestDto) {
+        ReturnResponseDto result = loanService.returnBook(requestDto.getUniqueCode());
+        return ResponseEntity.ok(ApiResponse.success(result.getMessage(), result));
     }
 
     /* 續借 */
     @PutMapping("/{loanId}/renew")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> renewBook(@PathVariable Long loanId, @AuthenticationPrincipal UserDetailSecu currentUser) {
-        try {
-            loanService.renewBook(loanId, currentUser.getUser().getId());
-            return ResponseEntity.ok("續借成功");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<RenewResponseDto>> renewBook(
+            @PathVariable Long loanId,
+            @AuthenticationPrincipal UserDetailSecu currentUser) {
+        RenewResponseDto response = loanService.renewBook(loanId, currentUser.getUser().getId());
+        return ResponseEntity.ok(ApiResponse.success(response.getMessage(), response));
     }
 
 
@@ -79,26 +70,29 @@ public class LoanController {
      * @return 當前登入者的借閱中書籍列表。
      */
     @GetMapping("/my-current")
-    @PreAuthorize("isAuthenticated()") // 可根據需求調整權限
-    public ResponseEntity<Set<LoanItemRespDto>> getCurrentLoans(@AuthenticationPrincipal UserDetailSecu currentUser) {
-        Long userId = currentUser.getUser().getId(); // 從安全的物件中獲取 ID
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Set<LoanItemRespDto>>> getCurrentLoans(
+            @AuthenticationPrincipal UserDetailSecu currentUser) {
+        Long userId = currentUser.getUser().getId();
         Set<LoanItemRespDto> loans = loanService.getCurrentByUserId(userId);
-        return ResponseEntity.ok(loans);
+        return ResponseEntity.ok(ApiResponse.success(loans));
     }
 
     @GetMapping("/my-history")
-    @PreAuthorize("isAuthenticated()") // 可根據需求調整權限
-    public ResponseEntity<List<LoanItemRespDto>> getLoanHistory(@AuthenticationPrincipal UserDetailSecu currentUser) {
-        Long userId = currentUser.getUser().getId(); // 從安全的物件中獲取 ID
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<LoanItemRespDto>>> getLoanHistory(
+            @AuthenticationPrincipal UserDetailSecu currentUser) {
+        Long userId = currentUser.getUser().getId();
         List<LoanItemRespDto> history = loanService.getHistoryByUserId(userId);
-        return ResponseEntity.ok(history);
+        return ResponseEntity.ok(ApiResponse.success(history));
     }
 
     @GetMapping("/my-overdue")
-    @PreAuthorize("isAuthenticated()") // 可根據需求調整權限
-    public ResponseEntity<List<LoanItemRespDto>> getOverdueLoans(@AuthenticationPrincipal UserDetailSecu currentUser) {
-        Long userId = currentUser.getUser().getId(); // 從安全的物件中獲取 ID
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<LoanItemRespDto>>> getOverdueLoans(
+            @AuthenticationPrincipal UserDetailSecu currentUser) {
+        Long userId = currentUser.getUser().getId();
         List<LoanItemRespDto> overdue = loanService.getOverdueByUserId(userId);
-        return ResponseEntity.ok(overdue);
+        return ResponseEntity.ok(ApiResponse.success(overdue));
     }
 }

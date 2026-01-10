@@ -1,8 +1,8 @@
 package org.matsuzaka.library_v3_back.controller;
 
-
 import org.matsuzaka.library_v3_back.dto.adminDTO.CreateBookCopyDTO;
 import org.matsuzaka.library_v3_back.dto.adminDTO.CreateBookDTO;
+import org.matsuzaka.library_v3_back.dto.common.ApiResponse;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookSearchParamsDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookSearchResponseDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.queryOneDTO.BookRespDtoOneDetails;
@@ -99,9 +99,11 @@ public class AdminBookController {
      */
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<BookRespDtoOneDetails> createBook(@RequestBody CreateBookDTO createBookDTO) {
+    public ResponseEntity<ApiResponse<BookRespDtoOneDetails>> createBook(@RequestBody CreateBookDTO createBookDTO) {
         BookRespDtoOneDetails createdBookDto = bookService.createBook(createBookDTO);
-        return new ResponseEntity<>(createdBookDto, HttpStatus.CREATED);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("書籍建立成功", createdBookDto));
     }
 
     /**
@@ -109,11 +111,11 @@ public class AdminBookController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<BookRespDtoOneDetails> updateBook(
+    public ResponseEntity<ApiResponse<BookRespDtoOneDetails>> updateBook(
             @PathVariable Long id,
             @RequestBody CreateBookDTO updateBookDTO) {
         BookRespDtoOneDetails updatedBook = bookService.updateBook(id, updateBookDTO);
-        return ResponseEntity.ok(updatedBook);
+        return ResponseEntity.ok(ApiResponse.success("書籍更新成功", updatedBook));
     }
 
     /**
@@ -121,13 +123,9 @@ public class AdminBookController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<String> deleteBook(@PathVariable Long id) {
-        try {
-            bookService.deleteBook(id);
-            return ResponseEntity.ok("書籍刪除成功");
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<Void>> deleteBook(@PathVariable Long id) {
+        bookService.deleteBook(id);
+        return ResponseEntity.ok(ApiResponse.success("書籍刪除成功"));
     }
 
     /**
@@ -135,9 +133,9 @@ public class AdminBookController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<BookRespDtoOneDetails> getBookById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<BookRespDtoOneDetails>> getBookById(@PathVariable Long id) {
         BookRespDtoOneDetails book = bookService.getBookById(id);
-        return ResponseEntity.ok(book);
+        return ResponseEntity.ok(ApiResponse.success(book));
     }
 
     /**
@@ -145,10 +143,12 @@ public class AdminBookController {
      */
     @PostMapping("/{bookId}/copies")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<String> addBookCopy(
+    public ResponseEntity<ApiResponse<Void>> addBookCopy(
             @PathVariable Long bookId,
             @RequestBody CreateBookCopyDTO copyDTO) {
         bookService.addBookCopy(bookId, copyDTO);
-        return new ResponseEntity<>("副本新增成功", HttpStatus.CREATED);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("副本新增成功"));
     }
 }

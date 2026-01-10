@@ -1,7 +1,9 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.reservationDTO.ReservationResponseDto;
+import org.matsuzaka.library_v3_back.exception.BusinessException;
+import org.matsuzaka.library_v3_back.exception.ErrorCode;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.*;
 import org.matsuzaka.library_v3_back.model.enums.*;
 import org.matsuzaka.library_v3_back.model.repositoryDao.*;
@@ -38,10 +40,10 @@ public class ReservationServiceImpl implements ReservationService {
     public void reserveBookCopy(Long userId, Long bookCopyId) {
         // 1. 驗證使用者
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到使用者"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new IllegalStateException("使用者帳號未啟用，無法預約");
+            throw new BusinessException(ErrorCode.USER_NOT_ACTIVATED);
         }
 
         // 2. 檢查預約額度：一般民眾 5 本，市民 10 本
@@ -49,28 +51,28 @@ public class ReservationServiceImpl implements ReservationService {
         List<Reservation> userReservations = reservationRepository.findByUserIdAndStatusIn(userId, 
                 List.of(ReservationStatus.PENDING, ReservationStatus.AVAILABLE));
         if (userReservations.size() >= limit) {
-            throw new IllegalStateException("預約數量已達上限（" + limit + " 本）");
+            throw new BusinessException(ErrorCode.RESERVATION_LIMIT_EXCEEDED, "上限：" + limit + " 本");
         }
 
         // 3. 驗證書籍副本
         BookCopy bookCopy = bookCopyRepository.findById(bookCopyId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到此書籍副本"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_COPY_NOT_FOUND, "副本ID: " + bookCopyId));
 
         // 4. 檢查副本狀態：只有 L（已借出），R（已預約等候取書) 的副本才能預約
         if (bookCopy.getStatus() == BookCopyStatus.A || bookCopy.getStatus() == BookCopyStatus.P || bookCopy.getStatus() == BookCopyStatus.U) {
-            throw new IllegalStateException("此書籍副本目前無法預約（狀態：" + bookCopy.getStatus() + "）。只有已借出的書籍可以預約。");
+            throw new BusinessException(ErrorCode.BOOK_AVAILABLE_NO_RESERVATION, "目前狀態：" + bookCopy.getStatus());
         }
 
         // 4.5 檢查使用者本人是否就是目前借閱者
         if (bookCopy.getLoans() != null && bookCopy.getLoans().getFirst().getUser().getId().equals(userId)) {
-            throw new IllegalStateException("你已借閱此書籍，無法預約");
+            throw new BusinessException(ErrorCode.CANNOT_RESERVE_OWN_LOAN);
         }
 
         // 5. 檢查是否已預約此副本
         boolean alreadyReserved = userReservations.stream()
                 .anyMatch(r -> r.getBookCopy().getId().equals(bookCopyId));
         if (alreadyReserved) {
-            throw new IllegalStateException("您已預約此書籍副本");
+            throw new BusinessException(ErrorCode.ALREADY_RESERVED);
         }
 
         // 6. 計算排隊位置
@@ -106,16 +108,16 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public void cancelReservation(Long userId, Long reservationId) {
         Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到預約記錄"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.RESERVATION_NOT_FOUND, "預約ID: " + reservationId));
+
         if (!reservation.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("無權限執行此操作");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_RESERVATION_OPERATION);
         }
         
         if (reservation.getStatus() == ReservationStatus.CANCELLED || 
             reservation.getStatus() == ReservationStatus.PICKED_UP || 
             reservation.getStatus() == ReservationStatus.EXPIRED) {
-             throw new IllegalStateException("無法取消已完成或已取消的預約");
+             throw new BusinessException(ErrorCode.RESERVATION_CANNOT_CANCEL);
         }
         
         ReservationStatus oldStatus = reservation.getStatus();
@@ -227,7 +229,7 @@ public class ReservationServiceImpl implements ReservationService {
         dto.setAuthors(r.getBookCopy().getBook().getAuthors().stream().map(a -> a.getName()).collect(Collectors.toSet()));
         //dto.setNotifyDate(LocalDate.from(r.getNotifyDate()));
         //dto.setPickupDate(LocalDate.from(r.getPickupDate()));
-        //  r.getNotifyDate() 或 r.getPickupDate() 可能為 null，LocalDate.from(...) 在傳入 null 時會丟出例外。請改成 null-safe 的轉換（使用 toLocalDate() 並在為 null 時回傳 null）。
+        //  r.getNotifyDate() 或 r.getPickupDate() 可能為 null，LocalDate.from(...) 在傳入 null 時會丟出例外。改成 null-safe 的轉換（使用 toLocalDate() 並在為 null 時回傳 null）。
         dto.setNotifyDate(r.getNotifyDate() != null ? r.getNotifyDate().toLocalDate() : null);
         dto.setPickupDate(r.getPickupDate() != null ? r.getPickupDate().toLocalDate() : null);
         return dto;

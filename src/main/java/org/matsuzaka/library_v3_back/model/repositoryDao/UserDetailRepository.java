@@ -7,4 +7,14 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface UserDetailRepository extends JpaRepository<UserDetail, Long> {
     UserDetail findByEmail(String email);
+    UserDetail findByPhone(String phone);
+
+
+    // 檢查email是否存在
+    boolean existsByEmail(String email);
+
+    // 檢查phone是否存在
+    boolean existsByPhone(String phone);
+
+
 }

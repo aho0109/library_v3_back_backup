@@ -1,10 +1,12 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
-
-import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.userDTO.UserDetailRespDto;
 import org.matsuzaka.library_v3_back.dto.userDTO.UserRegistrationRequest;
 import org.matsuzaka.library_v3_back.dto.userDTO.UserUpdateRequest;
+import org.matsuzaka.library_v3_back.exception.BusinessException;
+import org.matsuzaka.library_v3_back.exception.ErrorCode;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
+import org.matsuzaka.library_v3_back.exception.ValidationException;
 import org.matsuzaka.library_v3_back.model.entity.User;
 import org.matsuzaka.library_v3_back.model.entity.UserDetail;
 import org.matsuzaka.library_v3_back.model.enums.Role;
@@ -60,19 +62,22 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDetailRespDto getUserProfile(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
         return userMapper.toUserDetailRespDto(user);
     }
 
     @Override
     @Transactional
     public void registerUser(UserRegistrationRequest request) {
-        // 1. 檢查帳號和電子郵件是否已存在
-        if (userRepository.findByAccount(request.getAccount()).isPresent()) {
-            throw new IllegalArgumentException("帳號已存在。");
+        // 1. 檢查帳號、電子郵件、手機號碼是否已存在
+        if (userRepository.existsByAccount(request.getAccount())) {
+            throw new BusinessException(ErrorCode.ACCOUNT_ALREADY_EXISTS, "帳號: " + request.getAccount());
         }
-        if (userDetailRepository.findByEmail(request.getEmail()) != null) { // 假設 UserDetailRepository 有 findByEmail
-            throw new IllegalArgumentException("電子郵件已存在。");
+        if (userDetailRepository.existsByEmail(request.getEmail())) {
+            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS, "電子郵件: " + request.getEmail());
+        }
+        if (userDetailRepository.existsByPhone(request.getPhone())) {
+            throw new BusinessException(ErrorCode.PHONE_ALREADY_EXISTS, "手機號碼: " + request.getPhone());
         }
 
         // 2. 生成 card_id
@@ -119,36 +124,52 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User updateUserProfile(Long userId, UserUpdateRequest request) {
+        // 檢查使用者是否存在
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到使用者，ID: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
 
+        // 檢查使用者詳細資料是否存在
         UserDetail userDetail = user.getUserDetail();
         if (userDetail == null) {
-            throw new EntityNotFoundException("找不到使用者詳細資料，ID: " + userId);
+            throw new ResourceNotFoundException(ErrorCode.USER_DETAIL_NOT_FOUND, "使用者ID: " + userId);
         }
 
+        // 更新使用者詳細資料
         if (request.getAccount() != null && !request.getAccount().equals(user.getAccount())) {
             Optional<User> existingUserByAccount = userRepository.findByAccount(request.getAccount());
+            // 檢查帳號是否已存在
             if (existingUserByAccount.isPresent() && !Objects.equals(existingUserByAccount.get().getId(), userId)) {
-                throw new IllegalArgumentException("此帳號已被其他使用者註冊。");
+                throw new BusinessException(ErrorCode.ACCOUNT_ALREADY_EXISTS);
             }
             user.setAccount(request.getAccount());
         }
 
+        // 更新電子郵件
         if (request.getEmail() != null && !request.getEmail().equals(userDetail.getEmail())) {
             UserDetail existingUserByEmail = userDetailRepository.findByEmail(request.getEmail());
+            // 檢查電子郵件是否已存在
             if (existingUserByEmail != null && !Objects.equals(existingUserByEmail.getUser().getId(), userId)) {
-                throw new IllegalArgumentException("此電子郵件已被其他使用者註冊。");
+                throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
             }
             userDetail.setEmail(request.getEmail());
         }
 
+        // 更新手機號碼
+        if (request.getPhone() != null && !request.getPhone().equals(userDetail.getPhone())) {
+            UserDetail existingUserByPhone = userDetailRepository.findByPhone(request.getPhone());
+            // 檢查手機號碼是否已存在
+            if (existingUserByPhone != null && !Objects.equals(existingUserByPhone.getUser().getId(), userId)) {
+                throw new BusinessException(ErrorCode.PHONE_ALREADY_EXISTS);
+            }
+            userDetail.setPhone(request.getPhone());
+        }
+
+        // 更新名字
         if (request.getName() != null) {
             userDetail.setName(request.getName());
         }
-        if (request.getPhone() != null) {
-            userDetail.setPhone(request.getPhone());
-        }
+
+        // 更新地址
         if (request.getAddress() != null) {
             userDetail.setAddress(request.getAddress());
         }
@@ -181,13 +202,12 @@ public class UserServiceImpl implements UserService {
     public boolean verifyOldPassword(Long userId, String oldPassword) {
         // 檢查是否被鎖定
         if (isUserLocked(userId)) {
-            throw new IllegalStateException("您的帳號因多次嘗試失敗已被鎖定，請於 " +
-                    lockoutTimes.get(userId).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")) +
-                    " 後再試。");
+            throw new BusinessException(ErrorCode.ACCOUNT_LOCKED,
+                "請於 " + lockoutTimes.get(userId).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")) + " 後再試");
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
 
         if (passwordEncoder.matches(oldPassword, user.getPassword())) {
             // 密碼正確，重置失敗嘗試次數和鎖定時間
@@ -205,9 +225,11 @@ public class UserServiceImpl implements UserService {
                 LocalDateTime lockoutUntil = LocalDateTime.now().plusMinutes(LOCKOUT_DURATION_MINUTES);
                 lockoutTimes.put(userId, lockoutUntil);
                 System.out.println("User " + userId + " locked until: " + lockoutUntil);
-                throw new IllegalStateException("原密碼錯誤次數過多，您的帳號已被鎖定 " + LOCKOUT_DURATION_MINUTES + " 分鐘。");
+                throw new BusinessException(ErrorCode.PASSWORD_ATTEMPT_EXCEEDED,
+                    "帳號已被鎖定 " + LOCKOUT_DURATION_MINUTES + " 分鐘");
             }
-            throw new IllegalArgumentException("原密碼輸入錯誤。您還有 " + (MAX_ATTEMPTS - attempts) + " 次機會。");
+            throw new BusinessException(ErrorCode.OLD_PASSWORD_INCORRECT,
+                "您還有 " + (MAX_ATTEMPTS - attempts) + " 次機會");
         }
     }
 
@@ -224,24 +246,23 @@ public class UserServiceImpl implements UserService {
     public void changePassword(Long userId, String oldPassword, String newPassword) {
         // 再次檢查是否被鎖定 (防止繞過 verifyOldPassword 直接呼叫 changePassword)
         if (isUserLocked(userId)) {
-            throw new IllegalStateException("您的帳號因多次嘗試失敗已被鎖定，請於 " +
-                    lockoutTimes.get(userId).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")) +
-                    " 後再試。");
+            throw new BusinessException(ErrorCode.ACCOUNT_LOCKED,
+                "請於 " + lockoutTimes.get(userId).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")) + " 後再試");
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
 
         // 再次驗證舊密碼
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             // 這裡可以選擇再次觸發失敗嘗試邏輯，但為了避免重複訊息，直接拋出錯誤
             // 或者可以將 verifyOldPassword 的邏輯整合進來
-            throw new IllegalArgumentException("原密碼不正確。");
+            throw new BusinessException(ErrorCode.OLD_PASSWORD_INCORRECT);
         }
 
-        // 密碼強度檢查 (可選)
+        // 密碼強度檢查
         if (newPassword == null || newPassword.length() < 6) {
-            throw new IllegalArgumentException("新密碼長度至少為6個字元。");
+            throw new ValidationException(ErrorCode.PASSWORD_TOO_SHORT, "新密碼長度至少為6個字元");
         }
 
         // 更新密碼
@@ -294,10 +315,10 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void activateUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到使用者，ID: " + userId));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
+
         if (user.getStatus() == UserStatus.ACTIVE) {
-            throw new IllegalStateException("帳號已經是啟用狀態");
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "帳號已經是啟用狀態");
         }
         
         user.setStatus(UserStatus.ACTIVE);
@@ -311,8 +332,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void suspendUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到使用者，ID: " + userId));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
+
         user.setStatus(UserStatus.SUSPENDED);
         user.setSuspendedUntil(LocalDateTime.now().plusDays(30)); // 停權30天
         userRepository.save(user);
@@ -325,8 +346,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void restoreUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到使用者，ID: " + userId));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
+
         user.setStatus(UserStatus.ACTIVE);
         user.setSuspendedUntil(null);
         user.setPenaltyPoints(0); // 復權時清零罰分

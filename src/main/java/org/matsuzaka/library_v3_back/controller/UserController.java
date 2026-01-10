@@ -1,8 +1,7 @@
 package org.matsuzaka.library_v3_back.controller;
 
-
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import org.matsuzaka.library_v3_back.dto.common.ApiResponse;
 import org.matsuzaka.library_v3_back.dto.notificationDTO.NotificationResponseDto;
 import org.matsuzaka.library_v3_back.dto.userDTO.*;
 import org.matsuzaka.library_v3_back.model.entity.User;
@@ -43,21 +42,12 @@ public class UserController {
 
 
     // 註冊
-    @PostMapping("/register") // 新增註冊 API 端點
-    public ResponseEntity<RegistrationResponse> registerUser(@RequestBody UserRegistrationRequest request) {
-        try {
-            userService.registerUser(request);
-            return ResponseEntity.ok(new RegistrationResponse(true, "註冊成功！"));
-        } catch (IllegalArgumentException e) {
-            // 如果帳號或電子郵件已存在，返回 409 Conflict
-            // 這個特定的 IllegalArgumentException 仍然可以在這裡處理，
-            // 因為它返回的是 CONFLICT 狀態，而 GlobalExceptionHandler 可能預設處理為 BAD_REQUEST。
-            // 如果你希望所有 IllegalArgumentException 都返回 BAD_REQUEST，則可以移除此 try-catch。
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(new RegistrationResponse(false, e.getMessage()));
-        } catch (Exception e) {
-            // 其他未知錯誤，可以讓 GlobalExceptionHandler 處理，或者在這裡返回通用錯誤
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new RegistrationResponse(false, "註冊失敗，請稍後再試。"));
-        }
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<Void>> registerUser(@Valid @RequestBody UserRegistrationRequest request) {
+        userService.registerUser(request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("註冊成功！請等待管理員開通帳號"));
     }
 
 
@@ -75,16 +65,17 @@ public class UserController {
      * @return 當前登入使用者的詳細個人檔案。
      */
     @GetMapping("/me/profile")
-    public ResponseEntity<UserDetailRespDto> getCurrentUserProfile(@AuthenticationPrincipal UserDetailSecu currentUser) {
-        // 從安全的 currentUser 物件中獲取使用者 ID，而不是從前端的任何請求參數中獲取。
+    public ResponseEntity<ApiResponse<UserDetailRespDto>> getCurrentUserProfile(@AuthenticationPrincipal UserDetailSecu currentUser) {
         Long userId = currentUser.getUser().getId();
         UserDetailRespDto userProfile = userService.getUserDetailById(userId);
-        return ResponseEntity.ok(userProfile);
+        return ResponseEntity.ok(ApiResponse.success(userProfile));
     }
 
     @PutMapping("/me/profile")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UserDetailRespDto> updateUserProfile(@AuthenticationPrincipal UserDetailSecu currentUser, @Valid @RequestBody UserUpdateRequest request) {
+    public ResponseEntity<ApiResponse<UserDetailRespDto>> updateUserProfile(
+            @AuthenticationPrincipal UserDetailSecu currentUser,
+            @Valid @RequestBody UserUpdateRequest request) {
         Long userId = currentUser.getUser().getId();
         
         // 1. 更新使用者資料，並取得更新後的 User 實體
@@ -103,7 +94,7 @@ public class UserController {
         responseDto.setJwtToken(newToken);
         
         // 6. 回傳包含新 JWT 的 DTO
-        return ResponseEntity.ok(responseDto);
+        return ResponseEntity.ok(ApiResponse.success("個人資料更新成功", responseDto));
     }
 
     /**
@@ -114,11 +105,12 @@ public class UserController {
      * @return 驗證結果。
      */
     @PostMapping("/me/change-password/verify-old")
-    public ResponseEntity<ChangePasswordResponse> verifyOldPasswordNew(@AuthenticationPrincipal UserDetailSecu currentUser, @RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<ApiResponse<Void>> verifyOldPasswordNew(
+            @AuthenticationPrincipal UserDetailSecu currentUser,
+            @RequestBody ChangePasswordRequest request) {
         Long userId = currentUser.getUser().getId();
-        // 讓 Service 層處理業務邏輯和可能的例外，Controller 保持簡潔。
-        boolean isValid = userService.verifyOldPassword(userId, request.getOldPassword());
-        return ResponseEntity.ok(new ChangePasswordResponse(true, "原密碼驗證成功NEW。"));
+        userService.verifyOldPassword(userId, request.getOldPassword());
+        return ResponseEntity.ok(ApiResponse.success("原密碼驗證成功"));
     }
 
     /**
@@ -129,10 +121,12 @@ public class UserController {
      * @return 修改結果。
      */
     @PostMapping("/me/change-password")
-    public ResponseEntity<ChangePasswordResponse> changePassword(@AuthenticationPrincipal UserDetailSecu currentUser, @RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @AuthenticationPrincipal UserDetailSecu currentUser,
+            @RequestBody ChangePasswordRequest request) {
         Long userId = currentUser.getUser().getId();
         userService.changePassword(userId, request.getOldPassword(), request.getNewPassword());
-        return ResponseEntity.ok(new ChangePasswordResponse(true, "密碼修改成功NEW。"));
+        return ResponseEntity.ok(ApiResponse.success("密碼修改成功"));
     }
 
     /**
@@ -143,8 +137,10 @@ public class UserController {
      */
     @GetMapping("/me/notifications")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<NotificationResponseDto>> getMyNotifications(@AuthenticationPrincipal UserDetailSecu currentUser) {
-        return ResponseEntity.ok(notificationService.getUserNotifications(currentUser.getUser().getId()));
+    public ResponseEntity<ApiResponse<List<NotificationResponseDto>>> getMyNotifications(
+            @AuthenticationPrincipal UserDetailSecu currentUser) {
+        List<NotificationResponseDto> notifications = notificationService.getUserNotifications(currentUser.getUser().getId());
+        return ResponseEntity.ok(ApiResponse.success(notifications));
     }
 
     /**
@@ -156,9 +152,11 @@ public class UserController {
      */
     @PutMapping("/me/notifications/{id}/read")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> markNotificationRead(@PathVariable Long id, @AuthenticationPrincipal UserDetailSecu currentUser) {
+    public ResponseEntity<ApiResponse<Void>> markNotificationRead(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetailSecu currentUser) {
         notificationService.markAsRead(id, currentUser.getUser().getId());
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success("已讀取通知"));
     }
 
     /*

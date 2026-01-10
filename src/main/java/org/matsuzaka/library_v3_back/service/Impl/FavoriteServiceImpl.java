@@ -3,6 +3,9 @@ package org.matsuzaka.library_v3_back.service.Impl;
 import jakarta.transaction.Transactional;
 import org.matsuzaka.library_v3_back.dto.favoriteDTO.FavoriteDTO;
 import org.matsuzaka.library_v3_back.dto.favoriteDTO.FavoriteStatusDTO;
+import org.matsuzaka.library_v3_back.exception.BusinessException;
+import org.matsuzaka.library_v3_back.exception.ErrorCode;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.Author;
 import org.matsuzaka.library_v3_back.model.entity.Book;
 import org.matsuzaka.library_v3_back.model.entity.Favorite;
@@ -37,15 +40,15 @@ public class FavoriteServiceImpl implements FavoriteService {
     public void addFavorite(Long userId, Long bookId) {
         // 檢查是否已收藏
         if (favoriteRepository.existsByUserIdAndBookId(userId, bookId)) {
-            throw new IllegalArgumentException("已經收藏過此書籍");
+            throw new BusinessException(ErrorCode.ALREADY_FAVORITED);
         }
         
         // 查詢使用者和書籍
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("使用者不存在"));
+            .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
         Book book = bookRepository.findById(bookId)
-            .orElseThrow(() -> new IllegalArgumentException("書籍不存在"));
-        
+            .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_NOT_FOUND, "圖書ID: " + bookId));
+
         // 建立收藏
         Favorite favorite = new Favorite();
         favorite.setUser(user);
@@ -58,8 +61,8 @@ public class FavoriteServiceImpl implements FavoriteService {
     public void removeFavorite(Long userId, Long bookId) {
         // 查詢收藏記錄
         Favorite favorite = favoriteRepository.findByUserIdAndBookId(userId, bookId)
-            .orElseThrow(() -> new IllegalArgumentException("收藏記錄不存在"));
-        
+            .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.FAVORITE_NOT_FOUND));
+
         // 刪除收藏
         favoriteRepository.delete(favorite);
     }
@@ -76,10 +79,10 @@ public class FavoriteServiceImpl implements FavoriteService {
         } else {
             // 未收藏，則新增收藏
             User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("使用者不存在"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
             Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new IllegalArgumentException("書籍不存在"));
-            
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_NOT_FOUND, "圖書ID: " + bookId));
+
             Favorite favorite = new Favorite();
             favorite.setUser(user);
             favorite.setBook(book);

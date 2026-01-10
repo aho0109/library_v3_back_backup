@@ -1,12 +1,13 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
-
-import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.adminDTO.CreateBookCopyDTO;
 import org.matsuzaka.library_v3_back.dto.adminDTO.CreateBookDTO;
 import org.matsuzaka.library_v3_back.dto.adminDTO.ManyToManyInputDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.*;
 import org.matsuzaka.library_v3_back.dto.queryDTO.queryOneDTO.BookRespDtoOneDetails;
+import org.matsuzaka.library_v3_back.exception.BusinessException;
+import org.matsuzaka.library_v3_back.exception.ErrorCode;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.*;
 import org.matsuzaka.library_v3_back.model.enums.BookCopyStatus;
 import org.matsuzaka.library_v3_back.model.mapper.BookMapper;
@@ -219,17 +220,17 @@ public class BookServiceImpl implements BookService {
 
         // 2. 處理簡單的 ToOne 關聯
         CategorySub categorySub = categorySubRepository.findById(dto.getCategorySubId())
-                .orElseThrow(() -> new EntityNotFoundException("子分類不存在，ID: " + dto.getCategorySubId()));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.CATEGORY_SUB_NOT_FOUND, "子分類ID: " + dto.getCategorySubId()));
         book.setCategorySub(categorySub);
 
         Publisher publisher = publisherRepository.findById(dto.getPublisherId())
-                .orElseThrow(() -> new EntityNotFoundException("出版社不存在，ID: " + dto.getPublisherId()));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PUBLISHER_NOT_FOUND, "出版社ID: " + dto.getPublisherId()));
         book.setPublisher(publisher);
 
         // 3. 處理系列與代表作的業務邏輯
         if (dto.getSeriesId() != null) {
             Series series = seriesRepository.findById(dto.getSeriesId())
-                    .orElseThrow(() -> new EntityNotFoundException("系列不存在，ID: " + dto.getSeriesId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SERIES_NOT_FOUND, "系列ID: " + dto.getSeriesId()));
             book.setSeries(series);
 
             // 將此系列舊的代表作標記為 false(0)
@@ -319,7 +320,7 @@ public class BookServiceImpl implements BookService {
     public BookRespDtoOneDetails updateBook(Long id, CreateBookDTO dto) {
         // 查詢現有書籍
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("書籍不存在，ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_NOT_FOUND, "書籍ID: " + id));
 
         // 1. 更新基本屬性
         book.setTitle(dto.getTitle());
@@ -329,18 +330,18 @@ public class BookServiceImpl implements BookService {
 
         // 2. 更新分類
         CategorySub categorySub = categorySubRepository.findById(dto.getCategorySubId())
-                .orElseThrow(() -> new EntityNotFoundException("子分類不存在，ID: " + dto.getCategorySubId()));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.CATEGORY_SUB_NOT_FOUND, "子分類ID: " + dto.getCategorySubId()));
         book.setCategorySub(categorySub);
 
         // 3. 更新出版社
         Publisher publisher = publisherRepository.findById(dto.getPublisherId())
-                .orElseThrow(() -> new EntityNotFoundException("出版社不存在，ID: " + dto.getPublisherId()));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PUBLISHER_NOT_FOUND, "出版社ID: " + dto.getPublisherId()));
         book.setPublisher(publisher);
 
         // 4. 更新系列與代表作
         if (dto.getSeriesId() != null) {
             Series series = seriesRepository.findById(dto.getSeriesId())
-                    .orElseThrow(() -> new EntityNotFoundException("系列不存在，ID: " + dto.getSeriesId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SERIES_NOT_FOUND, "系列ID: " + dto.getSeriesId()));
             book.setSeries(series);
 
             // 處理代表作邏輯
@@ -388,15 +389,15 @@ public class BookServiceImpl implements BookService {
     @Transactional
     public void deleteBook(Long id) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("書籍不存在，ID: " + id));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_NOT_FOUND, "書籍ID: " + id));
+
         // 檢查是否有借閱中或預約中的副本
         long activeLoansCount = book.getBookCopies().stream()
                 .filter(copy -> copy.getStatus() == BookCopyStatus.L || copy.getStatus() == BookCopyStatus.R)
                 .count();
         
         if (activeLoansCount > 0) {
-            throw new IllegalStateException("此書籍仍有副本在借閱或預約中，無法刪除");
+            throw new BusinessException(ErrorCode.BOOK_HAS_COPIES, "此書籍仍有副本在借閱或預約中");
         }
         
         bookRepository.delete(book);
@@ -408,7 +409,7 @@ public class BookServiceImpl implements BookService {
     @Override
     public BookRespDtoOneDetails getBookById(Long id) {
         Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("書籍不存在，ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_NOT_FOUND, "書籍ID: " + id));
         return bookMapper.toBookRespDtoOneDetails(book);
     }
 
@@ -419,8 +420,8 @@ public class BookServiceImpl implements BookService {
     @Transactional
     public void addBookCopy(Long bookId, CreateBookCopyDTO copyDTO) {
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new EntityNotFoundException("書籍不存在，ID: " + bookId));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_NOT_FOUND, "書籍ID: " + bookId));
+
         BookCopy copy = new BookCopy();
         
         // 如果沒有提供 uniqueCode，自動生成

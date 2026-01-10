@@ -1,5 +1,6 @@
 package org.matsuzaka.library_v3_back.controller;
 
+import org.matsuzaka.library_v3_back.dto.common.ApiResponse;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookListItemDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookSearchResponseDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.queryOneDTO.BookRespDtoOneDetails;
@@ -125,7 +126,7 @@ public class BookController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Review Endpoints
+    // 評論 Endpoints
 
     /**
      * 新增書籍評論
@@ -136,10 +137,12 @@ public class BookController {
      */
     @PostMapping("/{bookId}/reviews")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ReviewResponseDto> addReview(@PathVariable Long bookId,
-                                                       @AuthenticationPrincipal UserDetailSecu currentUser,
-                                                       @RequestBody ReviewRequestDto request) {
-        return ResponseEntity.ok(reviewService.addReview(currentUser.getUser().getId(), bookId, request));
+    public ResponseEntity<ApiResponse<ReviewResponseDto>> addReview(
+            @PathVariable Long bookId,
+            @AuthenticationPrincipal UserDetailSecu currentUser,
+            @RequestBody ReviewRequestDto request) {
+        ReviewResponseDto review = reviewService.addReview(currentUser.getUser().getId(), bookId, request);
+        return ResponseEntity.ok(ApiResponse.success("評論新增成功", review));
     }
 
     /**
@@ -152,11 +155,13 @@ public class BookController {
      */
     @PutMapping("/{bookId}/reviews/{reviewId}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ReviewResponseDto> updateReview(@PathVariable Long bookId,
-                                                          @PathVariable Long reviewId,
-                                                          @AuthenticationPrincipal UserDetailSecu currentUser,
-                                                          @RequestBody ReviewRequestDto request) {
-        return ResponseEntity.ok(reviewService.updateReview(currentUser.getUser().getId(), reviewId, request));
+    public ResponseEntity<ApiResponse<ReviewResponseDto>> updateReview(
+            @PathVariable Long bookId,
+            @PathVariable Long reviewId,
+            @AuthenticationPrincipal UserDetailSecu currentUser,
+            @RequestBody ReviewRequestDto request) {
+        ReviewResponseDto review = reviewService.updateReview(currentUser.getUser().getId(), reviewId, request);
+        return ResponseEntity.ok(ApiResponse.success("評論更新成功", review));
     }
 
     /**
@@ -168,11 +173,12 @@ public class BookController {
      */
     @DeleteMapping("/{bookId}/reviews/{reviewId}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> deleteReview(@PathVariable Long bookId,
-                                          @PathVariable Long reviewId,
-                                          @AuthenticationPrincipal UserDetailSecu currentUser) {
+    public ResponseEntity<ApiResponse<Void>> deleteReview(
+            @PathVariable Long bookId,
+            @PathVariable Long reviewId,
+            @AuthenticationPrincipal UserDetailSecu currentUser) {
         reviewService.deleteReview(currentUser.getUser().getId(), reviewId);
-        return ResponseEntity.ok("評論刪除成功");
+        return ResponseEntity.ok(ApiResponse.success("評論刪除成功"));
     }
 
     /**
@@ -183,11 +189,13 @@ public class BookController {
      * @return
      */
     @GetMapping("/{bookId}/reviews")
-    public ResponseEntity<Page<ReviewResponseDto>> getReviews(@PathVariable Long bookId,
-                                                              @AuthenticationPrincipal UserDetailSecu currentUser, // Optional
-                                                              Pageable pageable) {
+    public ResponseEntity<ApiResponse<Page<ReviewResponseDto>>> getReviews(
+            @PathVariable Long bookId,
+            @AuthenticationPrincipal UserDetailSecu currentUser,
+            Pageable pageable) {
         Long userId = currentUser != null ? currentUser.getUser().getId() : null;
-        return ResponseEntity.ok(reviewService.getReviewsByBookId(bookId, userId, pageable));
+        Page<ReviewResponseDto> reviews = reviewService.getReviewsByBookId(bookId, userId, pageable);
+        return ResponseEntity.ok(ApiResponse.success(reviews));
     }
 
     /**
@@ -199,19 +207,25 @@ public class BookController {
      */
     @PostMapping("/{bookId}/reviews/{reviewId}/like")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<LikeStatusDto> toggleLikeReview(@PathVariable Long bookId,
-                                                           @PathVariable Long reviewId,
-                                                           @AuthenticationPrincipal UserDetailSecu currentUser) {
+    public ResponseEntity<ApiResponse<LikeStatusDto>> toggleLikeReview(
+            @PathVariable Long bookId,
+            @PathVariable Long reviewId,
+            @AuthenticationPrincipal UserDetailSecu currentUser) {
         boolean liked = reviewService.toggleLikeReview(currentUser.getUser().getId(), reviewId);
-        return ResponseEntity.ok(new LikeStatusDto(liked));
+        String message = liked ? "按讚成功" : "取消按讚成功";
+        return ResponseEntity.ok(ApiResponse.success(message, new LikeStatusDto(liked)));
     }
 
+    // （舊版 API，保留以防萬一）
     @DeleteMapping("/{bookId}/reviews/{reviewId}/like")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> unlikeReview(@PathVariable Long bookId,
-                                          @PathVariable Long reviewId,
-                                          @AuthenticationPrincipal UserDetailSecu currentUser) {
+    public ResponseEntity<ApiResponse<Void>> unlikeReview(
+            @PathVariable Long bookId,
+            @PathVariable Long reviewId,
+            @AuthenticationPrincipal UserDetailSecu currentUser) {
         reviewService.unlikeReview(currentUser.getUser().getId(), reviewId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success("取消按讚成功"));
+        // return ResponseEntity.ok().build();
+        // 回傳 HTTP 200，但沒有 body（body 為 null）。適合不需要回傳內容的情況。
     }
 }

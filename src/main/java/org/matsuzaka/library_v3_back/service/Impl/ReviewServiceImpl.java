@@ -1,8 +1,10 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.reviewDTO.ReviewRequestDto;
 import org.matsuzaka.library_v3_back.dto.reviewDTO.ReviewResponseDto;
+import org.matsuzaka.library_v3_back.exception.BusinessException;
+import org.matsuzaka.library_v3_back.exception.ErrorCode;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.Book;
 import org.matsuzaka.library_v3_back.model.entity.Review;
 import org.matsuzaka.library_v3_back.model.entity.ReviewLike;
@@ -50,13 +52,13 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public ReviewResponseDto addReview(Long userId, Long bookId, ReviewRequestDto request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到使用者"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到書籍"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_NOT_FOUND, "圖書ID: " + bookId));
 
         Optional<Review> existingReview = reviewRepository.findByUserIdAndBookId(userId, bookId);
         if (existingReview.isPresent()) {
-            throw new IllegalStateException("您已評論過此書籍");
+            throw new BusinessException(ErrorCode.REVIEW_ALREADY_EXISTS);
         }
 
         Review review = new Review();
@@ -84,11 +86,11 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public ReviewResponseDto updateReview(Long userId, Long reviewId, ReviewRequestDto request) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到評論"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.REVIEW_NOT_FOUND, "評論ID: " + reviewId));
 
         // 確認是評論者本人
         if (!Objects.equals(review.getUser().getId(), userId)) {
-            throw new IllegalStateException("您只能編輯自己的評論");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_REVIEW_OPERATION);
         }
 
         review.setRating(request.getRating());
@@ -111,11 +113,11 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public void deleteReview(Long userId, Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到評論"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.REVIEW_NOT_FOUND, "評論ID: " + reviewId));
 
         // 確認是評論者本人
         if (!Objects.equals(review.getUser().getId(), userId)) {
-            throw new IllegalStateException("您只能刪除自己的評論");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_REVIEW_OPERATION);
         }
 
         Book book = review.getBook();
@@ -162,24 +164,19 @@ public class ReviewServiceImpl implements ReviewService {
     public void likeReview(Long userId, Long reviewId) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到使用者"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到評論"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.REVIEW_NOT_FOUND, "評論ID: " + reviewId));
 
         // 已經按過讚
         if (reviewLikeRepository.existsByUserIdAndReviewId(userId, reviewId)) {
-            /* TODO: 把客製化訊息回傳給前端 */
-            System.out.println("您已按過讚");
-            System.out.println("使用者 " + userId + " 已經按過讚評論 " + reviewId);
-            return;
+            throw new BusinessException(ErrorCode.ALREADY_LIKED, "評論ID: " + reviewId);
         }
 
         // 按自己的讚無效
         if (Objects.equals(review.getUser().getId(), userId)) {
-            System.out.println("您不能按自己的讚");
-            throw new IllegalStateException("您不能按自己的讚");
+            throw new BusinessException(ErrorCode.CANNOT_LIKE_OWN_REVIEW);
         }
-
 
         ReviewLike like = new ReviewLike();
         like.setUser(user);
@@ -193,8 +190,8 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public void unlikeReview(Long userId, Long reviewId) {
         ReviewLike like = reviewLikeRepository.findByUserIdAndReviewId(userId, reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到按讚記錄"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.REVIEW_LIKE_NOT_FOUND));
+
         reviewLikeRepository.delete(like);
 
         Review review = like.getReview();
@@ -211,11 +208,11 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public boolean toggleLikeReview(Long userId, Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到評論"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.REVIEW_NOT_FOUND, "評論ID: " + reviewId));
 
         // 按自己的讚無效
         if (Objects.equals(review.getUser().getId(), userId)) {
-            throw new IllegalStateException("您不能按自己的讚");
+            throw new BusinessException(ErrorCode.CANNOT_LIKE_OWN_REVIEW);
         }
 
         // 檢查是否已按過讚
@@ -230,7 +227,7 @@ public class ReviewServiceImpl implements ReviewService {
         } else {
             // 未按讚 -> 新增讚
             User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new EntityNotFoundException("找不到使用者"));
+                    .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
 
             ReviewLike like = new ReviewLike();
             like.setUser(user);
