@@ -1,5 +1,9 @@
 package org.matsuzaka.library_v3_back.exceptionHandler;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.matsuzaka.library_v3_back.dto.common.ApiResponse;
@@ -11,9 +15,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.jpa.JpaSystemException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.web.authentication.session.SessionAuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -156,6 +164,132 @@ public class GlobalExceptionHandler {
         ApiResponse<Void> response = ApiResponse.error(
             ErrorCode.UNAUTHORIZED.getCode(),
             "認證失敗，請檢查您的登入資訊"
+        );
+
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(response);
+    }
+
+    // ==================== Spring Security 權限異常處理 ====================
+
+    /**
+     * 處理權限不足異常（403 Forbidden）
+     * 當使用者嘗試訪問沒有權限的資源時觸發
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException e) {
+        logger.warn("權限不足 - 拒絕訪問: {}", e.getMessage());
+
+        ApiResponse<Void> response = ApiResponse.error(
+            ErrorCode.FORBIDDEN.getCode(),
+            ErrorCode.FORBIDDEN.getMessage()
+        );
+
+        return ResponseEntity
+            .status(HttpStatus.FORBIDDEN)
+            .body(response);
+    }
+
+    /**
+     * 處理帳號停用異常
+     */
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDisabledException(DisabledException e) {
+        logger.warn("登入失敗 - 帳號已停用: {}", e.getMessage());
+
+        ApiResponse<Void> response = ApiResponse.error(
+            ErrorCode.USER_DISABLED.getCode(),
+            ErrorCode.USER_DISABLED.getMessage()
+        );
+
+        return ResponseEntity
+            .status(HttpStatus.FORBIDDEN)
+            .body(response);
+    }
+
+    /**
+     * 處理帳號鎖定異常
+     */
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleLockedException(LockedException e) {
+        logger.warn("登入失敗 - 帳號已鎖定: {}", e.getMessage());
+
+        ApiResponse<Void> response = ApiResponse.error(
+            ErrorCode.ACCOUNT_LOCKED.getCode(),
+            ErrorCode.ACCOUNT_LOCKED.getMessage()
+        );
+
+        return ResponseEntity
+            .status(HttpStatus.FORBIDDEN)
+            .body(response);
+    }
+
+    // ==================== JWT Token 異常處理 ====================
+    // JWT 異常在 Spring Security Filter 層就被攔截了，根本沒有進入到 Controller，所以 GlobalExceptionHandler 無法捕獲這些異常。
+    // 已改在 JwtAuthenticationFilter
+
+    /**
+     * 處理 JWT Token 過期異常
+     */
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<ApiResponse<Void>> handleExpiredJwtException(ExpiredJwtException e) {
+        logger.warn("JWT Token 已過期: {}", e.getMessage());
+
+        ApiResponse<Void> response = ApiResponse.error(
+            ErrorCode.UNAUTHORIZED.getCode(),
+            "登入已過期，請重新登入"
+        );
+
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(response);
+    }
+
+    /**
+     * 處理 JWT Token 格式錯誤異常
+     */
+    @ExceptionHandler(MalformedJwtException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMalformedJwtException(MalformedJwtException e) {
+        logger.warn("JWT Token 格式錯誤: {}", e.getMessage());
+
+        ApiResponse<Void> response = ApiResponse.error(
+            ErrorCode.UNAUTHORIZED.getCode(),
+            "無效的認證資訊，請重新登入"
+        );
+
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(response);
+    }
+
+    /**
+     * 處理 JWT 簽名驗證失敗異常
+     */
+    @ExceptionHandler(SignatureException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSignatureException(SignatureException e) {
+        logger.warn("JWT 簽名驗證失敗: {}", e.getMessage());
+
+        ApiResponse<Void> response = ApiResponse.error(
+            ErrorCode.UNAUTHORIZED.getCode(),
+            "認證資訊驗證失敗，請重新登入"
+        );
+
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(response);
+    }
+
+    /**
+     * 處理其他 JWT 相關異常
+     */
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<ApiResponse<Void>> handleJwtException(JwtException e) {
+        logger.warn("JWT 處理異常: {}", e.getMessage());
+
+        ApiResponse<Void> response = ApiResponse.error(
+            ErrorCode.UNAUTHORIZED.getCode(),
+            "認證資訊異常，請重新登入"
         );
 
         return ResponseEntity
