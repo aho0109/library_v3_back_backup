@@ -226,7 +226,8 @@ public class ReservationServiceImpl implements ReservationService {
         dto.setReserveDate(r.getReserveDate());
         dto.setExpirationDate(r.getExpirationDate());
         dto.setUniqueCode(r.getBookCopy().getUniqueCode());
-        dto.setAuthors(r.getBookCopy().getBook().getAuthors().stream().map(a -> a.getName()).collect(Collectors.toSet()));
+        //dto.setAuthors(r.getBookCopy().getBook().getAuthors().stream().map(a -> a.getName()).collect(Collectors.toSet()));
+        dto.setAuthors(r.getBookCopy().getBook().getAuthors().stream().map(Author::getName).collect(Collectors.toSet()));
         //dto.setNotifyDate(LocalDate.from(r.getNotifyDate()));
         //dto.setPickupDate(LocalDate.from(r.getPickupDate()));
         //  r.getNotifyDate() 或 r.getPickupDate() 可能為 null，LocalDate.from(...) 在傳入 null 時會丟出例外。改成 null-safe 的轉換（使用 toLocalDate() 並在為 null 時回傳 null）。

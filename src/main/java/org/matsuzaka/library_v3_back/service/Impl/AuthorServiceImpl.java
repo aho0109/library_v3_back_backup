@@ -1,6 +1,7 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
 import org.matsuzaka.library_v3_back.dto.AuthorDTO;
+import org.matsuzaka.library_v3_back.exception.BusinessException;
 import org.matsuzaka.library_v3_back.exception.ErrorCode;
 import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.Author;
@@ -15,6 +16,7 @@ import java.util.List;
 public class AuthorServiceImpl implements AuthorService {
 
     private final AuthorRepository authorRepository;
+    
     public AuthorServiceImpl(AuthorRepository authorRepository) {
         this.authorRepository = authorRepository;
     }
@@ -43,7 +45,7 @@ public class AuthorServiceImpl implements AuthorService {
     public AuthorDTO create(AuthorDTO dto) {
         // 檢查是否已存在
         if (authorRepository.findByName(dto.getName()).isPresent()) {
-            throw new org.matsuzaka.library_v3_back.exception.BusinessException(
+            throw new BusinessException(
                 ErrorCode.AUTHOR_ALREADY_EXISTS, "作者: " + dto.getName());
         }
         
@@ -73,7 +75,7 @@ public class AuthorServiceImpl implements AuthorService {
 
         // 檢查是否有書籍使用此作者
         if (!author.getBooks().isEmpty()) {
-            throw new org.matsuzaka.library_v3_back.exception.BusinessException(
+            throw new BusinessException(
                 ErrorCode.AUTHOR_HAS_BOOKS);
         }
 

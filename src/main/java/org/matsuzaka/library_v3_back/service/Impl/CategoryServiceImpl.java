@@ -2,6 +2,9 @@ package org.matsuzaka.library_v3_back.service.Impl;
 
 import org.matsuzaka.library_v3_back.dto.CategoryMainDTO;
 import org.matsuzaka.library_v3_back.dto.CategorySubDTO;
+import org.matsuzaka.library_v3_back.exception.BusinessException;
+import org.matsuzaka.library_v3_back.exception.ErrorCode;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.Category;
 import org.matsuzaka.library_v3_back.model.repositoryDao.CategoryRepository;
 import org.matsuzaka.library_v3_back.service.CategoryService;
@@ -57,7 +60,8 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryMainDTO updateCategory(Long id, CategoryMainDTO dto) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("主分類不存在"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.CATEGORY_NOT_FOUND, "分類ID: " + id));
+
         category.setCategoryTitle(dto.getCategoryTitle());
         Category updated = categoryRepository.save(category);
         
@@ -70,11 +74,11 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public void deleteCategory(Long id) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("主分類不存在"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.CATEGORY_NOT_FOUND, "分類ID: " + id));
+
         // 檢查是否有子分類
         if (!category.getCategorySubs().isEmpty()) {
-            throw new RuntimeException("無法刪除有子分類的主分類");
+            throw new BusinessException(ErrorCode.CATEGORY_HAS_SUBCATEGORIES);
         }
         
         categoryRepository.delete(category);

@@ -34,7 +34,8 @@ public class FavoriteServiceImpl implements FavoriteService {
         this.userRepository = userRepository;
         this.bookRepository = bookRepository;
     }
-    
+
+    // TODO:確認是否 API 已棄用
     @Override
     @Transactional
     public void addFavorite(Long userId, Long bookId) {
@@ -55,7 +56,8 @@ public class FavoriteServiceImpl implements FavoriteService {
         favorite.setBook(book);
         favoriteRepository.save(favorite);
     }
-    
+
+    // TODO:確認是否 API 已棄用
     @Override
     @Transactional
     public void removeFavorite(Long userId, Long bookId) {

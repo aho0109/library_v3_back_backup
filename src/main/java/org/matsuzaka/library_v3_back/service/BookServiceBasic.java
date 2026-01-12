@@ -26,10 +26,17 @@ public interface BookServiceBasic {
 
 
     /**
+     * 修正版，回傳單純的 BookRespDtoOneDetails
+     * 根據書籍 ID 查詢書籍詳細資訊
+     */
+    BookRespDtoOneDetails getOneByIdWithDetails(Long bookId);
+
+    /**
+     * 舊版
      * 根據書籍ID查詢詳細資訊(for 讀者端)。
      * 使用 JOIN FETCH 來避免 N+1 問題，確保在查詢書籍時，同時載入相關的作者、出版社、系列、分類子項、分類、書籍副本和標籤等關聯實體。
      * 參與到的table有：book, author, publisher, series, category, categorySub, bookCopy, tag
      */
-    Optional<BookRespDtoOneDetails> getOneByIdWithDetails(Long id);
+    Optional<BookRespDtoOneDetails> getOneByIdWithDetails00(Long id);
 
 }

@@ -1,6 +1,9 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
 import org.matsuzaka.library_v3_back.dto.CategorySubDTO;
+import org.matsuzaka.library_v3_back.exception.BusinessException;
+import org.matsuzaka.library_v3_back.exception.ErrorCode;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.Category;
 import org.matsuzaka.library_v3_back.model.entity.CategorySub;
 import org.matsuzaka.library_v3_back.model.repositoryDao.CategoryRepository;
@@ -37,8 +40,8 @@ public class CategorySubServiceImpl implements CategorySubService {
     public CategorySubDTO createCategorySub(CategorySubDTO dto) {
         // 檢查主分類是否存在
         Category category = categoryRepository.findById(dto.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("主分類不存在"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.CATEGORY_NOT_FOUND, "分類ID: " + dto.getCategoryId()));
+
         CategorySub sub = new CategorySub();
         sub.setCategorySubTitle(dto.getCategorySubTitle());
         sub.setCategory(category);
@@ -54,14 +57,14 @@ public class CategorySubServiceImpl implements CategorySubService {
     @Override
     public CategorySubDTO updateCategorySub(Long id, CategorySubDTO dto) {
         CategorySub sub = categorySubRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("子分類不存在"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.CATEGORY_SUB_NOT_FOUND, "子分類ID: " + id));
+
         sub.setCategorySubTitle(dto.getCategorySubTitle());
         
         // 如果要更新主分類
         if (dto.getCategoryId() != null && !dto.getCategoryId().equals(sub.getCategory().getId())) {
             Category category = categoryRepository.findById(dto.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("主分類不存在"));
+                    .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.CATEGORY_NOT_FOUND, "分類ID: " + dto.getCategoryId()));
             sub.setCategory(category);
         }
         
@@ -77,11 +80,11 @@ public class CategorySubServiceImpl implements CategorySubService {
     @Override
     public void deleteCategorySub(Long id) {
         CategorySub sub = categorySubRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("子分類不存在"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.CATEGORY_SUB_NOT_FOUND, "子分類ID: " + id));
+
         // 檢查是否有書籍使用此子分類
         if (!sub.getBooks().isEmpty()) {
-            throw new RuntimeException("無法刪除有書籍的子分類");
+            throw new BusinessException(ErrorCode.CATEGORY_SUB_HAS_BOOKS);
         }
         
         categorySubRepository.delete(sub);

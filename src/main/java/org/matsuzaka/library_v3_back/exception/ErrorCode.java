@@ -66,7 +66,10 @@ public enum ErrorCode {
     SERIES_HAS_BOOKS("3017", "系列仍有關聯書籍，無法刪除"),
 
     TAG_ALREADY_EXISTS("3018", "標籤已存在"),
-    //TAG_HAS_BOOKS("3019", "標籤仍有關聯書籍，無法刪除"),
+    TAG_HAS_BOOKS("3019", "標籤仍有關聯書籍，無法刪除"),
+
+    CATEGORY_HAS_SUBCATEGORIES("3020", "分類仍有子分類，無法刪除"),
+    CATEGORY_SUB_HAS_BOOKS("3021", "子分類仍有關聯書籍，無法刪除"),
 
     // ==================== 借閱相關錯誤 (4xxx) ====================
     LOAN_NOT_FOUND("4001", "借閱記錄不存在"),

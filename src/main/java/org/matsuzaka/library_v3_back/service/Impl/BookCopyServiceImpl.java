@@ -2,6 +2,9 @@ package org.matsuzaka.library_v3_back.service.Impl;
 
 import org.matsuzaka.library_v3_back.dto.loanDTO.ReturnResponseDto;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookCopyDTO;
+import org.matsuzaka.library_v3_back.exception.BusinessException;
+import org.matsuzaka.library_v3_back.exception.ErrorCode;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.BookCopy;
 import org.matsuzaka.library_v3_back.model.enums.BookCopyStatus;
 import org.matsuzaka.library_v3_back.model.repositoryDao.BookCopyRepository;
@@ -120,11 +123,11 @@ public class BookCopyServiceImpl implements BookCopyService {
     @Override
     public void deleteBookCopy(Long copyId) {
         BookCopy copy = bookCopyRepository.findById(copyId)
-                .orElseThrow(() -> new RuntimeException("副本不存在"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_COPY_NOT_FOUND, "副本ID: " + copyId));
 
         // 檢查副本是否可以刪除（不能是已借出狀態）
         if (copy.getStatus() == BookCopyStatus.L) {
-            throw new RuntimeException("無法刪除已借出的副本");
+            throw new BusinessException(ErrorCode.BOOK_COPY_UNAVAILABLE, "無法刪除已借出的副本");
         }
 
         bookCopyRepository.delete(copy);
@@ -137,8 +140,8 @@ public class BookCopyServiceImpl implements BookCopyService {
     @Transactional(readOnly = true)
     public List<?> getBookCopyLoanHistory(Long copyId) {
         BookCopy copy = bookCopyRepository.findById(copyId)
-                .orElseThrow(() -> new RuntimeException("副本不存在"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_COPY_NOT_FOUND, "副本ID: " + copyId));
+
         // 返回該副本的所有借閱記錄（由舊到新）
         return bookCopyRepository.findLoanHistoryByCopyId(copyId);
     }
@@ -150,8 +153,8 @@ public class BookCopyServiceImpl implements BookCopyService {
     @Transactional(readOnly = true)
     public List<?> getBookCopyReservationHistory(Long copyId) {
         BookCopy copy = bookCopyRepository.findById(copyId)
-                .orElseThrow(() -> new RuntimeException("副本不存在"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_COPY_NOT_FOUND, "副本ID: " + copyId));
+
         // 返回該副本的所有預約記錄（由舊到新）
         return bookCopyRepository.findReservationHistoryByCopyId(copyId);
     }

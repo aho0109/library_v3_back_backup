@@ -3,6 +3,7 @@ package org.matsuzaka.library_v3_back.service.Impl;
 
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookListItemDTO;
 import org.matsuzaka.library_v3_back.dto.queryDTO.queryOneDTO.BookRespDtoOneDetails;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.Author;
 import org.matsuzaka.library_v3_back.model.entity.Book;
 import org.matsuzaka.library_v3_back.model.mapper.BookMapper;
@@ -79,8 +80,38 @@ public class BookServiceBasicImpl implements BookServiceBasic {
         }).collect(Collectors.toList()); // 將所有轉換後的 DTO 對象收集到一個列表中並返回
     }
 
+    /**
+     * 修正版，回傳單純的 BookRespDtoOneDetails
+     * 根據書籍 ID 查詢書籍詳細資訊
+     */
+    @Override
+    public BookRespDtoOneDetails getOneByIdWithDetails(Long bookId) {
+        BookRespDtoOneDetails dto = bookRepository.findOneByIdWithDetails(bookId)
+                .map(bookMapper::toBookRespDtoOneDetails)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        org.matsuzaka.library_v3_back.exception.ErrorCode.BOOK_NOT_FOUND,
+                        "書籍ID: " + bookId));
+
+        // 補上每本副本的預計歸還日（如果該副本為「已借出」）
+        if (dto.getBookCopies() != null) {
+            dto.getBookCopies().forEach(copyDto -> {
+                if (copyDto.getStatusDescription() != null && copyDto.getStatusDescription().contains("已借出")) {
+                    loanRepository.findFirstByBookCopyIdAndReturnDateIsNullOrderByLoanDateDesc(copyDto.getId())
+                            .ifPresent(loan -> {
+                                if (loan.getDueDate() != null) {
+                                    copyDto.setStatusDescription(copyDto.getStatusDescription() + "(" + loan.getDueDate() + " 到期)");
+                                }
+                            });
+                }
+            });
+        }
+
+        return dto;
+    }
+
 
     /**
+     * 舊版
      * 根據書籍ID查詢詳細資訊(for 讀者端)。
      * 使用 JOIN FETCH 來避免 N+1 問題，確保在查詢書籍時，同時載入相關的作者、出版社、系列、分類子項、分類、書籍副本和標籤等關聯實體。
      * 參與到的table有：book, author, publisher, series, category, categorySub, bookCopy, tag
@@ -88,7 +119,7 @@ public class BookServiceBasicImpl implements BookServiceBasic {
     // 根據書籍 ID 查詢書籍詳細資訊02
     // @EntityGraph + mapstruct(BookMapper類、BookCopyMapper類)
     @Override
-    public Optional<BookRespDtoOneDetails> getOneByIdWithDetails(Long bookId) {
+    public Optional<BookRespDtoOneDetails> getOneByIdWithDetails00(Long bookId) {
         Optional<BookRespDtoOneDetails> opt = bookRepository.findOneByIdWithDetails(bookId)
                 .map(bookMapper::toBookRespDtoOneDetails);
 
@@ -111,5 +142,5 @@ public class BookServiceBasicImpl implements BookServiceBasic {
         });
 
         return opt;
-    }
+        }
 }

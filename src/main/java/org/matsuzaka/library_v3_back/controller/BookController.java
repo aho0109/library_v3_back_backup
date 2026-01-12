@@ -120,16 +120,14 @@ public class BookController {
     }
 
     /**
-     * 根據書籍 ID 查詢詳細資訊(for 讀者端)。
-     * 使用 JOIN FETCH 來避免 N+1 問題，確保在查詢書籍時，同時載入相關的作者、出版社、系列、分類子項、分類、書籍副本和標籤等關聯實體。
-     * 參與到的table有：book, author, publisher, series, category, categorySub, bookCopy, tag
+     * 更新版，serviceImpl 回傳單純的 BookRespDtoOneDetails
+     * 原本 serviceImpl 回傳 Optional<BookRespDtoOneDetails>，還要在這裡處理 orelse
+     * 根據書籍 ID 查詢詳細資訊(for 讀者端)
      */
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<BookRespDtoOneDetails>> getOneByIdWithDetails(@PathVariable("id") Long id) {
-        return bookServiceBasic.getOneByIdWithDetails(id)
-                //.map(ResponseEntity::ok)
-                .map(book -> ResponseEntity.ok(ApiResponse.success(book)))
-                .orElse(ResponseEntity.notFound().build());
+        BookRespDtoOneDetails book = bookServiceBasic.getOneByIdWithDetails(id);
+        return ResponseEntity.ok(ApiResponse.success(book));
     }
 
     // 評論 Endpoints

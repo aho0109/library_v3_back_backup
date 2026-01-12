@@ -11,6 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.jpa.JpaSystemException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -97,6 +100,66 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
+            .body(response);
+    }
+
+    // ==================== Spring Security 認證異常處理 ====================
+    // 一般情況下，照目前設計，ErrorCode 應該在 Service（serviceImpl） 層決定
+    // 但Spring Security 認證比較特例
+    //   認證流程在 Controller 之前就完成了
+    //   異常是 Spring Security 框架拋出的
+    //   我們無法在 Service 層控制
+    //   所以在 GlobalExceptionHandler 映射是合理的例外
+
+
+    /**
+     * 處理帳號密碼錯誤異常（登入失敗）
+     */
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBadCredentialsException(BadCredentialsException e) {
+        logger.warn("登入失敗 - 帳號或密碼錯誤: {}", e.getMessage());
+
+        ApiResponse<Void> response = ApiResponse.error(
+            ErrorCode.INVALID_CREDENTIALS.getCode(),
+            ErrorCode.INVALID_CREDENTIALS.getMessage()
+        );
+
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(response);
+    }
+
+    /**
+     * 處理使用者不存在異常（登入時找不到帳號）
+     */
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUsernameNotFoundException(UsernameNotFoundException e) {
+        logger.warn("登入失敗 - 使用者不存在: {}", e.getMessage());
+
+        ApiResponse<Void> response = ApiResponse.error(
+            ErrorCode.INVALID_CREDENTIALS.getCode(),
+            ErrorCode.INVALID_CREDENTIALS.getMessage()
+        );
+
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(response);
+    }
+
+    /**
+     * 處理其他認證異常
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException e) {
+        logger.warn("認證失敗: {}", e.getMessage());
+
+        ApiResponse<Void> response = ApiResponse.error(
+            ErrorCode.UNAUTHORIZED.getCode(),
+            "認證失敗，請檢查您的登入資訊"
+        );
+
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
             .body(response);
     }
 
@@ -379,7 +442,7 @@ public class GlobalExceptionHandler {
                 code.equals("3016") || code.equals("3018")) {
                 return HttpStatus.CONFLICT;
             }
-            // 其他業務邏輯錯誤 (3004, 3011, 3013, 3015, 3017, 3019)
+            // 其他業務邏輯錯誤 (3004, 3011, 3013, 3015, 3017, 3019, 3020, 3021)
             return HttpStatus.BAD_REQUEST;
         }
 

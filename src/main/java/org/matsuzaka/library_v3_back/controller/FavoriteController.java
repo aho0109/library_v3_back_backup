@@ -74,6 +74,7 @@ public class FavoriteController {
     /**
      * 新增收藏
      */
+    // TODO:確認是否 API 已棄用
     @PostMapping("/{bookId}")
     public ResponseEntity<String> addFavorite(
             @PathVariable Long bookId,
@@ -86,6 +87,7 @@ public class FavoriteController {
     /**
      * 取消收藏
      */
+    // TODO:確認是否 API 已棄用
     @DeleteMapping("/{bookId}")
     public ResponseEntity<String> removeFavorite(
             @PathVariable Long bookId,
