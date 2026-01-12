@@ -1,5 +1,6 @@
 package org.matsuzaka.library_v3_back.controller;
 
+import org.matsuzaka.library_v3_back.dto.common.ApiResponse;
 import org.matsuzaka.library_v3_back.dto.CategoryMainDTO;
 import org.matsuzaka.library_v3_back.dto.CategorySubDTO;
 import org.matsuzaka.library_v3_back.service.CategoryService;
@@ -32,39 +33,30 @@ public class AdminCategoryController {
      * 新增主分類
      */
     @PostMapping("/categories")
-    public ResponseEntity<?> createMainCategory(@RequestBody CategoryMainDTO dto) {
-        try {
-            CategoryMainDTO created = categoryService.createCategory(dto);
-            return new ResponseEntity<>(created, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<CategoryMainDTO>> createMainCategory(@RequestBody CategoryMainDTO dto) {
+        CategoryMainDTO created = categoryService.createCategory(dto);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("主分類新增成功", created));
     }
 
     /**
      * 更新主分類
      */
     @PutMapping("/categories/{id}")
-    public ResponseEntity<?> updateMainCategory(@PathVariable Long id, @RequestBody CategoryMainDTO dto) {
-        try {
-            CategoryMainDTO updated = categoryService.updateCategory(id, dto);
-            return ResponseEntity.ok(updated);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<CategoryMainDTO>> updateMainCategory(
+            @PathVariable Long id, @RequestBody CategoryMainDTO dto) {
+        CategoryMainDTO updated = categoryService.updateCategory(id, dto);
+        return ResponseEntity.ok(ApiResponse.success("主分類更新成功", updated));
     }
 
     /**
      * 刪除主分類
      */
     @DeleteMapping("/categories/{id}")
-    public ResponseEntity<String> deleteMainCategory(@PathVariable Long id) {
-        try {
-            categoryService.deleteCategory(id);
-            return ResponseEntity.ok("主分類刪除成功");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<Void>> deleteMainCategory(@PathVariable Long id) {
+        categoryService.deleteCategory(id);
+        return ResponseEntity.ok(ApiResponse.success("主分類刪除成功"));
     }
 
     // ===== 子分類管理 =====
@@ -73,39 +65,31 @@ public class AdminCategoryController {
      * 新增子分類
      */
     @PostMapping("/category-subs")
-    public ResponseEntity<?> createSubCategory(@RequestBody CategorySubDTO dto) {
-        try {
-            CategorySubDTO created = categorySubService.createCategorySub(dto);
-            return new ResponseEntity<>(created, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<CategorySubDTO>> createSubCategory(@RequestBody CategorySubDTO dto) {
+        CategorySubDTO created = categorySubService.createCategorySub(dto);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("子分類新增成功", created));
     }
 
     /**
      * 更新子分類
      */
     @PutMapping("/category-subs/{id}")
-    public ResponseEntity<?> updateSubCategory(@PathVariable Long id, @RequestBody CategorySubDTO dto) {
-        try {
-            CategorySubDTO updated = categorySubService.updateCategorySub(id, dto);
-            return ResponseEntity.ok(updated);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<CategorySubDTO>> updateSubCategory(
+            @PathVariable Long id, @RequestBody CategorySubDTO dto) {
+        CategorySubDTO updated = categorySubService.updateCategorySub(id, dto);
+        return ResponseEntity.ok(ApiResponse.success("子分類更新成功", updated));
     }
 
     /**
      * 刪除子分類
      */
     @DeleteMapping("/category-subs/{id}")
-    public ResponseEntity<String> deleteSubCategory(@PathVariable Long id) {
-        try {
-            categorySubService.deleteCategorySub(id);
-            return ResponseEntity.ok("子分類刪除成功");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<Void>> deleteSubCategory(@PathVariable Long id) {
+        categorySubService.deleteCategorySub(id);
+        return ResponseEntity.ok(ApiResponse.success("子分類刪除成功"));
     }
 }
+
 

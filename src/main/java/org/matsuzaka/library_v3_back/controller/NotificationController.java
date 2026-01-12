@@ -1,5 +1,6 @@
 package org.matsuzaka.library_v3_back.controller;
 
+import org.matsuzaka.library_v3_back.dto.common.ApiResponse;
 import org.matsuzaka.library_v3_back.dto.notificationDTO.NotificationResponseDto;
 import org.matsuzaka.library_v3_back.security.UserDetailSecu;
 import org.matsuzaka.library_v3_back.service.NotificationService;
@@ -9,11 +10,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 通知功能 Controller
- * 
- * 功能：
  * 1. 讀取使用者的所有通知（站內信）
  * 2. 標記通知為已讀
  * 3. 取得未讀通知數量
@@ -34,9 +34,9 @@ public class NotificationController {
      */
     @PostMapping("/test/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> sendTestNotification(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Void>> sendTestNotification(@PathVariable Long userId) {
         notificationService.sendTestNotification(userId);
-        return ResponseEntity.ok("測試通知發送成功");
+        return ResponseEntity.ok(ApiResponse.success("測試通知發送成功"));
     }
 
     /**
@@ -45,9 +45,10 @@ public class NotificationController {
      */
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<NotificationResponseDto>> getMyNotifications(
+    public ResponseEntity<ApiResponse<List<NotificationResponseDto>>> getMyNotifications(
             @AuthenticationPrincipal UserDetailSecu currentUser) {
-        return ResponseEntity.ok(notificationService.getUserNotifications(currentUser.getUser().getId()));
+        List<NotificationResponseDto> notifications = notificationService.getUserNotifications(currentUser.getUser().getId());
+        return ResponseEntity.ok(ApiResponse.success(notifications));
     }
 
     /**
@@ -55,23 +56,11 @@ public class NotificationController {
      */
     @PutMapping("/{notificationId}/read")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> markAsRead(@PathVariable Long notificationId,
-                                        @AuthenticationPrincipal UserDetailSecu currentUser) {
-        try {
-            notificationService.markAsRead(notificationId, currentUser.getUser().getId());
-            return ResponseEntity.ok("已標記為已讀");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    /**
-     * 獲取未讀通知數量
-     */
-    @GetMapping("/unread-count")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Long> getUnreadCount(@AuthenticationPrincipal UserDetailSecu currentUser) {
-        return ResponseEntity.ok(notificationService.getUnreadCount(currentUser.getUser().getId()));
+    public ResponseEntity<ApiResponse<Void>> markAsRead(
+            @PathVariable Long notificationId,
+            @AuthenticationPrincipal UserDetailSecu currentUser) {
+        notificationService.markAsRead(notificationId, currentUser.getUser().getId());
+        return ResponseEntity.ok(ApiResponse.success("通知已標記為已讀"));
     }
 
     /**
@@ -79,13 +68,32 @@ public class NotificationController {
      */
     @PutMapping("/read-all")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> markAllAsRead(@AuthenticationPrincipal UserDetailSecu currentUser) {
-        try {
-            notificationService.markAllAsRead(currentUser.getUser().getId());
-            return ResponseEntity.ok("已全部標記為已讀");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<Void>> markAllAsRead(
+            @AuthenticationPrincipal UserDetailSecu currentUser) {
+        notificationService.markAllAsRead(currentUser.getUser().getId());
+        return ResponseEntity.ok(ApiResponse.success("所有通知已標記為已讀"));
     }
-}
 
+    /**
+     * 取得未讀通知數量
+     */
+    @GetMapping("/unread-count")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Long>> getUnreadCount(
+            @AuthenticationPrincipal UserDetailSecu currentUser) {
+        long count = notificationService.getUnreadCount(currentUser.getUser().getId());
+        return ResponseEntity.ok(ApiResponse.success(count));
+    }
+
+//    /**
+//     * 刪除通知
+//     */
+//    @DeleteMapping("/{notificationId}")
+//    @PreAuthorize("isAuthenticated()")
+//    public ResponseEntity<ApiResponse<Void>> deleteNotification(
+//            @PathVariable Long notificationId,
+//            @AuthenticationPrincipal UserDetailSecu currentUser) {
+//        notificationService.deleteNotification(notificationId, currentUser.getUser().getId());
+//        return ResponseEntity.ok(ApiResponse.success("通知刪除成功"));
+//    }
+}

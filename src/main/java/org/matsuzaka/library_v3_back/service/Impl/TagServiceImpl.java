@@ -1,8 +1,10 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.TagDTO;
 import org.matsuzaka.library_v3_back.dto.TagTop10DTO;
+import org.matsuzaka.library_v3_back.exception.BusinessException;
+import org.matsuzaka.library_v3_back.exception.ErrorCode;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.Tag;
 import org.matsuzaka.library_v3_back.model.repositoryDao.TagRepository;
 import org.matsuzaka.library_v3_back.service.TagService;
@@ -63,7 +65,7 @@ public class TagServiceImpl implements TagService {
     public TagDTO create(TagDTO dto) {
         // 檢查是否已存在
         if (tagRepository.findByTitle(dto.getTitle()).isPresent()) {
-            throw new IllegalArgumentException("標籤已存在");
+            throw new BusinessException(ErrorCode.TAG_ALREADY_EXISTS, "標籤: " + dto.getTitle());
         }
         
         Tag tag = new Tag();
@@ -77,8 +79,8 @@ public class TagServiceImpl implements TagService {
     @Override
     public TagDTO update(Long id, TagDTO dto) {
         Tag tag = tagRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("標籤不存在"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.TAG_NOT_FOUND, "標籤ID: " + id));
+
         tag.setTitle(dto.getTitle());
         Tag updated = tagRepository.save(tag);
         
@@ -88,12 +90,10 @@ public class TagServiceImpl implements TagService {
     @Override
     public void delete(Long id) {
         Tag tag = tagRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("標籤不存在"));
-        
-        // 檢查是否有書籍使用此標籤
-        if (!tag.getBooks().isEmpty()) {
-            throw new IllegalStateException("無法刪除有書籍的標籤");
-        }
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.TAG_NOT_FOUND, "標籤ID: " + id));
+
+        // 解除雙向關聯：從每本書中移除此標籤，清空 tag 的 books 集合（不刪除書籍）
+        tagRepository.deleteTagAssociations(tag.getId());
         
         tagRepository.delete(tag);
     }

@@ -63,9 +63,7 @@ public class LoanController {
 
     /**
      * 【核心修改 1：實現安全的 "my" 端點】
-     * 將原本的 /current/{userId} 改為 /my-current。
-     * "my" 這個詞清楚地表明了這是獲取「當前登入者自己」的資料。
-     *
+     * 原本的 /current/{userId} 改為 /my-current。
      * @param currentUser 由 Spring Security 從有效的 JWT 中解析並安全注入的使用者物件。
      * @return 當前登入者的借閱中書籍列表。
      */

@@ -56,6 +56,18 @@ public enum ErrorCode {
     TAG_NOT_FOUND("3010", "標籤不存在"),
     BOOK_HAS_COPIES("3011", "圖書仍有副本，無法刪除"),
 
+    AUTHOR_ALREADY_EXISTS("3012", "作者已存在"),
+    AUTHOR_HAS_BOOKS("3013", "作者仍有關聯書籍，無法刪除"),
+
+    PUBLISHER_ALREADY_EXISTS("3014", "出版社已存在"),
+    PUBLISHER_HAS_BOOKS("3015", "出版社仍有關聯書籍，無法刪除"),
+
+    SERIES_ALREADY_EXISTS("3016", "系列已存在"),
+    SERIES_HAS_BOOKS("3017", "系列仍有關聯書籍，無法刪除"),
+
+    TAG_ALREADY_EXISTS("3018", "標籤已存在"),
+    //TAG_HAS_BOOKS("3019", "標籤仍有關聯書籍，無法刪除"),
+
     // ==================== 借閱相關錯誤 (4xxx) ====================
     LOAN_NOT_FOUND("4001", "借閱記錄不存在"),
     BORROW_LIMIT_EXCEEDED("4002", "借閱數量已達上限"),

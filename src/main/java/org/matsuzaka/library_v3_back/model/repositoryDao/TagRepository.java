@@ -3,6 +3,7 @@ package org.matsuzaka.library_v3_back.model.repositoryDao;
 import org.matsuzaka.library_v3_back.model.entity.Tag;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -35,4 +36,10 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
     @Query("SELECT t FROM Tag t ORDER BY t.id DESC ")
     List<Tag> findAll();
 
+
+    // 刪除 tag 和 book 的關聯
+    // 關聯數量大，改為在 Repository 用單一 SQL 刪除 join table 的關聯，再刪除 `tag`，比迭代每本書性能好。範例（native query）：
+    @Modifying
+    @Query(value = "DELETE FROM book_tag WHERE tag_id = :id", nativeQuery = true)
+    void deleteTagAssociations(@Param("id") Long id);
 }

@@ -1,12 +1,12 @@
 package org.matsuzaka.library_v3_back.controller;
 
+import org.matsuzaka.library_v3_back.dto.common.ApiResponse;
 import org.matsuzaka.library_v3_back.dto.loanDTO.LoanItemRespDto;
 import org.matsuzaka.library_v3_back.dto.reservationDTO.ReservationResponseDto;
 import org.matsuzaka.library_v3_back.dto.userDTO.UserBriefDTO;
 import org.matsuzaka.library_v3_back.dto.userDTO.UserDetailRespDto;
 import org.matsuzaka.library_v3_back.model.entity.User;
 import org.matsuzaka.library_v3_back.model.enums.Role;
-import org.matsuzaka.library_v3_back.model.enums.UserStatus;
 import org.matsuzaka.library_v3_back.model.repositoryDao.LoanRepository;
 import org.matsuzaka.library_v3_back.model.repositoryDao.UserRepository;
 import org.matsuzaka.library_v3_back.service.LoanService;
@@ -48,10 +48,13 @@ public class AdminUserController {
     /**
      * 根據 cardId 查詢使用者基本資訊（借還書用）
      */
+    // TODO: 整理業務邏輯，移到 service
     @GetMapping("/by-card/{cardId}")
-    public ResponseEntity<UserBriefDTO> getUserByCardId(@PathVariable String cardId) {
+    public ResponseEntity<ApiResponse<UserBriefDTO>> getUserByCardId(@PathVariable String cardId) {
         User user = userRepository.findByCardId(cardId)
-                .orElseThrow(() -> new IllegalArgumentException("找不到使用者，借書證號：" + cardId));
+                .orElseThrow(() -> new org.matsuzaka.library_v3_back.exception.ResourceNotFoundException(
+                    org.matsuzaka.library_v3_back.exception.ErrorCode.USER_NOT_FOUND,
+                    "借書證號: " + cardId));
 
         // 計算目前借閱數量
         long currentLoansCount = loanRepository.countByUserIdAndStatus(
@@ -73,14 +76,14 @@ public class AdminUserController {
         dto.setCurrentLoansCount((int) currentLoansCount);
         dto.setMaxLoansAllowed(maxLoansAllowed);
 
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(ApiResponse.success(dto));
     }
 
     /**
      * 會員搜尋（支援多個條件）
      */
     @GetMapping("/search")
-    public ResponseEntity<List<UserDetailRespDto>> searchUsers(
+    public ResponseEntity<ApiResponse<List<UserDetailRespDto>>> searchUsers(
             @RequestParam(required = false) String cardId,
             @RequestParam(required = false) String account,
             @RequestParam(required = false) String name,
@@ -88,64 +91,52 @@ public class AdminUserController {
             @RequestParam(required = false) String phone) {
         
         List<UserDetailRespDto> users = userService.searchUsers(cardId, account, name, email, phone);
-        return ResponseEntity.ok(users);
+        return ResponseEntity.ok(ApiResponse.success(users));
     }
 
     /**
      * 開通帳號
      */
     @PutMapping("/{userId}/activate")
-    public ResponseEntity<String> activateUser(@PathVariable Long userId) {
-        try {
-            userService.activateUser(userId);
-            return ResponseEntity.ok("帳號開通成功");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<Void>> activateUser(@PathVariable Long userId) {
+        userService.activateUser(userId);
+        return ResponseEntity.ok(ApiResponse.success("帳號開通成功"));
     }
 
     /**
      * 停權帳號
      */
     @PutMapping("/{userId}/suspend")
-    public ResponseEntity<String> suspendUser(@PathVariable Long userId) {
-        try {
-            userService.suspendUser(userId);
-            return ResponseEntity.ok("帳號已停權");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<Void>> suspendUser(@PathVariable Long userId) {
+        userService.suspendUser(userId);
+        return ResponseEntity.ok(ApiResponse.success("帳號已停權"));
     }
 
     /**
      * 復權帳號
      */
     @PutMapping("/{userId}/restore")
-    public ResponseEntity<String> restoreUser(@PathVariable Long userId) {
-        try {
-            userService.restoreUser(userId);
-            return ResponseEntity.ok("帳號已復權");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<Void>> restoreUser(@PathVariable Long userId) {
+        userService.restoreUser(userId);
+        return ResponseEntity.ok(ApiResponse.success("帳號已復權"));
     }
 
     /**
      * 查詢會員借閱記錄
      */
     @GetMapping("/{userId}/loans")
-    public ResponseEntity<List<LoanItemRespDto>> getUserLoans(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<List<LoanItemRespDto>>> getUserLoans(@PathVariable Long userId) {
         List<LoanItemRespDto> loans = loanService.getHistoryByUserId(userId);
-        return ResponseEntity.ok(loans);
+        return ResponseEntity.ok(ApiResponse.success(loans));
     }
 
     /**
      * 查詢會員預約記錄
      */
     @GetMapping("/{userId}/reservations")
-    public ResponseEntity<List<ReservationResponseDto>> getUserReservations(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<List<ReservationResponseDto>>> getUserReservations(@PathVariable Long userId) {
         List<ReservationResponseDto> reservations = reservationService.getUserReservationsAdmin(userId);
-        return ResponseEntity.ok(reservations);
+        return ResponseEntity.ok(ApiResponse.success(reservations));
     }
 
     /**

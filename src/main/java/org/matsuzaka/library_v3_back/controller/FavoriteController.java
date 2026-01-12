@@ -1,5 +1,6 @@
 package org.matsuzaka.library_v3_back.controller;
 
+import org.matsuzaka.library_v3_back.dto.common.ApiResponse;
 import org.matsuzaka.library_v3_back.dto.favoriteDTO.FavoriteDTO;
 import org.matsuzaka.library_v3_back.dto.favoriteDTO.FavoriteStatusDTO;
 import org.matsuzaka.library_v3_back.security.UserDetailSecu;
@@ -14,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/favorites")
 @CrossOrigin(origins = "*")
+@PreAuthorize("isAuthenticated()")
 public class FavoriteController {
     
     private final FavoriteService favoriteService;
@@ -26,57 +28,53 @@ public class FavoriteController {
      * 獲取當前使用者的所有收藏
      */
     @GetMapping("/my")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<FavoriteDTO>> getMyFavorites(
+    public ResponseEntity<ApiResponse<List<FavoriteDTO>>> getMyFavorites(
             @AuthenticationPrincipal UserDetailSecu currentUser) {
         Long userId = currentUser.getUser().getId();
         List<FavoriteDTO> favorites = favoriteService.getUserFavorites(userId);
-        return ResponseEntity.ok(favorites);
+        return ResponseEntity.ok(ApiResponse.success(favorites));
     }
     
     /**
      * 切換收藏狀態（有就刪除，沒有就新增）
      */
     @PostMapping("/toggle/{bookId}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<FavoriteStatusDTO> toggleFavorite(
+    public ResponseEntity<ApiResponse<FavoriteStatusDTO>> toggleFavorite(
             @PathVariable Long bookId,
             @AuthenticationPrincipal UserDetailSecu currentUser) {
         Long userId = currentUser.getUser().getId();
         FavoriteStatusDTO status = favoriteService.toggleFavorite(userId, bookId);
-        return ResponseEntity.ok(status);
+        String message = status.isFavorited() ? "收藏成功" : "取消收藏成功";
+        return ResponseEntity.ok(ApiResponse.success(message, status));
     }
     
     /**
      * 檢查是否已收藏某書籍
      */
     @GetMapping("/check/{bookId}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<FavoriteStatusDTO> checkFavorite(
+    public ResponseEntity<ApiResponse<FavoriteStatusDTO>> checkFavorite(
             @PathVariable Long bookId,
             @AuthenticationPrincipal UserDetailSecu currentUser) {
         Long userId = currentUser.getUser().getId();
         boolean isFavorited = favoriteService.isFavorited(userId, bookId);
-        return ResponseEntity.ok(new FavoriteStatusDTO(isFavorited));
+        return ResponseEntity.ok(ApiResponse.success(new FavoriteStatusDTO(isFavorited)));
     }
-    
+
     /**
-     * 獲取當前使用者收藏的所有書籍 ID
+     * 取得當前使用者收藏的書籍ID列表
      */
     @GetMapping("/book-ids")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<Long>> getFavoriteBookIds(
+    public ResponseEntity<ApiResponse<List<Long>>> getFavoriteBookIds(
             @AuthenticationPrincipal UserDetailSecu currentUser) {
         Long userId = currentUser.getUser().getId();
         List<Long> bookIds = favoriteService.getUserFavoriteBookIds(userId);
-        return ResponseEntity.ok(bookIds);
+        return ResponseEntity.ok(ApiResponse.success(bookIds));
     }
     
     /**
      * 新增收藏
      */
     @PostMapping("/{bookId}")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> addFavorite(
             @PathVariable Long bookId,
             @AuthenticationPrincipal UserDetailSecu currentUser) {
@@ -89,7 +87,6 @@ public class FavoriteController {
      * 取消收藏
      */
     @DeleteMapping("/{bookId}")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> removeFavorite(
             @PathVariable Long bookId,
             @AuthenticationPrincipal UserDetailSecu currentUser) {

@@ -19,7 +19,6 @@ import java.util.List;
 
 /**
  * 管理員書籍管理控制器
- *
  * 職責說明:
  * 1. 提供管理員專用的書籍查詢和管理功能
  * 2. 支援更豐富的搜尋條件，包括模糊搜尋
@@ -29,6 +28,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/books")
 @CrossOrigin(origins = "*")
+@PreAuthorize("hasAuthority('ROLE_ADMIN')")
 public class AdminBookController {
 
     private final BookService bookService;
@@ -39,7 +39,6 @@ public class AdminBookController {
 
     /**
      * 管理員書籍搜尋與多重篩選 API
-     *
      * 支援比一般使用者更多的搜尋條件：
      * - 作者關鍵字模糊搜尋
      * - 出版商關鍵字模糊搜尋
@@ -98,7 +97,6 @@ public class AdminBookController {
      * 建立一本新書，包含所有複雜的關聯和業務邏輯
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookRespDtoOneDetails>> createBook(@RequestBody CreateBookDTO createBookDTO) {
         BookRespDtoOneDetails createdBookDto = bookService.createBook(createBookDTO);
         return ResponseEntity
@@ -108,9 +106,10 @@ public class AdminBookController {
 
     /**
      * 更新書籍資訊
+     * @param id 書籍 ID
+     * @return 成功訊息，包含更新後的書籍資訊
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookRespDtoOneDetails>> updateBook(
             @PathVariable Long id,
             @RequestBody CreateBookDTO updateBookDTO) {
@@ -120,19 +119,21 @@ public class AdminBookController {
 
     /**
      * 刪除書籍
+     * @param id 書籍 ID
+     * @return 刪除成功的訊息
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteBook(@PathVariable Long id) {
         bookService.deleteBook(id);
         return ResponseEntity.ok(ApiResponse.success("書籍刪除成功"));
     }
 
     /**
-     * 根據 ID 查詢書籍詳細資訊
+     * 查詢書籍詳細資訊
+     * @param id 書籍 ID
+     * @return 書籍詳細資訊
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookRespDtoOneDetails>> getBookById(@PathVariable Long id) {
         BookRespDtoOneDetails book = bookService.getBookById(id);
         return ResponseEntity.ok(ApiResponse.success(book));
@@ -140,9 +141,10 @@ public class AdminBookController {
 
     /**
      * 為指定書籍新增副本
+     * @param bookId 書籍 ID
+     * @return 成功訊息
      */
     @PostMapping("/{bookId}/copies")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<Void>> addBookCopy(
             @PathVariable Long bookId,
             @RequestBody CreateBookCopyDTO copyDTO) {

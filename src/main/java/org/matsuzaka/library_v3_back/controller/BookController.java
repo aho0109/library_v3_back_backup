@@ -130,10 +130,6 @@ public class BookController {
 
     /**
      * 新增書籍評論
-     * @param bookId
-     * @param currentUser
-     * @param request
-     * @return
      */
     @PostMapping("/{bookId}/reviews")
     @PreAuthorize("isAuthenticated()")
@@ -147,11 +143,6 @@ public class BookController {
 
     /**
      * 編輯書籍評論
-     * @param bookId
-     * @param reviewId
-     * @param currentUser
-     * @param request
-     * @return
      */
     @PutMapping("/{bookId}/reviews/{reviewId}")
     @PreAuthorize("isAuthenticated()")
@@ -166,10 +157,6 @@ public class BookController {
 
     /**
      * 刪除書籍評論
-     * @param bookId
-     * @param reviewId
-     * @param currentUser
-     * @return
      */
     @DeleteMapping("/{bookId}/reviews/{reviewId}")
     @PreAuthorize("isAuthenticated()")

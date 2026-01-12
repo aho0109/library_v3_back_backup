@@ -360,40 +360,66 @@ public class GlobalExceptionHandler {
             if (code.equals("2003")) {
                 return HttpStatus.UNAUTHORIZED; // 認證失敗
             }
-            if (code.equals("2004") || code.equals("2005") || code.equals("2006")) {
-                return HttpStatus.FORBIDDEN; // 帳號狀態問題
+            if (code.equals("2004") || code.equals("2005") || code.equals("2006") || code.equals("2012")) {
+                return HttpStatus.FORBIDDEN; // 帳號狀態問題、帳號鎖定
             }
             return HttpStatus.BAD_REQUEST;
         }
 
         // 3xxx: 圖書相關錯誤
         if (code.startsWith("3")) {
-            if (code.endsWith("01") || code.endsWith("03") || code.endsWith("05") ||
-                code.endsWith("06") || code.endsWith("07") || code.endsWith("08") ||
-                code.endsWith("09") || code.endsWith("10")) {
-                return HttpStatus.NOT_FOUND; // 資源不存在
+            // 資源不存在 (末尾為 01, 03, 05, 06, 07, 08, 09, 10)
+            if (code.equals("3001") || code.equals("3003") || code.equals("3005") ||
+                code.equals("3006") || code.equals("3007") || code.equals("3008") ||
+                code.equals("3009") || code.equals("3010")) {
+                return HttpStatus.NOT_FOUND;
             }
+            // 資源已存在 (3002, 3012, 3014, 3016, 3018)
+            if (code.equals("3002") || code.equals("3012") || code.equals("3014") ||
+                code.equals("3016") || code.equals("3018")) {
+                return HttpStatus.CONFLICT;
+            }
+            // 其他業務邏輯錯誤 (3004, 3011, 3013, 3015, 3017, 3019)
             return HttpStatus.BAD_REQUEST;
         }
 
         // 4xxx, 5xxx, 6xxx, 7xxx, 8xxx: 業務邏輯錯誤
         if (code.startsWith("4") || code.startsWith("5") ||
             code.startsWith("6") || code.startsWith("7") || code.startsWith("8")) {
+            // 記錄不存在 (末尾為 01, 04)
             if (code.endsWith("01") || code.endsWith("04")) {
-                return HttpStatus.NOT_FOUND; // 記錄不存在
+                return HttpStatus.NOT_FOUND;
+            }
+            // 未授權操作 (4009, 5008, 6005, 8002)
+            if (code.equals("4009") || code.equals("5008") ||
+                code.equals("6005") || code.equals("8002")) {
+                return HttpStatus.FORBIDDEN;
             }
             return HttpStatus.BAD_REQUEST;
         }
 
-        // 1xxx, 9xxx: 系統錯誤
-        if (code.equals("1002")) {
-            return HttpStatus.UNAUTHORIZED;
+        // 1xxx: 通用錯誤
+        if (code.startsWith("1")) {
+            if (code.equals("1002")) {
+                return HttpStatus.UNAUTHORIZED;
+            }
+            if (code.equals("1003")) {
+                return HttpStatus.FORBIDDEN;
+            }
+            if (code.equals("1004")) {
+                return HttpStatus.NOT_FOUND;
+            }
+            if (code.equals("1001") || code.equals("1005")) {
+                return HttpStatus.BAD_REQUEST;
+            }
+            if (code.equals("1006")) {
+                return HttpStatus.METHOD_NOT_ALLOWED;
+            }
         }
-        if (code.equals("1003")) {
-            return HttpStatus.FORBIDDEN;
-        }
-        if (code.equals("1004")) {
-            return HttpStatus.NOT_FOUND;
+
+        // 9xxx: 系統錯誤
+        if (code.startsWith("9")) {
+            return HttpStatus.INTERNAL_SERVER_ERROR;
         }
 
         return HttpStatus.INTERNAL_SERVER_ERROR;

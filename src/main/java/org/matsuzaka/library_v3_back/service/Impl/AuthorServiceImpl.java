@@ -1,7 +1,8 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.AuthorDTO;
+import org.matsuzaka.library_v3_back.exception.ErrorCode;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.Author;
 import org.matsuzaka.library_v3_back.model.repositoryDao.AuthorRepository;
 import org.matsuzaka.library_v3_back.service.AuthorService;
@@ -42,7 +43,8 @@ public class AuthorServiceImpl implements AuthorService {
     public AuthorDTO create(AuthorDTO dto) {
         // 檢查是否已存在
         if (authorRepository.findByName(dto.getName()).isPresent()) {
-            throw new IllegalArgumentException("作者已存在");
+            throw new org.matsuzaka.library_v3_back.exception.BusinessException(
+                ErrorCode.AUTHOR_ALREADY_EXISTS, "作者: " + dto.getName());
         }
         
         Author author = new Author();
@@ -56,8 +58,8 @@ public class AuthorServiceImpl implements AuthorService {
     @Override
     public AuthorDTO update(Long id, AuthorDTO dto) {
         Author author = authorRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("作者不存在"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHOR_NOT_FOUND, "作者ID: " + id));
+
         author.setName(dto.getName());
         Author updated = authorRepository.save(author);
         
@@ -67,13 +69,14 @@ public class AuthorServiceImpl implements AuthorService {
     @Override
     public void delete(Long id) {
         Author author = authorRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("作者不存在"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.AUTHOR_NOT_FOUND, "作者ID: " + id));
+
         // 檢查是否有書籍使用此作者
         if (!author.getBooks().isEmpty()) {
-            throw new IllegalStateException("無法刪除有書籍的作者");
+            throw new org.matsuzaka.library_v3_back.exception.BusinessException(
+                ErrorCode.AUTHOR_HAS_BOOKS);
         }
-        
+
         authorRepository.delete(author);
     }
 

@@ -15,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/reservations")
 @CrossOrigin(origins = "*")
+@PreAuthorize("isAuthenticated()")
 public class ReservationController {
 
     private final ReservationService reservationService;
@@ -23,8 +24,13 @@ public class ReservationController {
         this.reservationService = reservationService;
     }
 
+    /**
+     * 預約書籍副本
+     * @param currentUser 由 Spring Security 從有效的 JWT 中解析並安全注入的使用者物件。
+     * @param request 包含 bookCopyId 的預約請求 DTO
+     * @return 預約操作的結果
+     */
     @PostMapping("/reserve")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> reserveBookCopy(
             @AuthenticationPrincipal UserDetailSecu currentUser,
             @RequestBody ReservationRequestDto request) {
@@ -32,8 +38,13 @@ public class ReservationController {
         return ResponseEntity.ok(ApiResponse.success("預約成功"));
     }
 
+    /**
+     * 取消預約書籍副本
+     * @param currentUser 由 Spring Security 從有效的 JWT 中解析並安全注入的使用者物件。
+     * @param id 要取消預約的預約 ID
+     * @return 取消預約操作的結果
+     */
     @DeleteMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> cancelReservation(
             @AuthenticationPrincipal UserDetailSecu currentUser,
             @PathVariable Long id) {
@@ -41,8 +52,12 @@ public class ReservationController {
         return ResponseEntity.ok(ApiResponse.success("取消預約成功"));
     }
 
+    /**
+     * 獲取當前使用者所有預約列表
+     * @param currentUser 由 Spring Security 從有效的 JWT 中解析並安全注入的使用者物件。
+     * @return 當前使用者所有預約列表
+     */
     @GetMapping("/my")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<ReservationResponseDto>>> getMyReservations(
             @AuthenticationPrincipal UserDetailSecu currentUser) {
         List<ReservationResponseDto> reservations = reservationService.getUserReservations(currentUser.getUser().getId());

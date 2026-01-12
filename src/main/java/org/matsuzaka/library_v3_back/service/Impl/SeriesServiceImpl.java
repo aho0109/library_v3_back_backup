@@ -1,7 +1,9 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.SeriesDTO;
+import org.matsuzaka.library_v3_back.exception.BusinessException;
+import org.matsuzaka.library_v3_back.exception.ErrorCode;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.Series;
 import org.matsuzaka.library_v3_back.model.repositoryDao.SeriesRepository;
 import org.matsuzaka.library_v3_back.service.SeriesService;
@@ -42,7 +44,7 @@ public class SeriesServiceImpl implements SeriesService {
     public SeriesDTO create(SeriesDTO dto) {
         // 檢查是否已存在
         if (seriesRepository.findByTitle(dto.getTitle()).isPresent()) {
-            throw new IllegalArgumentException("系列已存在");
+            throw new BusinessException(ErrorCode.SERIES_ALREADY_EXISTS, "系列: " + dto.getTitle());
         }
         
         Series series = new Series();
@@ -55,8 +57,8 @@ public class SeriesServiceImpl implements SeriesService {
     @Override
     public SeriesDTO update(Long id, SeriesDTO dto) {
         Series series = seriesRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("系列不存在"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SERIES_NOT_FOUND, "系列ID: " + id));
+
         series.setTitle(dto.getTitle());
         Series updated = seriesRepository.save(series);
         
@@ -66,11 +68,11 @@ public class SeriesServiceImpl implements SeriesService {
     @Override
     public void delete(Long id) {
         Series series = seriesRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("系列不存在"));
-        
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SERIES_NOT_FOUND, "系列ID: " + id));
+
         // 檢查是否有書籍使用此系列
         if (!series.getBooks().isEmpty()) {
-            throw new IllegalStateException("無法刪除有書籍的系列");
+            throw new BusinessException(ErrorCode.SERIES_HAS_BOOKS);
         }
         
         seriesRepository.delete(series);

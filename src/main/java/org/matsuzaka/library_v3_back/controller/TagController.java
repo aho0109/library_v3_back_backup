@@ -1,5 +1,6 @@
 package org.matsuzaka.library_v3_back.controller;
 
+import org.matsuzaka.library_v3_back.dto.common.ApiResponse;
 import org.matsuzaka.library_v3_back.dto.TagDTO;
 import org.matsuzaka.library_v3_back.dto.TagTop10DTO;
 import org.matsuzaka.library_v3_back.service.TagService;
@@ -18,67 +19,69 @@ import java.util.Set;
 public class TagController {
 
     private final TagService tagService;
+
     public TagController(TagService tagService) {
         this.tagService = tagService;
     }
 
     /**
-     * 查詢熱門標籤前十名。
-     * @return 熱門標籤列表
+     * 查詢熱門標籤前十名
      */
     @GetMapping({"/home/top10", "/home/top10/{categoryId}"})
-    public List<TagTop10DTO> getTop10(@PathVariable(value = "categoryId", required = false) Long categoryId) {
-        return tagService.getTop10(categoryId);
+    public ResponseEntity<ApiResponse<List<TagTop10DTO>>> getTop10(
+            @PathVariable(value = "categoryId", required = false) Long categoryId) {
+        List<TagTop10DTO> tags = tagService.getTop10(categoryId);
+        return ResponseEntity.ok(ApiResponse.success(tags));
     }
 
     /**
      * 查詢所有標籤。
-     * @return 所有標籤列表
      */
     @GetMapping
-    public Set<TagDTO> getAll() {
+    public ResponseEntity<ApiResponse<Set<TagDTO>>> getAll() {
         Set<TagDTO> result = new LinkedHashSet<>(tagService.getAll());
-        return result;
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    /**
+     * 根據關鍵字搜尋標籤。
+     */
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<List<TagDTO>> search(@RequestParam String keyword) {
+    public ResponseEntity<ApiResponse<List<TagDTO>>> search(@RequestParam String keyword) {
         List<TagDTO> results = tagService.searchByKeyword(keyword);
-        return ResponseEntity.ok(results);
+        return ResponseEntity.ok(ApiResponse.success(results));
     }
 
+    /**
+     * 新增標籤。
+     */
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<?> create(@RequestBody TagDTO dto) {
-        try {
-            TagDTO created = tagService.create(dto);
-            return new ResponseEntity<>(created, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<TagDTO>> create(@RequestBody TagDTO dto) {
+        TagDTO created = tagService.create(dto);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("標籤新增成功", created));
     }
 
+    /**
+     * 更新標籤。
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody TagDTO dto) {
-        try {
-            TagDTO updated = tagService.update(id, dto);
-            return ResponseEntity.ok(updated);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<TagDTO>> update(@PathVariable Long id, @RequestBody TagDTO dto) {
+        TagDTO updated = tagService.update(id, dto);
+        return ResponseEntity.ok(ApiResponse.success("標籤更新成功", updated));
     }
 
+    /**
+     * 刪除標籤。
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<String> delete(@PathVariable Long id) {
-        try {
-            tagService.delete(id);
-            return ResponseEntity.ok("標籤刪除成功");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+        tagService.delete(id);
+        return ResponseEntity.ok(ApiResponse.success("標籤刪除成功"));
     }
-
 }

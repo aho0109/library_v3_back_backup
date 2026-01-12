@@ -1,7 +1,9 @@
 package org.matsuzaka.library_v3_back.service.Impl;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.matsuzaka.library_v3_back.dto.notificationDTO.NotificationResponseDto;
+import org.matsuzaka.library_v3_back.exception.BusinessException;
+import org.matsuzaka.library_v3_back.exception.ErrorCode;
+import org.matsuzaka.library_v3_back.exception.ResourceNotFoundException;
 import org.matsuzaka.library_v3_back.model.entity.Notification;
 import org.matsuzaka.library_v3_back.model.entity.User;
 import org.matsuzaka.library_v3_back.model.enums.NotificationType;
@@ -30,7 +32,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void sendTestNotification(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到使用者"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
         // 1. 儲存站內通知
         Notification notification = new Notification();
         notification.setUser(user);
@@ -78,9 +80,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void markAsRead(Long notificationId, Long userId) {
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new EntityNotFoundException("找不到通知記錄"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.NOTIFICATION_NOT_FOUND, "通知ID: " + notificationId));
         if (!notification.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("無權限執行此操作");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "無權限執行此操作");
         }
         notification.setIsRead(true);
         notificationRepository.save(notification);

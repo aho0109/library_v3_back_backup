@@ -1,6 +1,6 @@
 package org.matsuzaka.library_v3_back.controller;
 
-
+import org.matsuzaka.library_v3_back.dto.common.ApiResponse;
 import org.matsuzaka.library_v3_back.dto.AuthorDTO;
 import org.matsuzaka.library_v3_back.service.AuthorService;
 import org.springframework.http.HttpStatus;
@@ -18,18 +18,18 @@ import java.util.Set;
 public class AuthorController {
 
     private final AuthorService authorService;
+
     public AuthorController(AuthorService authorService) {
         this.authorService = authorService;
     }
 
     /**
-     * 查詢所有作者。
-     * @return 所有作者列表
+     * 查詢所有作者
      */
     @GetMapping
-    public Set<AuthorDTO> getAll() {
+    public ResponseEntity<ApiResponse<Set<AuthorDTO>>> getAll() {
         Set<AuthorDTO> result = new LinkedHashSet<>(authorService.getAll());
-        return result;
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 
     /**
@@ -37,9 +37,9 @@ public class AuthorController {
      */
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<List<AuthorDTO>> search(@RequestParam String keyword) {
+    public ResponseEntity<ApiResponse<List<AuthorDTO>>> search(@RequestParam String keyword) {
         List<AuthorDTO> results = authorService.searchByKeyword(keyword);
-        return ResponseEntity.ok(results);
+        return ResponseEntity.ok(ApiResponse.success(results));
     }
 
     /**
@@ -47,13 +47,11 @@ public class AuthorController {
      */
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<?> create(@RequestBody AuthorDTO dto) {
-        try {
-            AuthorDTO created = authorService.create(dto);
-            return new ResponseEntity<>(created, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<AuthorDTO>> create(@RequestBody AuthorDTO dto) {
+        AuthorDTO created = authorService.create(dto);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("作者新增成功", created));
     }
 
     /**
@@ -61,13 +59,9 @@ public class AuthorController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody AuthorDTO dto) {
-        try {
-            AuthorDTO updated = authorService.update(id, dto);
-            return ResponseEntity.ok(updated);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<AuthorDTO>> update(@PathVariable Long id, @RequestBody AuthorDTO dto) {
+        AuthorDTO updated = authorService.update(id, dto);
+        return ResponseEntity.ok(ApiResponse.success("作者更新成功", updated));
     }
 
     /**
@@ -75,13 +69,8 @@ public class AuthorController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<String> delete(@PathVariable Long id) {
-        try {
-            authorService.delete(id);
-            return ResponseEntity.ok("作者刪除成功");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+        authorService.delete(id);
+        return ResponseEntity.ok(ApiResponse.success("作者刪除成功"));
     }
-
 }

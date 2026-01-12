@@ -24,6 +24,8 @@ DROP TABLE IF EXISTS publisher;;
 DROP TABLE IF EXISTS user_detail;;
 DROP TABLE IF EXISTS user;;
 
+-- TODO: 決定好外鍵是否可為 null 和 是否 ON DELETE CASCADE
+
 -- 1. user 表
 -- 新增 penalty_points 用於處罰機制
 -- role 擴展支援市民

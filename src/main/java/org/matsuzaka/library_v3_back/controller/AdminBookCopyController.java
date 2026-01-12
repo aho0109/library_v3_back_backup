@@ -1,11 +1,10 @@
 package org.matsuzaka.library_v3_back.controller;
 
-
-import org.matsuzaka.library_v3_back.dto.loanDTO.ReturnRequestDto;
-import org.matsuzaka.library_v3_back.dto.loanDTO.ReturnResponseDto;
+import org.matsuzaka.library_v3_back.dto.common.ApiResponse;
 import org.matsuzaka.library_v3_back.dto.queryDTO.BookCopyDTO;
 import org.matsuzaka.library_v3_back.service.BookCopyService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin") // url 基本上延續 AdminBookController
 @CrossOrigin(origins = "*")
+@PreAuthorize("hasAuthority('ROLE_ADMIN')")
 public class AdminBookCopyController {
 
     private final BookCopyService bookCopyService;
@@ -31,51 +31,41 @@ public class AdminBookCopyController {
 
     /**
      * 查詢指定書籍的所有副本
-     *
      * @param bookId 書籍ID
-     * @return 副本列表
      */
     @GetMapping("/books/{bookId}/copies")
-    public ResponseEntity<List<BookCopyDTO>> getBookCopies(@PathVariable Long bookId) {
+    public ResponseEntity<ApiResponse<List<BookCopyDTO>>> getBookCopies(@PathVariable Long bookId) {
         List<BookCopyDTO> copies = bookCopyService.getBookCopies(bookId);
-        return ResponseEntity.ok(copies);
+        return ResponseEntity.ok(ApiResponse.success(copies));
     }
 
     /**
      * 刪除書籍副本
-     *
      * @param copyId 副本ID
-     * @return 操作結果
      */
     @DeleteMapping("/book-copies/{copyId}")
-    public ResponseEntity<String> deleteBookCopy(@PathVariable Long copyId) {
+    public ResponseEntity<ApiResponse<Void>> deleteBookCopy(@PathVariable Long copyId) {
         bookCopyService.deleteBookCopy(copyId);
-        return ResponseEntity.ok("副本刪除成功");
+        return ResponseEntity.ok(ApiResponse.success("副本刪除成功"));
     }
 
     /**
      * 查詢副本借閱記錄
+     * @param copyId 副本ID
      */
     @GetMapping("/book-copies/{copyId}/loan-history")
-    public ResponseEntity<?> getBookCopyLoanHistory(@PathVariable Long copyId) {
-        try {
-            List<?> history = bookCopyService.getBookCopyLoanHistory(copyId);
-            return ResponseEntity.ok(history);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<List<?>>> getBookCopyLoanHistory(@PathVariable Long copyId) {
+        List<?> history = bookCopyService.getBookCopyLoanHistory(copyId);
+        return ResponseEntity.ok(ApiResponse.success(history));
     }
 
     /**
      * 查詢副本預約記錄
+     * @param copyId 副本ID
      */
     @GetMapping("/book-copies/{copyId}/reservation-history")
-    public ResponseEntity<?> getBookCopyReservationHistory(@PathVariable Long copyId) {
-        try {
-            List<?> history = bookCopyService.getBookCopyReservationHistory(copyId);
-            return ResponseEntity.ok(history);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<List<?>>> getBookCopyReservationHistory(@PathVariable Long copyId) {
+        List<?> history = bookCopyService.getBookCopyReservationHistory(copyId);
+        return ResponseEntity.ok(ApiResponse.success(history));
     }
 }

@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/users") // 使用 /api/users 作為使用者相關 API 的根路徑
+@RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
 public class UserController {
 
@@ -35,13 +35,18 @@ public class UserController {
         this.userMapper = userMapper;
     }
 
+    // 測試用
     @GetMapping("/test/findAllUsers")
     public List<User> findAllUser() {
         return userService.getAllUserService();
     }
 
 
-    // 註冊
+    /**
+     * 註冊
+     * @param request
+     * @return
+     */
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<Void>> registerUser(@Valid @RequestBody UserRegistrationRequest request) {
         userService.registerUser(request);
