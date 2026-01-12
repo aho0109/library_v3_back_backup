@@ -63,7 +63,7 @@ public class BookController {
      * @return 包含書籍列表和分頁資訊的 HTTP 200 OK 回應
      */
     @GetMapping
-    public ResponseEntity<BookSearchResponseDTO> searchBooksAndStats(
+    public ResponseEntity<ApiResponse<BookSearchResponseDTO>> searchBooksAndStats(
                                                                       @RequestParam(required = false) String keyword,
                                                                       @RequestParam(required = false) Long mainCategoryId,
                                                                       @RequestParam(required = false) Long subCategoryId,
@@ -87,8 +87,10 @@ public class BookController {
 
         // 返回包含分頁資料的 HTTP OK 回應
         //return ResponseEntity.ok(books);
-//        PageResponseDTO<BookListItemDTO> response = PageResponseDTO.fromPage(booksPage);
-        return ResponseEntity.ok(response);
+        //PageResponseDTO<BookListItemDTO> response = PageResponseDTO.fromPage(booksPage);
+        //return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
+
     }
 
 
@@ -99,8 +101,10 @@ public class BookController {
      * @return 所有書籍列表
      */
     @GetMapping({"/home/top5loan", "/home/top5loan/{categoryId}"})
-    public List<BookListItemDTO> getTop5Loan(@PathVariable(value = "categoryId", required = false) Long categoryId) {
-        return bookServiceBasic.getTop5Loan(categoryId);
+    public ResponseEntity<ApiResponse<List<BookListItemDTO>>> getTop5Loan(
+            @PathVariable(value = "categoryId", required = false) Long categoryId) {
+        List<BookListItemDTO> books = bookServiceBasic.getTop5Loan(categoryId);
+        return ResponseEntity.ok(ApiResponse.success(books));
     }
 
     /**
@@ -109,20 +113,22 @@ public class BookController {
      * @return 最新上架前五名的書籍列表
      */
     @GetMapping({"/home/top5new", "/home/top5new/{categoryId}"})
-    public List<BookListItemDTO> getTop5New(@PathVariable(value = "categoryId", required = false) Long categoryId) {
-        return bookServiceBasic.getTop5New(categoryId);
+    public ResponseEntity<ApiResponse<List<BookListItemDTO>>> getTop5New(
+            @PathVariable(value = "categoryId", required = false) Long categoryId) {
+        List<BookListItemDTO> books = bookServiceBasic.getTop5New(categoryId);
+        return ResponseEntity.ok(ApiResponse.success(books));
     }
 
-
     /**
-     * 根據書籍ID查詢詳細資訊(for 讀者端)。
+     * 根據書籍 ID 查詢詳細資訊(for 讀者端)。
      * 使用 JOIN FETCH 來避免 N+1 問題，確保在查詢書籍時，同時載入相關的作者、出版社、系列、分類子項、分類、書籍副本和標籤等關聯實體。
      * 參與到的table有：book, author, publisher, series, category, categorySub, bookCopy, tag
      */
     @GetMapping("/{id}")
-    public ResponseEntity<BookRespDtoOneDetails> getOneByIdWithDetails(@PathVariable("id") Long id) {
+    public ResponseEntity<ApiResponse<BookRespDtoOneDetails>> getOneByIdWithDetails(@PathVariable("id") Long id) {
         return bookServiceBasic.getOneByIdWithDetails(id)
-                .map(ResponseEntity::ok)
+                //.map(ResponseEntity::ok)
+                .map(book -> ResponseEntity.ok(ApiResponse.success(book)))
                 .orElse(ResponseEntity.notFound().build());
     }
 

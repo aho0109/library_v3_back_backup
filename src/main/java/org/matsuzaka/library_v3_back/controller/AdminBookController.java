@@ -63,7 +63,7 @@ public class AdminBookController {
      * @return 包含書籍列表、分頁資訊和統計資料的回應
      */
     @GetMapping
-    public ResponseEntity<BookSearchResponseDTO> searchBooksForAdmin(
+    public ResponseEntity<ApiResponse<BookSearchResponseDTO>> searchBooksForAdmin(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long mainCategoryId,
             @RequestParam(required = false) Long subCategoryId,
@@ -90,7 +90,7 @@ public class AdminBookController {
 
         // 執行搜尋並返回結果
         BookSearchResponseDTO response = bookService.searchAndFilterBooks(params, pageable);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**

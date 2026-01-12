@@ -1,8 +1,6 @@
 package org.matsuzaka.library_v3_back.security;
 
-// 引入 LoginRequest DTO
-// 引入 LoginResponse DTO
-
+import org.matsuzaka.library_v3_back.dto.common.ApiResponse;
 import org.matsuzaka.library_v3_back.dto.userDTO.LoginRequest;
 import org.matsuzaka.library_v3_back.dto.userDTO.LoginResponse;
 import org.springframework.http.ResponseEntity;
@@ -17,12 +15,12 @@ import org.springframework.web.bind.annotation.*;
 // 認證相關的 API
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*") /* TODO: 其他地方沒加也可以，為何這裡要加？*/
+@CrossOrigin(origins = "*")
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
-    private final UserDetailSecuService userDetailSecuService; // 注入 CustomUserDetailsService
+    private final UserDetailSecuService userDetailSecuService; // 自定義的
 
     public AuthController(AuthenticationManager authenticationManager, JwtUtil jwtUtil, UserDetailSecuService userDetailSecuService) {
         this.authenticationManager = authenticationManager;
@@ -31,8 +29,13 @@ public class AuthController {
     }
 
     // 接收前端傳來的 JSON 資料，具體：使用 @RequestBody 將 JSON 轉換為 LoginRequest 物件
+    /**
+     * 登入 API
+     * @param loginRequest 包含帳號和密碼的登入請求
+     * @return 包含 JWT 的登入回應
+     */
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest loginRequest) {
         // 1. 嘗試認證使用者
         // 呼叫 AuthenticationManager.authenticate() 方法，並傳入一個 UsernamePasswordAuthenticationToken 物件，其中包含使用者帳號和原始密碼。
         // 在 authenticationManager.authenticate 的內部流程中，就已經自動完成驗證了
@@ -66,17 +69,19 @@ public class AuthController {
         // 傳入完整的 userDetails 物件。jwtUtil 會自動將 userId、username 和 role 全部打包進 token。
         String jwt = jwtUtil.generateToken(userDetails);
 
-        /*// 5. 從 CustomUserDetails 獲取 userId 和 role
+        /*
+        // 5. 從 CustomUserDetails 獲取 userId 和 role
         Long userId = null;
         String role = null;
         userId = userDetails.getUser().getId(); // 獲取底層 User 實體的 ID
         role = userDetails.getUser().getRole(); // 獲取底層 User 實體的 Role
 
         // 6. 返回 JWT 和使用者資訊給前端
-        return ResponseEntity.ok(new LoginResponse(jwt, userId, role));*/
+        return ResponseEntity.ok(new LoginResponse(jwt, userId, role));
+        */
 
         // 5. 返回一個只包含 JWT 的 LoginResponse。
         //    這一步徹底杜絕了前端儲存獨立身份資訊的可能性，從根源上解決了安全漏洞。
-        return ResponseEntity.ok(new LoginResponse(jwt));
+        return ResponseEntity.ok(ApiResponse.success("登入成功", new LoginResponse(jwt)));
     }
 }
