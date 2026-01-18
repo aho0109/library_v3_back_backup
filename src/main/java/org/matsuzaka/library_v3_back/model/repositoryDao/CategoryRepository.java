@@ -13,7 +13,8 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     Optional<Category> findByCategoryTitle(String categoryTitle);
 
-    /* * 查詢所有分類
+    /**
+     * 查詢所有分類
      * 預計內涵 subCategory 的資料
      * @return 所有分類列表
      */

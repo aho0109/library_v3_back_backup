@@ -14,21 +14,21 @@ import java.util.Optional;
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
     
-    // Find active reservation for user and book copy
+    // 依據 userId、bookCopyId 和多個 status 找出預約紀錄
     List<Reservation> findByUserIdAndBookCopyIdAndStatusIn(Long userId, Long bookCopyId, List<ReservationStatus> statuses);
 
-    // Find expired reservations
+    // 依據 status 和 expirationDate 找出過期的預約紀錄
     List<Reservation> findByStatusAndExpirationDateBefore(ReservationStatus status, LocalDate date);
 
-    // Find user's reservations by status
+    // 依據 userId 和多個 status 找出預約紀錄(for USER)
     List<Reservation> findByUserIdAndStatusIn(Long userId, List<ReservationStatus> statuses);
 
-    // Find user's reservations 管理員用
+    // 管理員用
     List<Reservation> findByUserId(Long userId);
 
-    // Find reservations for a book copy sorted by queue position (for PENDING)
+    // 依據 bookCopyId 和 status 找出預約，並依 queuePosition 升冪排序
     List<Reservation> findByBookCopyIdAndStatusOrderByQueuePositionAsc(Long bookCopyId, ReservationStatus status);
     
-    // Find max queue position for a book copy
+    // 依據 bookCopyId 找出最大的 queuePosition
     Optional<Reservation> findFirstByBookCopyIdAndStatusOrderByQueuePositionDesc(Long bookCopyId, ReservationStatus status);
 }

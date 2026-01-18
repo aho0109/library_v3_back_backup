@@ -24,6 +24,8 @@ public interface BookMapper { // 要將 Book 實體映射到 BookRespDtoOneDetai
     // 這樣你就可以在其他地方使用 BookMapper.INSTANCE 來調用映射方法。
     // 這個 INSTANCE 是一個靜態常量，代表了 BookMapper 的實例。
     // 這樣的設計使得你可以在應用程式的任何地方輕鬆地使用這個 Mapper，而不需要每次都創建新的實例。
+    // 注意：如果你使用的是 Spring 框架，並且在 @Mapper 註解中指定了 componentModel = "spring"，
+    // 那麼你應該通過 Spring 的依賴注入機制來獲取 BookMapper 的實例，而不是使用 BookMapper.INSTANCE。
     BookMapper INSTANCE = Mappers.getMapper(BookMapper.class);
 
     // 定義 Book 實體到 BookDetailDto 的映射規則

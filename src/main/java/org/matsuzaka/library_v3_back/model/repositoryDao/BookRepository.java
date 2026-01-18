@@ -64,6 +64,8 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
      * @param categoryId 分類ID
      * @return 借閱量前五名的書籍列表
      */
+    // JOIN FETCH / @EntityGraph 能在特定查詢時覆蓋 entity 預設值(fetch = FetchType.LAZY)
+    // 強迫當下立即載入，以解決 LAZY 造成的 N+1 效能問題
     @Query(value = "SELECT b FROM Book b " +
            "JOIN FETCH b.authors a " +
            "JOIN FETCH b.publisher p " +
