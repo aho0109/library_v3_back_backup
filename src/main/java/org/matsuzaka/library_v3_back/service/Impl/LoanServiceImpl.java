@@ -252,6 +252,28 @@ public class LoanServiceImpl implements LoanService {
             throw new BusinessException(ErrorCode.UNAUTHORIZED_LOAN_OPERATION);
         }
         
+        // 檢查使用者狀態
+        User user = loan.getUser();
+
+        // 檢查停權狀態（與借書邏輯一致）
+        if (user.getStatus() == UserStatus.SUSPENDED) {
+            // 檢查停權是否已過期
+            if (user.getSuspendedUntil() != null && user.getSuspendedUntil().isAfter(LocalDateTime.now())) {
+                throw new BusinessException(ErrorCode.USER_SUSPENDED,
+                    "停權至: " + user.getSuspendedUntil());
+            } else {
+                // 解除停權
+                user.setStatus(UserStatus.ACTIVE);
+                user.setSuspendedUntil(null);
+                userRepository.save(user);
+            }
+        }
+
+        // 檢查帳號啟用狀態
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.USER_NOT_ACTIVATED);
+        }
+
         if (loan.getStatus() != LoanStatus.ON_LOAN) {
             throw new BusinessException(ErrorCode.NOT_ON_LOAN_STATUS);
         }

@@ -42,11 +42,26 @@ public class ReservationServiceImpl implements ReservationService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "使用者ID: " + userId));
 
+        // 2. 檢查停權狀態（與借書邏輯一致）
+        if (user.getStatus() == UserStatus.SUSPENDED) {
+            // 檢查停權是否已過期
+            if (user.getSuspendedUntil() != null && user.getSuspendedUntil().isAfter(LocalDateTime.now())) {
+                throw new BusinessException(ErrorCode.USER_SUSPENDED,
+                    "停權至: " + user.getSuspendedUntil());
+            } else {
+                // 解除停權
+                user.setStatus(UserStatus.ACTIVE);
+                user.setSuspendedUntil(null);
+                userRepository.save(user);
+            }
+        }
+
+        // 3. 檢查帳號啟用狀態
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new BusinessException(ErrorCode.USER_NOT_ACTIVATED);
         }
 
-        // 2. 檢查預約額度：一般民眾 5 本，市民 10 本
+        // 4. 檢查預約額度：一般民眾 5 本，市民 10 本
         int limit = user.getRole() == Role.ROLE_CITIZEN ? 10 : 5;
         List<Reservation> userReservations = reservationRepository.findByUserIdAndStatusIn(userId, 
                 List.of(ReservationStatus.PENDING, ReservationStatus.AVAILABLE));
@@ -54,35 +69,35 @@ public class ReservationServiceImpl implements ReservationService {
             throw new BusinessException(ErrorCode.RESERVATION_LIMIT_EXCEEDED, "上限：" + limit + " 本");
         }
 
-        // 3. 驗證書籍副本
+        // 5. 驗證書籍副本
         BookCopy bookCopy = bookCopyRepository.findById(bookCopyId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.BOOK_COPY_NOT_FOUND, "副本ID: " + bookCopyId));
 
-        // 4. 檢查副本狀態：只有 L（已借出），R（已預約等候取書) 的副本才能預約
+        // 6. 檢查副本狀態：只有 L（已借出），R（已預約等候取書) 的副本才能預約
         if (bookCopy.getStatus() == BookCopyStatus.A || bookCopy.getStatus() == BookCopyStatus.P || bookCopy.getStatus() == BookCopyStatus.U) {
             throw new BusinessException(ErrorCode.BOOK_AVAILABLE_NO_RESERVATION, "目前狀態：" + bookCopy.getStatus());
         }
 
-        // 4.5 檢查使用者本人是否就是目前借閱者
+        // 7. 檢查使用者本人是否就是目前借閱者
         if (bookCopy.getLoans() != null && bookCopy.getLoans().getFirst().getUser().getId().equals(userId)) {
             throw new BusinessException(ErrorCode.CANNOT_RESERVE_OWN_LOAN);
         }
 
-        // 5. 檢查是否已預約此副本
+        // 8. 檢查是否已預約此副本
         boolean alreadyReserved = userReservations.stream()
                 .anyMatch(r -> r.getBookCopy().getId().equals(bookCopyId));
         if (alreadyReserved) {
             throw new BusinessException(ErrorCode.ALREADY_RESERVED);
         }
 
-        // 6. 計算排隊位置
+        // 9. 計算排隊位置
         List<Reservation> existingQueue = reservationRepository.findByBookCopyIdAndStatusOrderByQueuePositionAsc(
                 bookCopyId, ReservationStatus.PENDING);
         
         int queuePosition = existingQueue.isEmpty() ? 1 : 
                 existingQueue.get(existingQueue.size() - 1).getQueuePosition() + 1;
 
-        // 7. 創建預約記錄
+        // 10. 創建預約記錄
         Reservation reservation = new Reservation();
         reservation.setUser(user);
         reservation.setBookCopy(bookCopy);
@@ -92,8 +107,8 @@ public class ReservationServiceImpl implements ReservationService {
         
         reservationRepository.save(reservation);
 
-        // 8. 發送通知
-        notificationService.sendNotification(user, NotificationType.RESERVE_SUCCESS, 
+        // 11. 發送通知
+        notificationService.sendNotification(user, NotificationType.RESERVE_SUCCESS,
                 "預約成功", 
                 "您已成功預約《" + bookCopy.getBook().getTitle() + "》（副本編號：" + bookCopy.getUniqueCode() + "），" +
                 "目前排隊位置：第 " + queuePosition + " 位。書籍歸還後將依序通知取書。", 
